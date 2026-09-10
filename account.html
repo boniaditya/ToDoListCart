@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>My Account - ToDoList Cart</title>
+    <link rel="stylesheet" href="newtab.css">
+  </head>
+  <body>
+    <main class="store-shell account-shell" aria-labelledby="account-title">
+      <header class="store-header">
+        <div class="top-row">
+          <div class="brand" aria-label="ToDoList Cart home">
+            <span class="brand-name">ToDoList Cart</span>
+            <span class="brand-domain">.tasks</span>
+          </div>
+
+          <div class="detail-search-spacer"></div>
+
+          <div class="author-pill">by boni aditya</div>
+
+          <button type="button" class="page-link-button" id="open-home-page">Workspace</button>
+          <button type="button" class="page-link-button" id="open-products-page">Products</button>
+          <button type="button" class="page-link-button" id="open-orders-page">Orders</button>
+
+          <button type="button" class="cart-button" id="cart-jump" aria-label="Cart count">
+            <span class="cart-icon" aria-hidden="true"></span>
+            <strong id="cart-count">0</strong>
+            <span>Cart</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="hero-strip catalog-hero" aria-label="Account overview">
+        <div>
+          <p>My account</p>
+          <h1 id="account-title">Plugin settings</h1>
+        </div>
+        <div class="hero-stats" aria-live="polite">
+          <span id="account-products-count">0 products</span>
+          <span id="account-carts-count">0 carts</span>
+          <span id="account-orders-count">0 orders</span>
+        </div>
+      </section>
+
+      <section class="account-layout" aria-label="Account settings">
+        <form id="settings-form" class="settings-card" autocomplete="off">
+          <div class="section-heading">
+            <h2>Profile</h2>
+          </div>
+
+          <label>
+            Account name
+            <input id="setting-account-name" type="text" maxlength="48" required>
+          </label>
+
+          <label>
+            Store name
+            <input id="setting-store-name" type="text" maxlength="48" required>
+          </label>
+
+          <div class="section-heading settings-subhead">
+            <h2>Product Defaults</h2>
+          </div>
+
+          <div class="settings-grid">
+            <label>
+              Default category
+              <select id="setting-default-department"></select>
+            </label>
+
+            <fieldset class="priority-toggle settings-priority-toggle" aria-label="Default priority">
+              <legend>Default priority</legend>
+              <label>
+                <input type="radio" name="setting-default-priority" value="standard">
+                <span>Standard</span>
+              </label>
+              <label>
+                <input type="radio" name="setting-default-priority" value="important">
+                <span>Important</span>
+              </label>
+              <label>
+                <input type="radio" name="setting-default-priority" value="urgent">
+                <span>Urgent</span>
+              </label>
+            </fieldset>
+
+            <label>
+              Default MOQ
+              <input id="setting-default-moq" type="number" min="1" step="1" inputmode="numeric" required>
+            </label>
+
+            <label>
+              Default dollar amount
+              <input id="setting-default-price" type="number" min="0" step="0.01" inputmode="decimal" required>
+            </label>
+          </div>
+
+          <div class="section-heading settings-subhead">
+            <h2>Categories</h2>
+          </div>
+
+          <ul id="account-category-list" class="account-category-list"></ul>
+
+          <div id="account-category-form" class="category-form">
+            <label for="account-category-name">New category</label>
+            <input id="account-category-name" type="text" maxlength="32" placeholder="Marketing">
+            <button type="button" id="account-add-category" class="secondary-button">Add Category</button>
+          </div>
+
+          <div class="section-heading settings-subhead">
+            <h2>Checkout & Display</h2>
+          </div>
+
+          <label>
+            After checkout
+            <select id="setting-checkout-behavior">
+              <option value="keep">Keep items in cart as checked out</option>
+              <option value="clear">Clear checked-out cart items</option>
+            </select>
+          </label>
+
+          <label class="settings-toggle">
+            <input id="setting-show-images" type="checkbox">
+            <span>Show product images across the extension</span>
+          </label>
+
+          <label class="settings-toggle">
+            <input id="setting-compact-mode" type="checkbox">
+            <span>Use compact product cards</span>
+          </label>
+
+          <div class="settings-actions">
+            <button type="submit" class="primary-button">Save Settings</button>
+            <button type="button" id="reset-settings" class="secondary-button">Reset Defaults</button>
+          </div>
+
+          <p id="settings-status" class="settings-status" aria-live="polite"></p>
+        </form>
+      </section>
+    </main>
+
+    <script src="store.js"></script>
+    <script src="account.js"></script>
+  </body>
+</html>

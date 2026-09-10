@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Product Details - ToDoList Cart</title>
+    <link rel="stylesheet" href="newtab.css">
+  </head>
+  <body>
+    <main class="store-shell detail-shell" aria-labelledby="detail-title">
+      <header class="store-header">
+        <div class="top-row">
+          <div class="brand" aria-label="ToDoList Cart home">
+            <span class="brand-name">ToDoList Cart</span>
+            <span class="brand-domain">.tasks</span>
+          </div>
+
+          <div class="detail-search-spacer"></div>
+
+          <div class="author-pill">by boni aditya</div>
+
+          <button type="button" class="page-link-button" id="open-products-page">Products</button>
+          <button type="button" class="page-link-button" id="open-home-page">Workspace</button>
+          <button type="button" class="page-link-button" id="open-orders-page">Orders</button>
+          <button type="button" class="page-link-button" id="open-account-page">Account</button>
+
+          <button type="button" class="cart-button" aria-label="Cart count">
+            <span class="cart-icon" aria-hidden="true"></span>
+            <strong id="cart-count">0</strong>
+            <span>Cart</span>
+          </button>
+        </div>
+      </header>
+
+      <section id="missing-product" class="empty-state detail-missing" hidden>
+        <strong>Product not found</strong>
+        <span>This product may have been deleted.</span>
+        <button type="button" class="primary-button" id="missing-products-link">View Products</button>
+      </section>
+
+      <section id="product-detail" class="detail-card" hidden>
+        <div class="detail-image" id="detail-image">
+          <span></span>
+        </div>
+
+        <article class="detail-copy">
+          <p class="detail-kicker">Product description page</p>
+          <h1 id="detail-title"></h1>
+
+          <div class="rating-row detail-rating" aria-label="Priority">
+            <span id="detail-stars" class="rating-stars" aria-hidden="true">*****</span>
+            <span id="detail-priority" class="priority-label"></span>
+          </div>
+
+          <dl class="detail-specs">
+            <div>
+              <dt>Category</dt>
+              <dd id="detail-department"></dd>
+            </div>
+            <div>
+              <dt>MOQ</dt>
+              <dd id="detail-moq"></dd>
+            </div>
+            <div>
+              <dt>Price</dt>
+              <dd id="detail-price"></dd>
+            </div>
+            <div>
+              <dt>Created</dt>
+              <dd id="detail-created"></dd>
+            </div>
+          </dl>
+
+          <section class="detail-description" aria-label="Description">
+            <h2>About this product</h2>
+            <p id="detail-description"></p>
+          </section>
+        </article>
+
+        <aside class="detail-actions" aria-label="Product actions">
+          <div class="cart-manager">
+            <label for="cart-select">Active cart</label>
+            <select id="cart-select" aria-label="Active cart"></select>
+          </div>
+
+          <p id="detail-cart-status" class="detail-cart-status">Not in cart</p>
+
+          <button type="button" id="detail-add-cart" class="add-cart-button">Add to Cart</button>
+          <button type="button" id="detail-remove-cart" class="secondary-button">Remove from Cart</button>
+
+          <label class="detail-check">
+            <input id="detail-done" type="checkbox">
+            <span>Checked out in this cart</span>
+          </label>
+
+          <button type="button" id="detail-delete" class="delete-product-button">Delete Product</button>
+        </aside>
+      </section>
+    </main>
+
+    <script src="store.js"></script>
+    <script src="product.js"></script>
+  </body>
+</html>

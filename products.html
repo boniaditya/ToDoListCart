@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Product Listing - ToDoList Cart</title>
+    <link rel="stylesheet" href="newtab.css">
+  </head>
+  <body>
+    <main class="store-shell catalog-shell" aria-labelledby="app-title">
+      <header class="store-header">
+        <div class="top-row">
+          <div class="brand" aria-label="ToDoList Cart home">
+            <span class="brand-name" id="app-title">ToDoList Cart</span>
+            <span class="brand-domain">.tasks</span>
+          </div>
+
+          <form id="search-form" class="search-bar" autocomplete="off">
+            <label class="visually-hidden" for="search-products">Search products</label>
+            <input id="search-products" type="search" placeholder="Search all products">
+            <button type="submit">Search</button>
+          </form>
+
+          <div class="author-pill">by boni aditya</div>
+
+          <button type="button" class="page-link-button" id="open-home-page">Workspace</button>
+
+          <button type="button" class="page-link-button" id="open-orders-page">Orders</button>
+
+          <button type="button" class="page-link-button" id="open-account-page">Account</button>
+
+          <button type="button" class="cart-button" id="cart-jump" aria-label="Cart count">
+            <span class="cart-icon" aria-hidden="true"></span>
+            <strong id="cart-count">0</strong>
+            <span>Cart</span>
+          </button>
+        </div>
+
+        <nav class="departments" aria-label="Categories">
+          <button type="button" class="active" data-department="all">All</button>
+        </nav>
+      </header>
+
+      <section class="hero-strip catalog-hero" aria-label="Listing overview">
+        <div>
+          <p>Product listing</p>
+          <h1>All todo products</h1>
+        </div>
+        <div class="hero-stats" aria-live="polite">
+          <span id="product-count">0 products</span>
+          <span id="visible-count">0 shown</span>
+          <span id="cart-summary">My Cart: 0 open</span>
+        </div>
+      </section>
+
+      <section class="catalog-layout" aria-label="Product listing">
+        <aside class="catalog-sidebar" id="cart-panel" aria-label="Cart switcher">
+          <div class="section-heading">
+            <h2>Switch Cart</h2>
+          </div>
+
+          <div class="cart-manager">
+            <label for="cart-select">Active cart</label>
+            <select id="cart-select" aria-label="Active cart"></select>
+          </div>
+        </aside>
+
+        <section class="product-shelf listing-shelf" aria-labelledby="products-heading">
+          <div class="section-heading">
+            <h2 id="products-heading">Products</h2>
+          </div>
+
+          <ul id="product-list" class="product-list"></ul>
+          <div id="empty-products" class="empty-state" hidden>
+            <strong>No products found</strong>
+            <span>Create a product in the workspace or change your search.</span>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <template id="product-template">
+      <li class="product-card">
+        <div class="product-image">
+          <span></span>
+        </div>
+        <div class="product-copy">
+          <strong class="product-title"></strong>
+          <div class="rating-row" aria-label="Priority">
+            <span class="rating-stars" aria-hidden="true">*****</span>
+            <span class="priority-label"></span>
+          </div>
+          <div class="product-meta">
+            <span class="department-label"></span>
+            <span class="moq-label"></span>
+            <span class="price-label"></span>
+          </div>
+          <div class="delivery-line">Prime task delivery</div>
+        </div>
+        <div class="product-actions">
+          <button type="button" class="add-cart-button">Add to Cart</button>
+          <button type="button" class="view-details-button">Details</button>
+          <button type="button" class="delete-product-button" aria-label="Delete product">Delete</button>
+        </div>
+      </li>
+    </template>
+
+    <script src="store.js"></script>
+    <script src="products.js"></script>
+  </body>
+</html>

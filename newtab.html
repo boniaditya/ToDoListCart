@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ToDoList Cart New Tab</title>
+    <link rel="stylesheet" href="newtab.css">
+  </head>
+  <body>
+    <main class="store-shell" aria-labelledby="app-title">
+      <header class="store-header">
+        <div class="top-row">
+          <div class="brand" aria-label="ToDoList Cart home">
+            <span class="brand-name" id="app-title">ToDoList Cart</span>
+            <span class="brand-domain">.tasks</span>
+          </div>
+
+          <form id="search-form" class="search-bar" autocomplete="off">
+            <label class="visually-hidden" for="search-products">Search task products</label>
+            <input id="search-products" type="search" placeholder="Search task products">
+            <button type="submit">Search</button>
+          </form>
+
+          <div class="author-pill">by boni aditya</div>
+
+          <button type="button" class="page-link-button" id="open-products-page">Products</button>
+
+          <button type="button" class="page-link-button" id="open-orders-page">Orders</button>
+
+          <button type="button" class="page-link-button" id="open-account-page">Account</button>
+
+          <button type="button" class="cart-button" id="cart-jump" aria-label="Jump to cart">
+            <span class="cart-icon" aria-hidden="true"></span>
+            <strong id="cart-count">0</strong>
+            <span>Cart</span>
+          </button>
+        </div>
+
+        <nav class="departments" aria-label="Categories">
+          <button type="button" class="active" data-department="all">All</button>
+        </nav>
+      </header>
+
+      <section class="hero-strip" aria-label="Store overview">
+        <div>
+          <p>New tab store</p>
+          <h1>Shop your tasks, then check them out.</h1>
+        </div>
+        <div class="hero-stats" aria-live="polite">
+          <span id="product-count">0 products</span>
+          <span id="visible-count">0 shown</span>
+          <span id="cart-summary">0 open</span>
+        </div>
+      </section>
+
+      <section class="workspace-grid" aria-label="Shopping todo workspace">
+        <section class="create-product" aria-labelledby="create-heading">
+          <div class="section-heading">
+            <h2 id="create-heading">Create Product</h2>
+          </div>
+
+          <form id="product-form" class="product-form" autocomplete="off">
+            <label for="product-title">Product name</label>
+            <input id="product-title" name="title" type="text" maxlength="90" placeholder="Finish project report" required>
+
+            <label for="product-description">Product details</label>
+            <textarea id="product-description" name="description" maxlength="500" placeholder="Add product details, deadline, notes, or context"></textarea>
+
+            <div class="form-row">
+              <label>
+                Category
+                <select id="product-department" name="department" aria-label="Category"></select>
+              </label>
+
+              <fieldset class="priority-toggle" aria-label="Priority">
+                <legend>Priority</legend>
+                <label>
+                  <input type="radio" name="priority" value="standard" checked>
+                  <span>Standard</span>
+                </label>
+                <label>
+                  <input type="radio" name="priority" value="important">
+                  <span>Important</span>
+                </label>
+                <label>
+                  <input type="radio" name="priority" value="urgent">
+                  <span>Urgent</span>
+                </label>
+              </fieldset>
+            </div>
+
+            <div id="category-form" class="category-form">
+              <label for="category-name">New category</label>
+              <input id="category-name" type="text" maxlength="32" placeholder="Marketing">
+              <button type="button" id="add-category" class="secondary-button">Add Category</button>
+            </div>
+
+            <div class="moq-price-row">
+              <label>
+                MOQ
+                <input id="product-moq" name="moq" type="number" min="1" step="1" inputmode="numeric" required>
+              </label>
+
+              <label>
+                Dollar amount
+                <input id="product-price" name="price" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00" required>
+              </label>
+            </div>
+
+            <div class="image-row">
+              <label>
+                Image URL
+                <input id="product-image-url" name="imageUrl" type="url" placeholder="https://example.com/product.png">
+              </label>
+
+              <label class="image-upload" for="product-image-file">
+                <span>Upload Image</span>
+                <input id="product-image-file" name="imageFile" type="file" accept="image/*">
+              </label>
+            </div>
+
+            <div id="image-preview" class="image-preview" hidden>
+              <img alt="Selected product preview">
+              <button type="button" id="clear-image" class="secondary-button">Remove Image</button>
+            </div>
+
+            <div id="product-image-dropzone" class="image-dropzone" tabindex="0">
+              Drop an image here or paste from clipboard
+            </div>
+
+            <button type="submit" class="primary-button">Create Product</button>
+          </form>
+        </section>
+
+        <section class="product-shelf" aria-labelledby="products-heading">
+          <div class="section-heading">
+            <h2 id="products-heading">Today's Deals</h2>
+          </div>
+
+          <ul id="product-list" class="product-list"></ul>
+          <div id="empty-products" class="empty-state" hidden>
+            <strong>No products found</strong>
+            <span>Create a todo product or change the search.</span>
+          </div>
+        </section>
+
+        <aside class="cart-panel" id="cart-panel" aria-labelledby="cart-heading">
+          <div class="section-heading">
+            <h2 id="cart-heading">Shopping Cart</h2>
+          </div>
+
+          <div class="cart-manager" aria-label="Cart manager">
+            <label for="cart-select">Active cart</label>
+            <select id="cart-select" aria-label="Active cart"></select>
+
+            <button type="button" id="delete-cart" class="secondary-button">Delete Cart</button>
+
+            <form id="cart-form" class="cart-form" autocomplete="off">
+              <label for="cart-name">New cart name</label>
+              <input id="cart-name" type="text" maxlength="40" placeholder="Weekend errands">
+              <button type="submit" class="primary-button">Create Cart</button>
+            </form>
+          </div>
+
+          <div class="progress-wrap">
+            <div>
+              <span>Checked out</span>
+              <strong id="progress-label">0%</strong>
+            </div>
+            <div class="progress-track" aria-hidden="true">
+              <span id="progress-bar"></span>
+            </div>
+          </div>
+
+          <ul id="cart-list" class="cart-list"></ul>
+          <div id="empty-cart" class="empty-state compact" hidden>
+            <strong>Your cart is empty</strong>
+            <span>Add products from Today's Deals.</span>
+          </div>
+
+          <div class="checkout-actions">
+            <button type="button" id="clear-done" class="secondary-button">Clear Done</button>
+            <button type="button" id="checkout-all" class="checkout-button">Checkout</button>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <template id="product-template">
+      <li class="product-card">
+        <div class="product-image">
+          <span></span>
+        </div>
+        <div class="product-copy">
+          <strong class="product-title"></strong>
+          <div class="rating-row" aria-label="Priority">
+            <span class="rating-stars" aria-hidden="true">*****</span>
+            <span class="priority-label"></span>
+          </div>
+          <div class="product-meta">
+            <span class="department-label"></span>
+            <span class="moq-label"></span>
+            <span class="price-label"></span>
+          </div>
+          <div class="delivery-line">Prime task delivery</div>
+        </div>
+        <div class="product-actions">
+          <button type="button" class="add-cart-button">Add to Cart</button>
+          <button type="button" class="view-details-button">Details</button>
+          <button type="button" class="delete-product-button" aria-label="Delete product">Delete</button>
+        </div>
+      </li>
+    </template>
+
+    <template id="cart-template">
+      <li class="cart-item">
+        <label class="cart-check">
+          <input type="checkbox">
+          <span aria-hidden="true"></span>
+        </label>
+        <div class="cart-copy">
+          <strong></strong>
+          <span></span>
+        </div>
+        <button type="button" class="remove-cart-button" aria-label="Remove from cart">Remove</button>
+      </li>
+    </template>
+
+    <script src="store.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

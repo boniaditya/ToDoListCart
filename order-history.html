@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Order History - ToDoList Cart</title>
+    <link rel="stylesheet" href="newtab.css">
+  </head>
+  <body>
+    <main class="store-shell orders-shell" aria-labelledby="orders-title">
+      <header class="store-header">
+        <div class="top-row">
+          <div class="brand" aria-label="ToDoList Cart home">
+            <span class="brand-name">ToDoList Cart</span>
+            <span class="brand-domain">.tasks</span>
+          </div>
+
+          <div class="detail-search-spacer"></div>
+
+          <div class="author-pill">by boni aditya</div>
+
+          <button type="button" class="page-link-button" id="open-home-page">Workspace</button>
+          <button type="button" class="page-link-button" id="open-products-page">Products</button>
+          <button type="button" class="page-link-button" id="open-account-page">Account</button>
+
+          <button type="button" class="cart-button" id="cart-jump" aria-label="Cart count">
+            <span class="cart-icon" aria-hidden="true"></span>
+            <strong id="cart-count">0</strong>
+            <span>Cart</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="hero-strip catalog-hero" aria-label="Order overview">
+        <div>
+          <p>Order history</p>
+          <h1 id="orders-title">Checked-out carts</h1>
+        </div>
+        <div class="hero-stats" aria-live="polite">
+          <span id="orders-count">0 orders</span>
+          <span id="ordered-items-count">0 items</span>
+          <span id="last-order-date">No orders yet</span>
+        </div>
+      </section>
+
+      <section class="orders-layout" aria-label="Order history">
+        <aside class="catalog-sidebar" id="cart-panel" aria-label="Order tools">
+          <div class="section-heading">
+            <h2>Order Tools</h2>
+          </div>
+
+          <div class="cart-manager">
+            <label for="cart-select">Re-add into cart</label>
+            <select id="cart-select" aria-label="Active cart"></select>
+            <button type="button" id="clear-history" class="secondary-button">Clear History</button>
+          </div>
+        </aside>
+
+        <section class="orders-shelf" aria-label="Previous orders">
+          <ul id="order-list" class="order-list"></ul>
+          <div id="empty-orders" class="empty-state" hidden>
+            <strong>No orders yet</strong>
+            <span>Checkout a cart to create your first order record.</span>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <template id="order-template">
+      <li class="order-card">
+        <header class="order-header">
+          <div>
+            <p class="order-kicker">Order placed</p>
+            <h2 class="order-title"></h2>
+          </div>
+          <span class="order-date"></span>
+        </header>
+        <div class="order-meta">
+          <span class="order-count"></span>
+          <span class="order-moq"></span>
+          <span class="order-total"></span>
+        </div>
+        <ul class="order-items"></ul>
+        <button type="button" class="add-order-button">Add Order to Active Cart</button>
+      </li>
+    </template>
+
+    <script src="store.js"></script>
+    <script src="order-history.js"></script>
+  </body>
+</html>
