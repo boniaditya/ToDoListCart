@@ -27,6 +27,7 @@
           <a class="page-link-button" href="create-product.html">Create</a>
 
           <button type="button" class="page-link-button" id="open-products-page">Products</button>
+          <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
 
           <button type="button" class="page-link-button" id="open-orders-page">Orders</button>
 
@@ -78,6 +79,26 @@
             <select id="filter-location">
               <option value="all">All locations</option>
             </select>
+
+            <div class="range-filter">
+              <span class="range-filter-label">Price</span>
+              <div class="range-filter-values"><output id="filter-price-min-output">Any</output><output id="filter-price-max-output">Any</output></div>
+              <div class="range-track">
+                <input id="filter-price-min" type="range" min="0" max="1" step="0.01" aria-label="Minimum price">
+                <input id="filter-price-max" type="range" min="0" max="1" step="0.01" aria-label="Maximum price">
+              </div>
+              <div class="range-reference"><output></output><output></output><output></output></div>
+            </div>
+
+            <div class="range-filter">
+              <span class="range-filter-label">Time equivalent</span>
+              <div class="range-filter-values"><output id="filter-time-min-output">Any</output><output id="filter-time-max-output">Any</output></div>
+              <div class="range-track">
+                <input id="filter-time-min" type="range" min="0" max="1" step="1" aria-label="Minimum time equivalent">
+                <input id="filter-time-max" type="range" min="0" max="1" step="1" aria-label="Maximum time equivalent">
+              </div>
+              <div class="range-reference"><output></output><output></output><output></output></div>
+            </div>
 
             <label for="filter-cart-status">Cart status</label>
             <select id="filter-cart-status">
@@ -153,6 +174,7 @@
       <li class="product-card">
         <div class="product-image">
           <span></span>
+          <button type="button" class="wishlist-button" aria-label="Add to wishlist">♡</button>
         </div>
         <div class="product-copy">
           <strong class="product-title"></strong>
@@ -168,10 +190,10 @@
             <span class="price-label"></span>
           </div>
           <div class="delivery-line">Prime task delivery</div>
+          <span class="stock-status" hidden>Out of stock</span>
         </div>
         <div class="product-actions">
           <button type="button" class="add-cart-button">Add to Cart</button>
-          <button type="button" class="view-details-button">Details</button>
         </div>
       </li>
     </template>

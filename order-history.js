@@ -80,7 +80,7 @@
     const meta = document.createElement("span");
 
     title.textContent = item.title;
-    meta.textContent = `${Store.getCategoryLabel(state.data, item.department)} | ${Store.getPriorityLabel(item.priority)} | ${Store.formatMoq(item.moq)} | ${Store.formatMoney(item.price)}`;
+    meta.textContent = `${Store.getCategoryLabel(state.data, item.department)} | ${Store.getPriorityLabel(item.priority)} | ${Store.formatMoq(item.moq)} | ${Store.formatMoney(item.price, state.data.settings)}`;
     copy.append(title, meta);
     node.append(renderItemImage(item), copy);
 
@@ -105,7 +105,7 @@
       date.textContent = Store.formatDate(order.createdAt);
       count.textContent = `${order.items.length} ${order.items.length === 1 ? "item" : "items"}`;
       moq.textContent = Store.formatMoq(order.totalMoq);
-      total.textContent = Store.formatMoney(order.totalAmount);
+      total.textContent = Store.formatMoney(order.totalAmount, state.data.settings);
       order.items.forEach((item) => itemList.append(renderOrderItem(item)));
       addButton.disabled = order.items.length === 0;
 

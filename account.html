@@ -23,8 +23,9 @@
 
           <a class="page-link-button" href="create-product.html">Create</a>
 
-          <button type="button" class="page-link-button" id="open-home-page">Workspace</button>
+          <a class="page-link-button" id="open-home-page" href="newtab.html">Workspace</a>
           <button type="button" class="page-link-button" id="open-products-page">Products</button>
+          <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
           <button type="button" class="page-link-button" id="open-orders-page">Orders</button>
 
           <button type="button" class="cart-button" id="cart-jump" aria-label="Cart count">
@@ -95,9 +96,37 @@
             </label>
 
             <label>
-              Default dollar amount
+              Default price
               <input id="setting-default-price" type="number" min="0" step="0.01" inputmode="decimal" required>
             </label>
+
+            <label>
+              Currency
+              <select id="setting-currency">
+                <option value="USD">US Dollar (USD)</option>
+                <option value="INR">Indian Rupee (INR)</option>
+                <option value="EUR">Euro (EUR)</option>
+                <option value="GBP">British Pound (GBP)</option>
+                <option value="JPY">Japanese Yen (JPY)</option>
+              </select>
+            </label>
+
+            <label class="settings-toggle">
+              <input id="setting-show-time-equivalent" type="checkbox">
+              <span>Show a time equivalent for prices</span>
+            </label>
+
+            <div class="time-equivalence-fields">
+              <label>
+                Time (seconds)
+                <input id="setting-time-seconds" type="number" min="0.000001" step="any" inputmode="decimal" required>
+              </label>
+              <label>
+                Price
+                <input id="setting-time-rate" type="number" min="0.000001" step="any" inputmode="decimal" required>
+              </label>
+              <span class="settings-help">Set the equivalence, for example: 1 second = ₹1, or 10 seconds = ₹1.</span>
+            </div>
           </div>
 
           <div class="section-heading settings-subhead">
@@ -115,12 +144,11 @@
             </div>
             <label for="account-category-name">New category</label>
             <input id="account-category-name" type="text" maxlength="32" placeholder="Marketing">
-            <button type="button" id="new-category-choose-icon" class="secondary-button button-with-icon">
+            <button type="button" id="new-category-choose-icon" class="secondary-button category-icon-button button-with-icon" aria-label="Choose icon" title="Choose icon">
               <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path d="M12 20h9"></path>
                 <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"></path>
               </svg>
-              <span>Choose Icon</span>
             </button>
             <button type="button" id="account-add-category" class="secondary-button">Add Category</button>
           </div>

@@ -26,7 +26,8 @@
 
           <a class="page-link-button" href="create-product.html">Create</a>
 
-          <button type="button" class="page-link-button" id="open-home-page">Workspace</button>
+          <a class="page-link-button" id="open-home-page" href="newtab.html">Workspace</a>
+          <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
 
           <button type="button" class="page-link-button" id="open-orders-page">Orders</button>
 
@@ -47,7 +48,7 @@
       <section class="hero-strip catalog-hero" aria-label="Listing overview">
         <div>
           <p>Product listing</p>
-          <h1>All todo products</h1>
+          <h1 id="listing-title">All todo products</h1>
         </div>
         <div class="hero-stats" aria-live="polite">
           <span id="product-count">0 products</span>
@@ -90,6 +91,7 @@
       <li class="product-card">
         <div class="product-image">
           <span></span>
+          <button type="button" class="wishlist-button" aria-label="Add to wishlist">♡</button>
         </div>
         <div class="product-copy">
           <strong class="product-title"></strong>
@@ -108,7 +110,6 @@
         </div>
         <div class="product-actions">
           <button type="button" class="add-cart-button">Add to Cart</button>
-          <button type="button" class="view-details-button">Details</button>
         </div>
       </li>
     </template>

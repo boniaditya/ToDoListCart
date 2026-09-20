@@ -7,6 +7,10 @@
     priority: "all",
     location: "all",
     cartStatus: "all",
+    priceMin: null,
+    priceMax: null,
+    timeMin: null,
+    timeMax: null,
     query: "",
     viewMode: localStorage.getItem("todoListCart.productView") === "list" ? "list" : "card",
     editProductId: null,
@@ -23,6 +27,7 @@
     priorityInputs: document.querySelectorAll("input[name='priority']"),
     moqInput: document.querySelector("#product-moq"),
     priceInput: document.querySelector("#product-price"),
+    inStockInput: document.querySelector("#product-in-stock"),
     imageUrlInput: document.querySelector("#product-image-url"),
     imageFileInput: document.querySelector("#product-image-file"),
     imageDropzone: document.querySelector("#product-image-dropzone"),
@@ -40,6 +45,14 @@
     filterPriority: document.querySelector("#filter-priority"),
     filterLocation: document.querySelector("#filter-location"),
     filterCartStatus: document.querySelector("#filter-cart-status"),
+    filterPriceMin: document.querySelector("#filter-price-min"),
+    filterPriceMax: document.querySelector("#filter-price-max"),
+    filterTimeMin: document.querySelector("#filter-time-min"),
+    filterTimeMax: document.querySelector("#filter-time-max"),
+    filterPriceMinOutput: document.querySelector("#filter-price-min-output"),
+    filterPriceMaxOutput: document.querySelector("#filter-price-max-output"),
+    filterTimeMinOutput: document.querySelector("#filter-time-min-output"),
+    filterTimeMaxOutput: document.querySelector("#filter-time-max-output"),
     clearFilters: document.querySelector("#clear-filters"),
     productList: document.querySelector("#product-list"),
     viewButtons: document.querySelectorAll(".view-toggle-button"),
@@ -116,6 +129,12 @@
       const matchesCartStatus = state.cartStatus === "all"
         || (state.cartStatus === "in-cart" && isInCart)
         || (state.cartStatus === "not-in-cart" && !isInCart);
+      const price = Number(product.price);
+      const time = getTimeEquivalentSeconds(price);
+      const matchesPrice = (state.priceMin === null || price >= state.priceMin)
+        && (state.priceMax === null || price <= state.priceMax);
+      const matchesTime = (state.timeMin === null || time >= state.timeMin)
+        && (state.timeMax === null || time <= state.timeMax);
       const matchesQuery = !query || [
         product.title,
         categoryName,
@@ -126,26 +145,154 @@
         product.price
       ].some((value) => String(value).toLowerCase().includes(query));
 
-      return matchesDepartment && matchesPriority && matchesLocation && matchesCartStatus && matchesQuery;
+      return matchesDepartment && matchesPriority && matchesLocation && matchesCartStatus && matchesPrice && matchesTime && matchesQuery;
     });
+  }
+
+  function getTimeEquivalentSeconds(price) {
+    const rate = Number(state.data.settings.timeRate) / Number(state.data.settings.timeSeconds || 1);
+    return rate > 0 ? Number(price) / rate : 0;
+  }
+
+  function formatDuration(seconds) {
+    const rounded = Math.max(0, Math.round(seconds));
+    const hours = Math.floor(rounded / 3600);
+    const minutes = Math.floor((rounded % 3600) / 60);
+    const remainder = rounded % 60;
+    return [
+      ...(hours ? [`${hours}h`] : []),
+      ...(minutes ? [`${minutes}m`] : []),
+      `${remainder}s`
+    ].join(" ");
+  }
+
+  function renderRangeFilters() {
+    if (!elements.filterPriceMin || !elements.filterPriceMax || !elements.filterTimeMin || !elements.filterTimeMax) {
+      return;
+    }
+
+    const prices = state.data.products.map((product) => Number(product.price) || 0);
+    const times = prices.map(getTimeEquivalentSeconds);
+    const priceMaximum = Math.max(1, Math.ceil(Math.max(...prices, 0)));
+    const timeMaximum = Math.max(1, Math.ceil(Math.max(...times, 0)));
+    const setRange = (minInput, maxInput, minOutput, maxOutput, minimum, maximum, formatter, minValue, maxValue) => {
+      const track = minInput.closest(".range-track");
+      const references = track.parentElement.querySelectorAll(".range-reference output");
+      const selectedMinimum = minValue ?? minimum;
+      const selectedMaximum = maxValue ?? maximum;
+      minInput.max = String(maximum);
+      maxInput.max = String(maximum);
+      minInput.value = String(selectedMinimum);
+      maxInput.value = String(selectedMaximum);
+      minOutput.textContent = minValue === null ? "Any" : formatter(minValue);
+      maxOutput.textContent = maxValue === null ? "Any" : formatter(maxValue);
+      track.style.setProperty("--range-min", `${((selectedMinimum - minimum) / (maximum - minimum)) * 100}%`);
+      track.style.setProperty("--range-max", `${((selectedMaximum - minimum) / (maximum - minimum)) * 100}%`);
+      references[0].textContent = formatter(minimum);
+      references[1].textContent = formatter((minimum + maximum) / 2);
+      references[2].textContent = formatter(maximum);
+    };
+    const moneySettings = { ...state.data.settings, showTimeEquivalent: false };
+
+    setRange(elements.filterPriceMin, elements.filterPriceMax, elements.filterPriceMinOutput, elements.filterPriceMaxOutput, 0, priceMaximum, (value) => Store.formatMoney(value, moneySettings), state.priceMin, state.priceMax);
+    setRange(elements.filterTimeMin, elements.filterTimeMax, elements.filterTimeMinOutput, elements.filterTimeMaxOutput, 0, timeMaximum, formatDuration, state.timeMin, state.timeMax);
   }
 
   function pluralize(count, singular, plural) {
     return `${count} ${count === 1 ? singular : plural}`;
   }
 
-  function renderProductImage(container, product) {
+  function renderProductImage(container, product, isWishlisted) {
     container.replaceChildren();
+    const images = product.images || [];
 
-    if (product.image && state.data.settings.showImages) {
-      const image = document.createElement("img");
-      image.src = product.image;
-      image.alt = `${product.title} product image`;
-      container.append(image);
+    if (images.length && state.data.settings.showImages) {
+      if (images.length > 1) {
+        const track = document.createElement("div");
+        const previous = document.createElement("button");
+        const next = document.createElement("button");
+        const dots = document.createElement("div");
+
+        track.className = "product-carousel-track";
+        images.forEach((entry, index) => {
+          const image = document.createElement("img");
+          image.src = entry.src;
+          image.alt = `${product.title} product image ${index + 1} of ${images.length}`;
+          track.append(image);
+        });
+
+        previous.type = "button";
+        previous.className = "carousel-button previous";
+        previous.dataset.carouselDirection = "-1";
+        previous.setAttribute("aria-label", `Show previous image for ${product.title}`);
+        previous.textContent = "‹";
+        next.type = "button";
+        next.className = "carousel-button next";
+        next.dataset.carouselDirection = "1";
+        next.setAttribute("aria-label", `Show next image for ${product.title}`);
+        next.textContent = "›";
+
+        dots.className = "carousel-dots";
+        images.forEach((_, index) => {
+          const dot = document.createElement("button");
+          dot.type = "button";
+          dot.className = "carousel-dot";
+          dot.dataset.carouselIndex = String(index);
+          dot.setAttribute("aria-label", `Show image ${index + 1} of ${images.length} for ${product.title}`);
+          dot.setAttribute("aria-current", String(index === 0));
+          dots.append(dot);
+        });
+
+        container.dataset.imageIndex = "0";
+        container.append(track, previous, next, dots);
+      } else {
+        const image = document.createElement("img");
+        image.src = images[0].src;
+        image.alt = `${product.title} product image`;
+        container.append(image);
+      }
+    } else {
+      container.append(document.createElement("span"));
+    }
+
+    const wishlistButton = document.createElement("button");
+    wishlistButton.type = "button";
+    wishlistButton.className = "wishlist-button";
+    wishlistButton.setAttribute("aria-label", isWishlisted ? `Remove ${product.title} from wishlist` : `Add ${product.title} to wishlist`);
+    wishlistButton.setAttribute("aria-pressed", String(isWishlisted));
+    wishlistButton.textContent = isWishlisted ? "♥" : "♡";
+    container.append(wishlistButton);
+  }
+
+  function setCarouselImage(container, index) {
+    if (!container) {
       return;
     }
 
-    container.append(document.createElement("span"));
+    const product = state.data.products.find((entry) => entry.id === container.closest(".product-card")?.dataset.id);
+    const images = product?.images || [];
+    if (images.length < 2) {
+      return;
+    }
+
+    container.dataset.imageIndex = String(index);
+    container.querySelector(".product-carousel-track").style.transform = `translateX(-${index * 100}%)`;
+    container.querySelectorAll(".carousel-dot").forEach((dot, dotIndex) => {
+      const active = dotIndex === index;
+      dot.classList.toggle("active", active);
+      dot.setAttribute("aria-current", String(active));
+    });
+  }
+
+  function moveCarousel(button) {
+    const container = button.closest(".product-image");
+    const product = state.data.products.find((entry) => entry.id === button.closest(".product-card")?.dataset.id);
+    const images = product?.images || [];
+    const nextIndex = (Number(container?.dataset.imageIndex || 0) + Number(button.dataset.carouselDirection || 1) + images.length) % images.length;
+
+    if (images.length > 1) {
+      setCarouselImage(container, nextIndex);
+    }
   }
 
   function renderImagePreview() {
@@ -164,10 +311,21 @@
     previewGrid?.replaceChildren();
 
     images.forEach((entry, index) => {
+      const previewItem = document.createElement("div");
+      const removeButton = document.createElement("button");
       const image = document.createElement("img");
+
+      previewItem.className = "image-preview-item";
       image.src = entry.src;
       image.alt = entry.name || `Selected product image ${index + 1}`;
-      previewGrid?.append(image);
+      removeButton.type = "button";
+      removeButton.className = "remove-image-button";
+      removeButton.dataset.imageIndex = String(index);
+      removeButton.setAttribute("aria-label", `Remove image ${index + 1}`);
+      removeButton.title = `Remove image ${index + 1}`;
+      removeButton.textContent = "×";
+      previewItem.append(image, removeButton);
+      previewGrid?.append(previewItem);
     });
 
     if (elements.imageDropzone) {
@@ -310,7 +468,7 @@
     }
 
     if (elements.cartSummary) {
-      elements.cartSummary.textContent = `${activeCart.name}: ${open} open | ${Store.formatMoney(total)}`;
+      elements.cartSummary.textContent = `${activeCart.name}: ${open} open | ${Store.formatMoney(total, state.data.settings)}`;
     }
 
     if (elements.progressLabel) {
@@ -344,38 +502,47 @@
       const title = node.querySelector(".product-title");
       const description = node.querySelector(".product-description");
       const stars = node.querySelector(".rating-stars");
+      const ratingRow = node.querySelector(".rating-row");
       const priority = node.querySelector(".priority-label");
       const department = node.querySelector(".department-label");
       const location = node.querySelector(".location-label");
       const moq = node.querySelector(".moq-label");
       const price = node.querySelector(".price-label");
+      const stockStatus = node.querySelector(".stock-status");
       const addButton = node.querySelector(".add-cart-button");
-      const detailButton = node.querySelector(".view-details-button");
 
       node.dataset.id = product.id;
       node.tabIndex = 0;
       node.setAttribute("role", "link");
       node.setAttribute("aria-label", `View details for ${product.title}`);
       node.classList.toggle("done", getActiveItems().some((item) => item.productId === product.id && item.done));
-      renderProductImage(imageBox, product);
+      const isWishlisted = state.data.wishlist.includes(product.id);
+      renderProductImage(imageBox, product, isWishlisted);
       title.textContent = product.title;
       if (description) {
         description.textContent = product.description || "No additional details provided.";
       }
       stars.textContent = Store.getStars(product.priority);
       priority.textContent = Store.getPriorityLabel(product.priority);
+      ratingRow.dataset.priority = priority.textContent;
+      ratingRow.setAttribute("aria-label", `Priority: ${priority.textContent}`);
+      ratingRow.tabIndex = 0;
       Store.renderCategory(department, state.data, product.department);
       location.textContent = product.location;
       moq.textContent = Store.formatMoq(product.moq);
-      price.textContent = Store.formatMoney(product.price);
+      price.textContent = Store.formatMoney(product.price, state.data.settings);
+      stockStatus.hidden = product.inStock;
 
-      if (cartHasProduct(product.id)) {
+      if (!product.inStock) {
+        addButton.textContent = "Out of stock";
+        addButton.disabled = true;
+        addButton.classList.add("out-of-stock");
+      } else if (cartHasProduct(product.id)) {
         addButton.textContent = "In Cart";
         addButton.classList.add("in-cart");
         addButton.disabled = true;
       }
 
-      detailButton.setAttribute("aria-label", `View details for ${product.title}`);
       elements.productList.append(node);
     });
 
@@ -410,7 +577,7 @@
       checkbox.checked = item.done;
       checkbox.setAttribute("aria-label", `Mark ${product.title} as ${item.done ? "open" : "checked out"}`);
       title.textContent = product.title;
-      meta.textContent = `${getCategoryName(product)} | ${Store.getPriorityLabel(product.priority)} | ${Store.formatMoq(product.moq)} | ${Store.formatMoney(product.price)}`;
+      meta.textContent = `${getCategoryName(product)} | ${Store.getPriorityLabel(product.priority)} | ${Store.formatMoq(product.moq)} | ${Store.formatMoney(product.price, state.data.settings)}`;
       removeButton.setAttribute("aria-label", `Remove ${product.title} from cart`);
 
       elements.cartList.append(node);
@@ -434,6 +601,7 @@
     renderCategoryControls();
     renderLocationOptions();
     renderCartSelector();
+    renderRangeFilters();
     renderProducts();
     renderCart();
     renderImagePreview();
@@ -496,6 +664,7 @@
     setPriorityValue(product.priority);
     elements.moqInput.value = product.moq;
     elements.priceInput.value = product.price;
+    elements.inStockInput.checked = product.inStock;
     state.formImages = product.images.map((image) => ({ ...image }));
 
     if (elements.createTitle) {
@@ -578,6 +747,7 @@
       priority: getPriorityValue(),
       moq: elements.moqInput.value,
       price: elements.priceInput.value,
+      inStock: elements.inStockInput.checked,
       description: elements.descriptionInput?.value.trim() || "",
       images
     };
@@ -588,7 +758,13 @@
       if (existingProduct) {
         state.data.products = state.data.products.map((product) => (
           product.id === state.editProductId
-            ? Store.normalizeProduct({ ...existingProduct, ...productValues })
+            ? Store.normalizeProduct({
+              ...existingProduct,
+              ...productValues,
+              // The gallery is authoritative on edit; do not restore a removed legacy primary image.
+              image: "",
+              imageName: ""
+            })
             : product
         ));
         await Store.saveData(state.data);
@@ -597,13 +773,10 @@
       }
     }
 
-    state.data.products.unshift(Store.createProduct(productValues));
-
-    elements.productForm.reset();
-    state.formImages = [];
-    applyFormDefaults();
-    elements.titleInput.focus();
-    await persistAndRender();
+    const createdProduct = Store.createProduct(productValues);
+    state.data.products.unshift(createdProduct);
+    await Store.saveData(state.data);
+    window.location.href = Store.getExtensionUrl(`product.html?id=${encodeURIComponent(createdProduct.id)}`);
   }
 
   async function addCategoryFromInput() {
@@ -632,7 +805,7 @@
   async function addToCart(productId) {
     const activeCart = getActiveCart();
 
-    if (activeCart.items.some((item) => item.productId === productId)) {
+    if (activeCart.items.some((item) => item.productId === productId) || !getProduct(productId)?.inStock) {
       return;
     }
 
@@ -646,6 +819,13 @@
       }, ...activeCart.items]
     });
 
+    await persistAndRender();
+  }
+
+  async function toggleWishlist(productId) {
+    state.data.wishlist = state.data.wishlist.includes(productId)
+      ? state.data.wishlist.filter((id) => id !== productId)
+      : [...state.data.wishlist, productId];
     await persistAndRender();
   }
 
@@ -763,6 +943,19 @@
     renderImagePreview();
   }
 
+  function removeImage(index) {
+    const hasUrlImage = Boolean(elements.imageUrlInput?.value.trim());
+
+    if (hasUrlImage && index === 0) {
+      elements.imageUrlInput.value = "";
+    } else {
+      const formImageIndex = index - (hasUrlImage ? 1 : 0);
+      state.formImages.splice(formImageIndex, 1);
+    }
+
+    renderImagePreview();
+  }
+
   async function applyDroppedOrPastedImages(files) {
     if (!files.length) {
       return;
@@ -875,6 +1068,13 @@
     });
 
     elements.clearImage?.addEventListener("click", clearImageSelection);
+    elements.imagePreview?.addEventListener("click", (event) => {
+      const button = event.target.closest(".remove-image-button");
+
+      if (button) {
+        removeImage(Number(button.dataset.imageIndex));
+      }
+    });
     bindImageDropzone();
 
     elements.searchForm?.addEventListener("submit", (event) => {
@@ -919,11 +1119,51 @@
       renderProducts();
     });
 
+    elements.filterPriceMin?.addEventListener("input", () => {
+      state.priceMin = Number(elements.filterPriceMin.value);
+      if (state.priceMax !== null && state.priceMin > state.priceMax) {
+        state.priceMax = state.priceMin;
+      }
+      renderRangeFilters();
+      renderProducts();
+    });
+
+    elements.filterPriceMax?.addEventListener("input", () => {
+      state.priceMax = Number(elements.filterPriceMax.value);
+      if (state.priceMin !== null && state.priceMax < state.priceMin) {
+        state.priceMin = state.priceMax;
+      }
+      renderRangeFilters();
+      renderProducts();
+    });
+
+    elements.filterTimeMin?.addEventListener("input", () => {
+      state.timeMin = Number(elements.filterTimeMin.value);
+      if (state.timeMax !== null && state.timeMin > state.timeMax) {
+        state.timeMax = state.timeMin;
+      }
+      renderRangeFilters();
+      renderProducts();
+    });
+
+    elements.filterTimeMax?.addEventListener("input", () => {
+      state.timeMax = Number(elements.filterTimeMax.value);
+      if (state.timeMin !== null && state.timeMax < state.timeMin) {
+        state.timeMin = state.timeMax;
+      }
+      renderRangeFilters();
+      renderProducts();
+    });
+
     elements.clearFilters?.addEventListener("click", () => {
       state.department = "all";
       state.priority = "all";
       state.location = "all";
       state.cartStatus = "all";
+      state.priceMin = null;
+      state.priceMax = null;
+      state.timeMin = null;
+      state.timeMax = null;
       state.query = "";
 
       if (elements.searchInput) {
@@ -944,20 +1184,33 @@
 
       renderCategoryControls();
       renderLocationOptions();
+      renderRangeFilters();
       renderProducts();
     });
 
     elements.productList?.addEventListener("click", (event) => {
+      const carouselButton = event.target.closest(".carousel-button");
+      const carouselDot = event.target.closest(".carousel-dot");
+      const wishlistButton = event.target.closest(".wishlist-button");
       const addButton = event.target.closest(".add-cart-button");
-      const detailButton = event.target.closest(".view-details-button");
 
-      if (addButton) {
-        addToCart(addButton.closest(".product-card").dataset.id);
+      if (carouselButton) {
+        moveCarousel(carouselButton);
         return;
       }
 
-      if (detailButton) {
-        openProductDetail(detailButton.closest(".product-card").dataset.id);
+      if (carouselDot) {
+        setCarouselImage(carouselDot.closest(".product-image"), Number(carouselDot.dataset.carouselIndex));
+        return;
+      }
+
+      if (wishlistButton) {
+        toggleWishlist(wishlistButton.closest(".product-card").dataset.id);
+        return;
+      }
+
+      if (addButton) {
+        addToCart(addButton.closest(".product-card").dataset.id);
         return;
       }
 

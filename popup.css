@@ -65,7 +65,7 @@ button:disabled {
 
 .top-row {
   display: grid;
-  grid-template-columns: minmax(170px, 1fr) repeat(5, auto);
+  grid-template-columns: minmax(170px, 1fr) repeat(6, auto);
   align-items: center;
   gap: 10px;
   padding: 10px 12px 8px;
@@ -615,6 +615,7 @@ button:focus-visible {
 }
 
 .product-image {
+  position: relative;
   display: grid;
   place-items: center;
   width: 74px;
@@ -622,6 +623,29 @@ button:focus-visible {
   border: 1px solid var(--soft-line);
   border-radius: 3px;
   background: linear-gradient(135deg, #f7fafa, #eef3f3);
+}
+
+.wishlist-button {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--red);
+  padding: 0;
+  font-size: 19px;
+  line-height: 1;
+}
+
+.wishlist-button[aria-pressed="true"] {
+  background: #fff0ec;
+  color: #c62828;
 }
 
 .product-image img {
@@ -696,9 +720,36 @@ button:focus-visible {
   gap: 6px;
 }
 
+.rating-row {
+  position: relative;
+  width: fit-content;
+}
+
+.rating-row::after {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 4;
+  width: max-content;
+  border-radius: 4px;
+  background: var(--amazon-navy);
+  color: #ffffff;
+  padding: 5px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
+  content: attr(data-priority);
+}
+
+.rating-row:hover::after,
+.rating-row:focus-visible::after {
+  opacity: 1;
+}
+
 .rating-stars {
   color: var(--amazon-orange);
-  font-size: 12px;
+  font-size: 16px;
   line-height: 1;
 }
 
@@ -714,7 +765,12 @@ button:focus-visible {
 }
 
 .priority-label {
-  color: var(--muted);
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .department-label {
@@ -745,13 +801,12 @@ button:focus-visible {
 .product-actions {
   display: grid;
   grid-column: 2;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr;
   gap: 8px;
   align-items: center;
 }
 
 .delete-product-button,
-.view-details-button,
 .remove-cart-button,
 .secondary-button {
   min-height: 30px;
@@ -764,13 +819,11 @@ button:focus-visible {
 }
 
 .delete-product-button,
-.view-details-button,
 .remove-cart-button {
   padding: 0 8px;
 }
 
 .delete-product-button:hover,
-.view-details-button:hover,
 .remove-cart-button:hover,
 .secondary-button:hover {
   background: linear-gradient(#f7f8fa, #dfe2e6);

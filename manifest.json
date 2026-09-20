@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ToDoList Cart",
   "description": "A shopping-site inspired todo cart where tasks become products you can add, complete, and check out.",
-  "version": "8.0.0",
+  "version": "15.0",
   "author": "boni aditya",
   "action": {
     "default_title": "ToDoList Cart",

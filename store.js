@@ -16,6 +16,10 @@
     defaultPriority: "standard",
     defaultMoq: "1",
     defaultPrice: "0.00",
+    currency: "USD",
+    showTimeEquivalent: false,
+    timeSeconds: "1",
+    timeRate: "1",
     checkoutBehavior: "keep",
     showImages: true,
     compactMode: false
@@ -173,6 +177,15 @@
   function normalizeProduct(product) {
     const moq = normalizeMoq(product.moq || product.effort || "1");
     const images = normalizeImages(product.images, product.image, product.imageName);
+    const comments = getArray(product.comments)
+      .map((comment) => ({
+        id: String(comment?.id || createId("comment")),
+        title: String(comment?.title || "").trim(),
+        text: String(comment?.text || "").trim(),
+        images: normalizeImages(comment?.images, comment?.image, comment?.imageName),
+        createdAt: Number(comment?.createdAt) || Date.now()
+      }))
+      .filter((comment) => comment.title || comment.text || comment.images.length);
 
     return {
       id: product.id || createId("product"),
@@ -183,10 +196,12 @@
       moq,
       effort: moq,
       price: normalizeMoney(product.price),
+      inStock: product.inStock !== false,
       description: product.description || "",
       images,
       image: images[0]?.src || "",
       imageName: images[0]?.name || "",
+      comments,
       createdAt: product.createdAt || Date.now()
     };
   }
@@ -218,6 +233,7 @@
     };
     const priorities = ["standard", "important", "urgent"];
     const checkoutBehaviors = ["keep", "clear"];
+    const currencies = ["USD", "INR", "EUR", "GBP", "JPY"];
     const categoryIds = new Set(getArray(categories).map((category) => category.id));
     const defaultDepartment = slugify(nextSettings.defaultDepartment || DEFAULT_SETTINGS.defaultDepartment);
 
@@ -228,6 +244,19 @@
       defaultPriority: priorities.includes(nextSettings.defaultPriority) ? nextSettings.defaultPriority : DEFAULT_SETTINGS.defaultPriority,
       defaultMoq: normalizeMoq(nextSettings.defaultMoq || nextSettings.defaultEffort || DEFAULT_SETTINGS.defaultMoq),
       defaultPrice: normalizeMoney(nextSettings.defaultPrice || DEFAULT_SETTINGS.defaultPrice),
+      currency: currencies.includes(nextSettings.currency) ? nextSettings.currency : DEFAULT_SETTINGS.currency,
+      showTimeEquivalent: hasOwn(settings || {}, "showTimeEquivalent")
+        ? Boolean(nextSettings.showTimeEquivalent)
+        : ["unit", "subunit"].includes(nextSettings.timeConversion),
+      timeRate: (() => {
+        const legacyRate = nextSettings.timeConversion === "subunit" ? 0.01 : 1;
+        const rate = Number(nextSettings.timeRate ?? legacyRate);
+        return Number.isFinite(rate) && rate > 0 ? String(rate) : String(legacyRate);
+      })(),
+      timeSeconds: (() => {
+        const seconds = Number(nextSettings.timeSeconds ?? DEFAULT_SETTINGS.timeSeconds);
+        return Number.isFinite(seconds) && seconds > 0 ? String(seconds) : DEFAULT_SETTINGS.timeSeconds;
+      })(),
       checkoutBehavior: checkoutBehaviors.includes(nextSettings.checkoutBehavior) ? nextSettings.checkoutBehavior : DEFAULT_SETTINGS.checkoutBehavior,
       showImages: nextSettings.showImages !== false,
       compactMode: Boolean(nextSettings.compactMode)
@@ -279,7 +308,7 @@
     });
   }
 
-  function createProduct({ title, department, location, priority, moq, effort, price, description, images, image, imageName }) {
+  function createProduct({ title, department, location, priority, moq, effort, price, inStock, description, images, image, imageName }) {
     return normalizeProduct({
       id: createId("product"),
       title,
@@ -288,6 +317,7 @@
       priority,
       moq: moq || effort,
       price,
+      inStock,
       description,
       images,
       image,
@@ -369,6 +399,8 @@
     });
     const normalizedCarts = carts.length ? carts : [fallbackCart];
     const orders = getArray(data?.orders).map(normalizeOrder);
+    const productIds = new Set(products.map((product) => product.id));
+    const wishlist = [...new Set(getArray(data?.wishlist).filter((productId) => productIds.has(productId)))];
     const settings = normalizeSettings(data?.settings, categories);
     const activeCartId = normalizedCarts.some((cart) => cart.id === data?.activeCartId)
       ? data.activeCartId
@@ -380,6 +412,7 @@
       carts: normalizedCarts,
       activeCartId,
       orders,
+      wishlist,
       settings
     };
   }
@@ -546,8 +579,46 @@
     }).format(new Date(timestamp));
   }
 
-  function formatMoney(value) {
-    return `$${normalizeMoney(value)}`;
+  function formatDateTime(timestamp) {
+    return new Intl.DateTimeFormat(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit"
+    }).format(new Date(timestamp));
+  }
+
+  function formatMoney(value, settings = DEFAULT_SETTINGS) {
+    const currency = ["USD", "INR", "EUR", "GBP", "JPY"].includes(settings?.currency)
+      ? settings.currency
+      : DEFAULT_SETTINGS.currency;
+    const amount = Number(normalizeMoney(value));
+    const money = new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency,
+      minimumFractionDigits: currency === "JPY" ? 0 : 2,
+      maximumFractionDigits: currency === "JPY" ? 0 : 2
+    }).format(amount);
+    const rate = settings?.showTimeEquivalent
+      ? Number(settings.timeRate) / Number(settings.timeSeconds || 1)
+      : 0;
+
+    if (!rate) {
+      return money;
+    }
+
+    const seconds = Math.round(amount / rate);
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainder = seconds % 60;
+    const duration = [
+      ...(hours ? [`${hours}h`] : []),
+      ...(minutes ? [`${minutes}m`] : []),
+      `${remainder}s`
+    ].join(" ");
+
+    return `${money} · ${duration}`;
   }
 
   function formatMoq(value) {
@@ -592,6 +663,7 @@
     createProduct,
     fileToDataUrl,
     formatDate,
+    formatDateTime,
     formatMoney,
     formatMoq,
     getActiveCart,

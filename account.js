@@ -22,6 +22,10 @@
     defaultPriorityInputs: document.querySelectorAll("input[name='setting-default-priority']"),
     defaultMoq: document.querySelector("#setting-default-moq"),
     defaultPrice: document.querySelector("#setting-default-price"),
+    currency: document.querySelector("#setting-currency"),
+    showTimeEquivalent: document.querySelector("#setting-show-time-equivalent"),
+    timeSeconds: document.querySelector("#setting-time-seconds"),
+    timeRate: document.querySelector("#setting-time-rate"),
     checkoutBehavior: document.querySelector("#setting-checkout-behavior"),
     showImages: document.querySelector("#setting-show-images"),
     compactMode: document.querySelector("#setting-compact-mode"),
@@ -99,9 +103,9 @@
   }
 
   function setActionButtonContent(button, icon, label) {
-    const text = document.createElement("span");
-    text.textContent = label;
-    button.replaceChildren(createActionIcon(icon), text);
+    button.setAttribute("aria-label", label);
+    button.title = label;
+    button.replaceChildren(createActionIcon(icon));
   }
 
   function renderCategoryList() {
@@ -181,6 +185,10 @@
     setDefaultPriorityValue(settings.defaultPriority);
     elements.defaultMoq.value = settings.defaultMoq;
     elements.defaultPrice.value = settings.defaultPrice;
+    elements.currency.value = settings.currency;
+    elements.showTimeEquivalent.checked = settings.showTimeEquivalent;
+    elements.timeSeconds.value = settings.timeSeconds;
+    elements.timeRate.value = settings.timeRate;
     elements.checkoutBehavior.value = settings.checkoutBehavior;
     elements.showImages.checked = settings.showImages;
     elements.compactMode.checked = settings.compactMode;
@@ -208,6 +216,10 @@
       defaultPriority: getDefaultPriorityValue(),
       defaultMoq: elements.defaultMoq.value,
       defaultPrice: elements.defaultPrice.value,
+      currency: elements.currency.value,
+      showTimeEquivalent: elements.showTimeEquivalent.checked,
+      timeSeconds: elements.timeSeconds.value,
+      timeRate: elements.timeRate.value,
       checkoutBehavior: elements.checkoutBehavior.value,
       showImages: elements.showImages.checked,
       compactMode: elements.compactMode.checked
