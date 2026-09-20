@@ -4,10 +4,10 @@
   const LEGACY_TASKS_KEY = "todoListCart.tasks";
   const DEFAULT_CART_ID = "cart-default";
   const DEFAULT_CATEGORIES = [
-    { id: "work", name: "Work" },
-    { id: "home", name: "Home" },
-    { id: "errands", name: "Errands" },
-    { id: "study", name: "Study" }
+    { id: "work", name: "Work", iconName: "mdi:briefcase-outline" },
+    { id: "home", name: "Home", iconName: "mdi:home-outline" },
+    { id: "errands", name: "Errands", iconName: "mdi:shopping-outline" },
+    { id: "study", name: "Study", iconName: "mdi:book-open-page-variant-outline" }
   ];
   const DEFAULT_SETTINGS = {
     accountName: "boni aditya",
@@ -62,17 +62,43 @@
     return String(moq);
   }
 
+  function normalizeImages(images, legacyImage = "", legacyName = "") {
+    const normalized = getArray(images)
+      .map((entry) => {
+        if (typeof entry === "string") {
+          return { src: entry.trim(), name: "" };
+        }
+
+        return {
+          src: String(entry?.src || entry?.data || "").trim(),
+          name: String(entry?.name || "").trim()
+        };
+      })
+      .filter((entry) => entry.src);
+    const fallbackSource = String(legacyImage || "").trim();
+
+    if (fallbackSource && !normalized.some((entry) => entry.src === fallbackSource)) {
+      normalized.unshift({ src: fallbackSource, name: String(legacyName || "").trim() });
+    }
+
+    return normalized;
+  }
+
   function normalizeCategory(category) {
     if (typeof category === "string") {
       return {
         id: slugify(category),
-        name: category.trim() || "Category"
+        name: category.trim() || "Category",
+        icon: "",
+        iconName: ""
       };
     }
 
     return {
       id: slugify(category?.id || category?.name),
-      name: String(category?.name || category?.id || "Category").trim() || "Category"
+      name: String(category?.name || category?.id || "Category").trim() || "Category",
+      icon: String(category?.icon || ""),
+      iconName: String(category?.iconName || "")
     };
   }
 
@@ -82,14 +108,23 @@
     categories.map(normalizeCategory).forEach((category) => {
       if (!byId.has(category.id)) {
         byId.set(category.id, category);
+        return;
       }
+
+      const existing = byId.get(category.id);
+      byId.set(category.id, {
+        ...category,
+        ...existing,
+        icon: existing.icon || category.icon,
+        iconName: existing.iconName || category.iconName
+      });
     });
 
     return [...byId.values()];
   }
 
-  function createCategory(name, categories) {
-    const category = normalizeCategory(name);
+  function createCategory(value, categories) {
+    const category = normalizeCategory(value);
     const existingIds = new Set(getArray(categories).map((entry) => normalizeCategory(entry).id));
     let id = category.id;
     let index = 2;
@@ -137,18 +172,21 @@
 
   function normalizeProduct(product) {
     const moq = normalizeMoq(product.moq || product.effort || "1");
+    const images = normalizeImages(product.images, product.image, product.imageName);
 
     return {
       id: product.id || createId("product"),
       title: product.title || "Untitled product",
       department: slugify(product.department || "work"),
+      location: String(product.location || "").trim() || "Unspecified",
       priority: product.priority || "standard",
       moq,
       effort: moq,
       price: normalizeMoney(product.price),
       description: product.description || "",
-      image: product.image || "",
-      imageName: product.imageName || "",
+      images,
+      image: images[0]?.src || "",
+      imageName: images[0]?.name || "",
       createdAt: product.createdAt || Date.now()
     };
   }
@@ -198,18 +236,21 @@
 
   function normalizeOrderItem(item) {
     const moq = normalizeMoq(item.moq || item.effort || "1");
+    const images = normalizeImages(item.images, item.image, item.imageName);
 
     return {
       productId: item.productId || "",
       title: item.title || "Untitled product",
       department: slugify(item.department || "work"),
+      location: String(item.location || "").trim() || "Unspecified",
       priority: item.priority || "standard",
       moq,
       effort: moq,
       price: normalizeMoney(item.price),
       description: item.description || "",
-      image: item.image || "",
-      imageName: item.imageName || "",
+      images,
+      image: images[0]?.src || "",
+      imageName: images[0]?.name || "",
       done: item.done !== false
     };
   }
@@ -238,15 +279,17 @@
     });
   }
 
-  function createProduct({ title, department, priority, moq, effort, price, description, image, imageName }) {
+  function createProduct({ title, department, location, priority, moq, effort, price, description, images, image, imageName }) {
     return normalizeProduct({
       id: createId("product"),
       title,
       department,
+      location,
       priority,
       moq: moq || effort,
       price,
       description,
+      images,
       image,
       imageName,
       createdAt: Date.now()
@@ -266,10 +309,12 @@
           productId: product.id,
           title: product.title,
           department: product.department,
+          location: product.location,
           priority: product.priority,
           moq: product.moq,
           price: product.price,
           description: product.description,
+          images: product.images,
           image: product.image,
           imageName: product.imageName,
           done: true
@@ -305,8 +350,8 @@
     }));
 
     return dedupeCategories([
-      ...DEFAULT_CATEGORIES,
       ...getArray(data?.categories),
+      ...DEFAULT_CATEGORIES,
       ...productCategories
     ]);
   }
@@ -344,10 +389,12 @@
       id: task.id || createId("product"),
       title: task.title || "Untitled product",
       department: task.department || "work",
+      location: task.location || "Unspecified",
       priority: task.priority || "standard",
       moq: task.moq || task.effort || "1",
       price: task.price || "0.00",
       description: task.description || "",
+      images: task.images,
       image: task.image || "",
       imageName: task.imageName || "",
       inCart: true,
@@ -410,8 +457,49 @@
   }
 
   function getCategoryLabel(data, categoryId) {
-    const category = getArray(data?.categories).find((entry) => entry.id === categoryId);
+    const category = getCategory(data, categoryId);
     return category?.name || categoryId || "Category";
+  }
+
+  function getCategory(data, categoryId) {
+    return getArray(data?.categories).find((entry) => entry.id === categoryId) || null;
+  }
+
+  function getCategoryIconSource(category) {
+    if (category?.icon) {
+      return category.icon;
+    }
+
+    if (category?.iconName && category.iconName.includes(":")) {
+      const [prefix, ...nameParts] = category.iconName.split(":");
+      const name = nameParts.join(":");
+      return `https://api.iconify.design/${encodeURIComponent(prefix)}/${encodeURIComponent(name)}.svg?color=%23007185`;
+    }
+
+    return "";
+  }
+
+  function renderCategory(element, data, categoryId) {
+    if (!element) {
+      return;
+    }
+
+    const category = getCategory(data, categoryId);
+    const label = category?.name || categoryId || "Category";
+    const iconSource = getCategoryIconSource(category);
+    element.replaceChildren();
+
+    if (iconSource) {
+      const image = document.createElement("img");
+      image.className = "category-icon";
+      image.src = iconSource;
+      image.alt = "";
+      element.append(image);
+    }
+
+    const text = document.createElement("span");
+    text.textContent = label;
+    element.append(text);
   }
 
   function getTotalMoq(items) {
@@ -507,6 +595,8 @@
     formatMoney,
     formatMoq,
     getActiveCart,
+    getCategory,
+    getCategoryIconSource,
     getCategoryLabel,
     getExtensionUrl,
     getPriorityLabel,
@@ -521,6 +611,7 @@
     normalizeProduct,
     normalizeSettings,
     openExtensionPage,
+    renderCategory,
     saveData
   };
 })();

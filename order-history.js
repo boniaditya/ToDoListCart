@@ -6,7 +6,6 @@
 
   const elements = {
     brandName: document.querySelector(".brand-name"),
-    authorPill: document.querySelector(".author-pill"),
     cartCount: document.querySelector("#cart-count"),
     ordersCount: document.querySelector("#orders-count"),
     orderedItemsCount: document.querySelector("#ordered-items-count"),
@@ -28,7 +27,6 @@
 
   function renderSettings() {
     elements.brandName.textContent = state.data.settings.storeName;
-    elements.authorPill.textContent = `by ${state.data.settings.accountName}`;
     document.body.classList.toggle("compact-mode", state.data.settings.compactMode);
   }
 

@@ -7,7 +7,6 @@
 
   const elements = {
     brandName: document.querySelector(".brand-name"),
-    authorPill: document.querySelector(".author-pill"),
     productDetail: document.querySelector("#product-detail"),
     missingProduct: document.querySelector("#missing-product"),
     missingProductsLink: document.querySelector("#missing-products-link"),
@@ -16,6 +15,7 @@
     stars: document.querySelector("#detail-stars"),
     priority: document.querySelector("#detail-priority"),
     department: document.querySelector("#detail-department"),
+    location: document.querySelector("#detail-location"),
     moq: document.querySelector("#detail-moq"),
     price: document.querySelector("#detail-price"),
     created: document.querySelector("#detail-created"),
@@ -23,6 +23,7 @@
     cartSelect: document.querySelector("#cart-select"),
     cartCount: document.querySelector("#cart-count"),
     cartStatus: document.querySelector("#detail-cart-status"),
+    editProduct: document.querySelector("#detail-edit"),
     addCart: document.querySelector("#detail-add-cart"),
     removeCart: document.querySelector("#detail-remove-cart"),
     done: document.querySelector("#detail-done"),
@@ -106,7 +107,8 @@
     elements.title.textContent = product.title;
     elements.stars.textContent = Store.getStars(product.priority);
     elements.priority.textContent = Store.getPriorityLabel(product.priority);
-    elements.department.textContent = Store.getCategoryLabel(state.data, product.department);
+    Store.renderCategory(elements.department, state.data, product.department);
+    elements.location.textContent = product.location;
     elements.moq.textContent = Store.formatMoq(product.moq);
     elements.price.textContent = Store.formatMoney(product.price);
     elements.created.textContent = Store.formatDate(product.createdAt);
@@ -123,7 +125,6 @@
 
   function renderSettings() {
     elements.brandName.textContent = state.data.settings.storeName;
-    elements.authorPill.textContent = `by ${state.data.settings.accountName}`;
     document.body.classList.toggle("compact-mode", state.data.settings.compactMode);
   }
 
@@ -182,6 +183,10 @@
     window.location.href = Store.getExtensionUrl("products.html");
   }
 
+  function editProduct() {
+    window.location.href = Store.getExtensionUrl(`create-product.html?id=${encodeURIComponent(state.productId)}`);
+  }
+
   function bindEvents() {
     elements.cartSelect.addEventListener("change", async () => {
       state.data.activeCartId = elements.cartSelect.value;
@@ -191,6 +196,7 @@
     elements.addCart.addEventListener("click", addToCart);
     elements.removeCart.addEventListener("click", removeFromCart);
     elements.done.addEventListener("change", () => toggleDone(elements.done.checked));
+    elements.editProduct.addEventListener("click", editProduct);
     elements.deleteProduct.addEventListener("click", deleteProduct);
 
     elements.openProductsPage.addEventListener("click", () => {

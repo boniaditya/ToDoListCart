@@ -22,5 +22,8 @@
   },
   "permissions": [
     "storage"
+  ],
+  "host_permissions": [
+    "https://api.iconify.design/*"
   ]
 }

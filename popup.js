@@ -4,19 +4,21 @@
   const state = {
     data: Store.normalizeData({}),
     department: "all",
+    priority: "all",
+    location: "all",
+    cartStatus: "all",
     query: "",
-    formImage: {
-      data: "",
-      name: ""
-    }
+    viewMode: localStorage.getItem("todoListCart.productView") === "list" ? "list" : "card",
+    editProductId: null,
+    formImages: []
   };
 
   const elements = {
     brandName: document.querySelector(".brand-name"),
-    authorPill: document.querySelector(".author-pill"),
     productForm: document.querySelector("#product-form"),
     titleInput: document.querySelector("#product-title"),
     descriptionInput: document.querySelector("#product-description"),
+    locationInput: document.querySelector("#product-location"),
     departmentInput: document.querySelector("#product-department"),
     priorityInputs: document.querySelectorAll("input[name='priority']"),
     moqInput: document.querySelector("#product-moq"),
@@ -26,12 +28,21 @@
     imageDropzone: document.querySelector("#product-image-dropzone"),
     imagePreview: document.querySelector("#image-preview"),
     clearImage: document.querySelector("#clear-image"),
+    createTitle: document.querySelector("#create-title"),
+    formHeading: document.querySelector("#form-heading"),
+    createSubmit: document.querySelector(".create-submit"),
     categoryNameInput: document.querySelector("#category-name"),
     addCategory: document.querySelector("#add-category"),
     searchForm: document.querySelector("#search-form"),
     searchInput: document.querySelector("#search-products"),
     departments: document.querySelector(".departments"),
+    filterDepartment: document.querySelector("#filter-department"),
+    filterPriority: document.querySelector("#filter-priority"),
+    filterLocation: document.querySelector("#filter-location"),
+    filterCartStatus: document.querySelector("#filter-cart-status"),
+    clearFilters: document.querySelector("#clear-filters"),
     productList: document.querySelector("#product-list"),
+    viewButtons: document.querySelectorAll(".view-toggle-button"),
     cartList: document.querySelector("#cart-list"),
     productTemplate: document.querySelector("#product-template"),
     cartTemplate: document.querySelector("#cart-template"),
@@ -99,16 +110,23 @@
     return state.data.products.filter((product) => {
       const categoryName = getCategoryName(product);
       const matchesDepartment = state.department === "all" || product.department === state.department;
+      const matchesPriority = state.priority === "all" || product.priority === state.priority;
+      const matchesLocation = state.location === "all" || product.location === state.location;
+      const isInCart = cartHasProduct(product.id);
+      const matchesCartStatus = state.cartStatus === "all"
+        || (state.cartStatus === "in-cart" && isInCart)
+        || (state.cartStatus === "not-in-cart" && !isInCart);
       const matchesQuery = !query || [
         product.title,
         categoryName,
         product.priority,
+        product.location,
         product.description,
         product.moq,
         product.price
       ].some((value) => String(value).toLowerCase().includes(query));
 
-      return matchesDepartment && matchesQuery;
+      return matchesDepartment && matchesPriority && matchesLocation && matchesCartStatus && matchesQuery;
     });
   }
 
@@ -135,22 +153,28 @@
       return;
     }
 
-    const image = elements.imagePreview.querySelector("img");
-    const previewSource = state.formImage.data || elements.imageUrlInput?.value.trim() || "";
+    const previewGrid = elements.imagePreview.querySelector(".image-preview-grid");
+    const imageUrl = elements.imageUrlInput?.value.trim() || "";
+    const images = [
+      ...(imageUrl ? [{ src: imageUrl, name: "Image URL" }] : []),
+      ...state.formImages
+    ];
 
-    elements.imagePreview.hidden = !previewSource;
+    elements.imagePreview.hidden = images.length === 0;
+    previewGrid?.replaceChildren();
 
-    if (previewSource) {
-      image.src = previewSource;
-    } else {
-      image.removeAttribute("src");
-    }
+    images.forEach((entry, index) => {
+      const image = document.createElement("img");
+      image.src = entry.src;
+      image.alt = entry.name || `Selected product image ${index + 1}`;
+      previewGrid?.append(image);
+    });
 
     if (elements.imageDropzone) {
-      elements.imageDropzone.classList.toggle("has-image", Boolean(previewSource));
-      elements.imageDropzone.textContent = previewSource
-        ? "Image ready. Drop or paste another image to replace it."
-        : "Drop an image here or paste from clipboard";
+      elements.imageDropzone.classList.toggle("has-image", images.length > 0);
+      elements.imageDropzone.textContent = images.length
+        ? `${images.length} image${images.length === 1 ? "" : "s"} ready. Drop or paste more to add them.`
+        : "Drop images here or paste from clipboard";
     }
   }
 
@@ -168,7 +192,7 @@
         const button = document.createElement("button");
         button.type = "button";
         button.dataset.department = category.id;
-        button.textContent = category.name;
+        Store.renderCategory(button, state.data, category.id);
         elements.departments.append(button);
       });
 
@@ -198,6 +222,52 @@
         ? currentValue
         : state.data.settings.defaultDepartment;
     }
+
+    if (elements.filterDepartment) {
+      elements.filterDepartment.replaceChildren();
+
+      const allOption = document.createElement("option");
+      allOption.value = "all";
+      allOption.textContent = "All categories";
+      elements.filterDepartment.append(allOption);
+
+      state.data.categories.forEach((category) => {
+        const option = document.createElement("option");
+        option.value = category.id;
+        option.textContent = category.name;
+        elements.filterDepartment.append(option);
+      });
+
+      elements.filterDepartment.value = state.department;
+    }
+  }
+
+  function renderLocationOptions() {
+    if (!elements.filterLocation) {
+      return;
+    }
+
+    const locations = [...new Set(state.data.products.map((product) => product.location))]
+      .sort((first, second) => first.localeCompare(second));
+    elements.filterLocation.replaceChildren();
+
+    const allOption = document.createElement("option");
+    allOption.value = "all";
+    allOption.textContent = "All locations";
+    elements.filterLocation.append(allOption);
+
+    locations.forEach((location) => {
+      const option = document.createElement("option");
+      option.value = location;
+      option.textContent = location;
+      elements.filterLocation.append(option);
+    });
+
+    if (state.location !== "all" && !locations.includes(state.location)) {
+      state.location = "all";
+    }
+
+    elements.filterLocation.value = state.location;
   }
 
   function renderCartSelector() {
@@ -272,22 +342,30 @@
       const node = elements.productTemplate.content.firstElementChild.cloneNode(true);
       const imageBox = node.querySelector(".product-image");
       const title = node.querySelector(".product-title");
+      const description = node.querySelector(".product-description");
       const stars = node.querySelector(".rating-stars");
       const priority = node.querySelector(".priority-label");
       const department = node.querySelector(".department-label");
+      const location = node.querySelector(".location-label");
       const moq = node.querySelector(".moq-label");
       const price = node.querySelector(".price-label");
       const addButton = node.querySelector(".add-cart-button");
       const detailButton = node.querySelector(".view-details-button");
-      const deleteButton = node.querySelector(".delete-product-button");
 
       node.dataset.id = product.id;
+      node.tabIndex = 0;
+      node.setAttribute("role", "link");
+      node.setAttribute("aria-label", `View details for ${product.title}`);
       node.classList.toggle("done", getActiveItems().some((item) => item.productId === product.id && item.done));
       renderProductImage(imageBox, product);
       title.textContent = product.title;
+      if (description) {
+        description.textContent = product.description || "No additional details provided.";
+      }
       stars.textContent = Store.getStars(product.priority);
       priority.textContent = Store.getPriorityLabel(product.priority);
-      department.textContent = getCategoryName(product);
+      Store.renderCategory(department, state.data, product.department);
+      location.textContent = product.location;
       moq.textContent = Store.formatMoq(product.moq);
       price.textContent = Store.formatMoney(product.price);
 
@@ -298,7 +376,6 @@
       }
 
       detailButton.setAttribute("aria-label", `View details for ${product.title}`);
-      deleteButton.setAttribute("aria-label", `Delete ${product.title}`);
       elements.productList.append(node);
     });
 
@@ -349,21 +426,39 @@
       elements.brandName.textContent = state.data.settings.storeName;
     }
 
-    if (elements.authorPill) {
-      elements.authorPill.textContent = `by ${state.data.settings.accountName}`;
-    }
-
     document.body.classList.toggle("compact-mode", state.data.settings.compactMode);
   }
 
   function render() {
     renderSettings();
     renderCategoryControls();
+    renderLocationOptions();
     renderCartSelector();
     renderProducts();
     renderCart();
     renderImagePreview();
     updateSummary();
+    renderViewMode();
+  }
+
+  function renderViewMode() {
+    if (!elements.productList) {
+      return;
+    }
+
+    elements.productList.classList.toggle("list-view", state.viewMode === "list");
+    elements.productList.classList.toggle("card-view", state.viewMode === "card");
+    elements.viewButtons.forEach((button) => {
+      const active = button.dataset.view === state.viewMode;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+  }
+
+  function setViewMode(viewMode) {
+    state.viewMode = viewMode === "list" ? "list" : "card";
+    localStorage.setItem("todoListCart.productView", state.viewMode);
+    renderViewMode();
   }
 
   function applyFormDefaults() {
@@ -382,28 +477,55 @@
     }
   }
 
+  function applyEditProduct() {
+    if (!elements.productForm || !state.editProductId) {
+      return false;
+    }
+
+    const product = state.data.products.find((entry) => entry.id === state.editProductId);
+
+    if (!product) {
+      state.editProductId = null;
+      return false;
+    }
+
+    elements.titleInput.value = product.title;
+    elements.descriptionInput.value = product.description;
+    elements.locationInput.value = product.location;
+    elements.departmentInput.value = product.department;
+    setPriorityValue(product.priority);
+    elements.moqInput.value = product.moq;
+    elements.priceInput.value = product.price;
+    state.formImages = product.images.map((image) => ({ ...image }));
+
+    if (elements.createTitle) {
+      elements.createTitle.textContent = `Edit ${product.title}`;
+    }
+
+    if (elements.formHeading) {
+      elements.formHeading.textContent = "Edit product details";
+    }
+
+    if (elements.createSubmit) {
+      elements.createSubmit.textContent = "Save Changes";
+    }
+
+    renderImagePreview();
+    return true;
+  }
+
   async function persistAndRender() {
     state.data = await Store.saveData(state.data);
     render();
   }
 
-  async function getSelectedImage() {
-    const file = elements.imageFileInput?.files?.[0];
-    let image = elements.imageUrlInput?.value.trim() || "";
-    let imageName = "";
+  function getSelectedImages() {
+    const imageUrl = elements.imageUrlInput?.value.trim() || "";
 
-    if (state.formImage.data) {
-      return {
-        image: state.formImage.data,
-        imageName: state.formImage.name
-      };
-    }
-
-    if (file) {
-      return readImageFile(file);
-    }
-
-    return { image, imageName };
+    return [
+      ...(imageUrl ? [{ src: imageUrl, name: "" }] : []),
+      ...state.formImages
+    ];
   }
 
   async function readImageFile(file) {
@@ -422,6 +544,23 @@
     };
   }
 
+  async function readImageFiles(files) {
+    const imageFiles = [...files]
+      .filter((file) => file?.type.startsWith("image/"))
+      .slice(0, 8);
+    const images = [];
+
+    for (const file of imageFiles) {
+      const { image, imageName } = await readImageFile(file);
+
+      if (image) {
+        images.push({ src: image, name: imageName });
+      }
+    }
+
+    return images;
+  }
+
   async function addProduct(event) {
     event.preventDefault();
     const title = elements.titleInput.value.trim();
@@ -430,21 +569,38 @@
       return;
     }
 
-    const { image, imageName } = await getSelectedImage();
+    const images = getSelectedImages();
 
-    state.data.products.unshift(Store.createProduct({
+    const productValues = {
       title,
       department: elements.departmentInput.value,
+      location: elements.locationInput?.value.trim() || "Unspecified",
       priority: getPriorityValue(),
       moq: elements.moqInput.value,
       price: elements.priceInput.value,
       description: elements.descriptionInput?.value.trim() || "",
-      image,
-      imageName
-    }));
+      images
+    };
+
+    if (state.editProductId) {
+      const existingProduct = state.data.products.find((product) => product.id === state.editProductId);
+
+      if (existingProduct) {
+        state.data.products = state.data.products.map((product) => (
+          product.id === state.editProductId
+            ? Store.normalizeProduct({ ...existingProduct, ...productValues })
+            : product
+        ));
+        await Store.saveData(state.data);
+        window.location.href = Store.getExtensionUrl(`product.html?id=${encodeURIComponent(state.editProductId)}`);
+        return;
+      }
+    }
+
+    state.data.products.unshift(Store.createProduct(productValues));
 
     elements.productForm.reset();
-    state.formImage = { data: "", name: "" };
+    state.formImages = [];
     applyFormDefaults();
     elements.titleInput.focus();
     await persistAndRender();
@@ -499,15 +655,6 @@
       ...activeCart,
       items: activeCart.items.filter((item) => item.productId !== productId)
     });
-    await persistAndRender();
-  }
-
-  async function deleteProduct(productId) {
-    state.data.products = state.data.products.filter((product) => product.id !== productId);
-    state.data.carts = state.data.carts.map((cart) => ({
-      ...cart,
-      items: cart.items.filter((item) => item.productId !== productId)
-    }));
     await persistAndRender();
   }
 
@@ -603,7 +750,7 @@
   }
 
   function clearImageSelection() {
-    state.formImage = { data: "", name: "" };
+    state.formImages = [];
 
     if (elements.imageFileInput) {
       elements.imageFileInput.value = "";
@@ -616,25 +763,18 @@
     renderImagePreview();
   }
 
-  async function applyDroppedOrPastedImage(file) {
-    if (!file) {
+  async function applyDroppedOrPastedImages(files) {
+    if (!files.length) {
       return;
     }
 
-    const { image, imageName } = await readImageFile(file);
+    const images = await readImageFiles(files);
 
-    if (!image) {
+    if (!images.length) {
       return;
     }
 
-    state.formImage = {
-      data: image,
-      name: imageName
-    };
-
-    if (elements.imageUrlInput) {
-      elements.imageUrlInput.value = "";
-    }
+    state.formImages = [...state.formImages, ...images].slice(0, 8);
 
     if (elements.imageFileInput) {
       elements.imageFileInput.value = "";
@@ -643,18 +783,18 @@
     renderImagePreview();
   }
 
-  function getImageFileFromTransfer(dataTransfer) {
-    const files = [...(dataTransfer?.files || [])];
-    const file = files.find((entry) => entry.type.startsWith("image/"));
+  function getImageFilesFromTransfer(dataTransfer) {
+    const files = [...(dataTransfer?.files || [])]
+      .filter((entry) => entry.type.startsWith("image/"));
 
-    if (file) {
-      return file;
+    if (files.length) {
+      return files;
     }
 
     return [...(dataTransfer?.items || [])]
       .filter((item) => item.kind === "file")
       .map((item) => item.getAsFile())
-      .find((entry) => entry?.type.startsWith("image/"));
+      .filter((entry) => entry?.type.startsWith("image/"));
   }
 
   function bindImageDropzone() {
@@ -674,16 +814,16 @@
     elements.imageDropzone.addEventListener("drop", (event) => {
       event.preventDefault();
       elements.imageDropzone.classList.remove("dragging");
-      applyDroppedOrPastedImage(getImageFileFromTransfer(event.dataTransfer));
+      applyDroppedOrPastedImages(getImageFilesFromTransfer(event.dataTransfer));
     });
 
     function handleImagePaste(event) {
-      const file = getImageFileFromTransfer(event.clipboardData);
+      const files = getImageFilesFromTransfer(event.clipboardData);
 
-      if (file) {
+      if (files.length) {
         event.preventDefault();
         event.stopPropagation();
-        applyDroppedOrPastedImage(file);
+        applyDroppedOrPastedImages(files);
       }
     }
 
@@ -710,36 +850,26 @@
     });
 
     elements.imageUrlInput?.addEventListener("input", () => {
-      state.formImage = { data: "", name: "" };
-
-      if (elements.imageFileInput) {
-        elements.imageFileInput.value = "";
-      }
-
       renderImagePreview();
     });
 
     elements.imageFileInput?.addEventListener("change", async () => {
-      const file = elements.imageFileInput.files?.[0];
+      const files = [...(elements.imageFileInput.files || [])];
 
-      if (!file) {
-        state.formImage = { data: "", name: "" };
+      if (!files.length) {
+        state.formImages = [];
         renderImagePreview();
         return;
       }
 
-      const { image, imageName } = await readImageFile(file);
+      const images = await readImageFiles(files);
 
-      if (!image) {
+      if (!images.length) {
         clearImageSelection();
         return;
       }
 
-      state.formImage = { data: image, name: imageName };
-
-      if (elements.imageUrlInput) {
-        elements.imageUrlInput.value = "";
-      }
+      state.formImages = images;
 
       renderImagePreview();
     });
@@ -766,21 +896,84 @@
       }
     });
 
+    elements.viewButtons.forEach((button) => {
+      button.addEventListener("click", () => setViewMode(button.dataset.view));
+    });
+
+    elements.filterDepartment?.addEventListener("change", () => {
+      setDepartment(elements.filterDepartment.value);
+    });
+
+    elements.filterPriority?.addEventListener("change", () => {
+      state.priority = elements.filterPriority.value;
+      renderProducts();
+    });
+
+    elements.filterLocation?.addEventListener("change", () => {
+      state.location = elements.filterLocation.value;
+      renderProducts();
+    });
+
+    elements.filterCartStatus?.addEventListener("change", () => {
+      state.cartStatus = elements.filterCartStatus.value;
+      renderProducts();
+    });
+
+    elements.clearFilters?.addEventListener("click", () => {
+      state.department = "all";
+      state.priority = "all";
+      state.location = "all";
+      state.cartStatus = "all";
+      state.query = "";
+
+      if (elements.searchInput) {
+        elements.searchInput.value = "";
+      }
+
+      if (elements.filterPriority) {
+        elements.filterPriority.value = "all";
+      }
+
+      if (elements.filterCartStatus) {
+        elements.filterCartStatus.value = "all";
+      }
+
+      if (elements.filterLocation) {
+        elements.filterLocation.value = "all";
+      }
+
+      renderCategoryControls();
+      renderLocationOptions();
+      renderProducts();
+    });
+
     elements.productList?.addEventListener("click", (event) => {
       const addButton = event.target.closest(".add-cart-button");
       const detailButton = event.target.closest(".view-details-button");
-      const deleteButton = event.target.closest(".delete-product-button");
 
       if (addButton) {
         addToCart(addButton.closest(".product-card").dataset.id);
+        return;
       }
 
       if (detailButton) {
         openProductDetail(detailButton.closest(".product-card").dataset.id);
+        return;
       }
 
-      if (deleteButton) {
-        deleteProduct(deleteButton.closest(".product-card").dataset.id);
+      const card = event.target.closest(".product-card");
+
+      if (card) {
+        openProductDetail(card.dataset.id);
+      }
+    });
+
+    elements.productList?.addEventListener("keydown", (event) => {
+      const card = event.target.closest(".product-card");
+
+      if (card && event.target === card && (event.key === "Enter" || event.key === " ")) {
+        event.preventDefault();
+        openProductDetail(card.dataset.id);
       }
     });
 
@@ -814,8 +1007,14 @@
   async function init() {
     bindEvents();
     state.data = await Store.loadData();
-    applyFormDefaults();
+    if (elements.productForm) {
+      state.editProductId = new URLSearchParams(window.location.search).get("id");
+    }
     render();
+
+    if (!applyEditProduct()) {
+      applyFormDefaults();
+    }
   }
 
   init();

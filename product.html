@@ -4,20 +4,24 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Product Details - ToDoList Cart</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
     <link rel="stylesheet" href="newtab.css">
   </head>
   <body>
     <main class="store-shell detail-shell" aria-labelledby="detail-title">
       <header class="store-header">
         <div class="top-row">
-          <div class="brand" aria-label="ToDoList Cart home">
+          <a class="brand" href="newtab.html" aria-label="Go to ToDoList Cart home">
+            <img class="brand-icon" src="icons/icon-48.png" alt="">
             <span class="brand-name">ToDoList Cart</span>
             <span class="brand-domain">.tasks</span>
-          </div>
+          </a>
 
           <div class="detail-search-spacer"></div>
 
-          <div class="author-pill">by boni aditya</div>
+
+          <a class="page-link-button" href="create-product.html">Create</a>
 
           <button type="button" class="page-link-button" id="open-products-page">Products</button>
           <button type="button" class="page-link-button" id="open-home-page">Workspace</button>
@@ -58,6 +62,10 @@
               <dd id="detail-department"></dd>
             </div>
             <div>
+              <dt>Location</dt>
+              <dd id="detail-location"></dd>
+            </div>
+            <div>
               <dt>MOQ</dt>
               <dd id="detail-moq"></dd>
             </div>
@@ -85,6 +93,7 @@
 
           <p id="detail-cart-status" class="detail-cart-status">Not in cart</p>
 
+          <button type="button" id="detail-edit" class="secondary-button">Edit Product</button>
           <button type="button" id="detail-add-cart" class="add-cart-button">Add to Cart</button>
           <button type="button" id="detail-remove-cart" class="secondary-button">Remove from Cart</button>
 

@@ -4,16 +4,19 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>ToDoList Cart New Tab</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
     <link rel="stylesheet" href="newtab.css">
   </head>
   <body>
     <main class="store-shell" aria-labelledby="app-title">
       <header class="store-header">
         <div class="top-row">
-          <div class="brand" aria-label="ToDoList Cart home">
+          <a class="brand" href="newtab.html" aria-label="Go to ToDoList Cart home">
+            <img class="brand-icon" src="icons/icon-48.png" alt="">
             <span class="brand-name" id="app-title">ToDoList Cart</span>
             <span class="brand-domain">.tasks</span>
-          </div>
+          </a>
 
           <form id="search-form" class="search-bar" autocomplete="off">
             <label class="visually-hidden" for="search-products">Search task products</label>
@@ -21,7 +24,7 @@
             <button type="submit">Search</button>
           </form>
 
-          <div class="author-pill">by boni aditya</div>
+          <a class="page-link-button" href="create-product.html">Create</a>
 
           <button type="button" class="page-link-button" id="open-products-page">Products</button>
 
@@ -54,87 +57,47 @@
       </section>
 
       <section class="workspace-grid" aria-label="Shopping todo workspace">
-        <section class="create-product" aria-labelledby="create-heading">
+        <aside class="filter-panel" aria-labelledby="filter-heading">
           <div class="section-heading">
-            <h2 id="create-heading">Create Product</h2>
+            <h2 id="filter-heading">Filters</h2>
           </div>
 
-          <form id="product-form" class="product-form" autocomplete="off">
-            <label for="product-title">Product name</label>
-            <input id="product-title" name="title" type="text" maxlength="90" placeholder="Finish project report" required>
+          <div class="filter-controls">
+            <label for="filter-department">Category</label>
+            <select id="filter-department"></select>
 
-            <label for="product-description">Product details</label>
-            <textarea id="product-description" name="description" maxlength="500" placeholder="Add product details, deadline, notes, or context"></textarea>
+            <label for="filter-priority">Priority</label>
+            <select id="filter-priority">
+              <option value="all">All priorities</option>
+              <option value="standard">Standard</option>
+              <option value="important">Important</option>
+              <option value="urgent">Urgent</option>
+            </select>
 
-            <div class="form-row">
-              <label>
-                Category
-                <select id="product-department" name="department" aria-label="Category"></select>
-              </label>
+            <label for="filter-location">Location</label>
+            <select id="filter-location">
+              <option value="all">All locations</option>
+            </select>
 
-              <fieldset class="priority-toggle" aria-label="Priority">
-                <legend>Priority</legend>
-                <label>
-                  <input type="radio" name="priority" value="standard" checked>
-                  <span>Standard</span>
-                </label>
-                <label>
-                  <input type="radio" name="priority" value="important">
-                  <span>Important</span>
-                </label>
-                <label>
-                  <input type="radio" name="priority" value="urgent">
-                  <span>Urgent</span>
-                </label>
-              </fieldset>
-            </div>
+            <label for="filter-cart-status">Cart status</label>
+            <select id="filter-cart-status">
+              <option value="all">All products</option>
+              <option value="in-cart">In cart</option>
+              <option value="not-in-cart">Not in cart</option>
+            </select>
 
-            <div id="category-form" class="category-form">
-              <label for="category-name">New category</label>
-              <input id="category-name" type="text" maxlength="32" placeholder="Marketing">
-              <button type="button" id="add-category" class="secondary-button">Add Category</button>
-            </div>
-
-            <div class="moq-price-row">
-              <label>
-                MOQ
-                <input id="product-moq" name="moq" type="number" min="1" step="1" inputmode="numeric" required>
-              </label>
-
-              <label>
-                Dollar amount
-                <input id="product-price" name="price" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00" required>
-              </label>
-            </div>
-
-            <div class="image-row">
-              <label>
-                Image URL
-                <input id="product-image-url" name="imageUrl" type="url" placeholder="https://example.com/product.png">
-              </label>
-
-              <label class="image-upload" for="product-image-file">
-                <span>Upload Image</span>
-                <input id="product-image-file" name="imageFile" type="file" accept="image/*">
-              </label>
-            </div>
-
-            <div id="image-preview" class="image-preview" hidden>
-              <img alt="Selected product preview">
-              <button type="button" id="clear-image" class="secondary-button">Remove Image</button>
-            </div>
-
-            <div id="product-image-dropzone" class="image-dropzone" tabindex="0">
-              Drop an image here or paste from clipboard
-            </div>
-
-            <button type="submit" class="primary-button">Create Product</button>
-          </form>
-        </section>
+            <button type="button" id="clear-filters" class="filter-reset">Clear filters</button>
+            <a class="create-product-link" href="create-product.html">+ Create a product</a>
+          </div>
+        </aside>
 
         <section class="product-shelf" aria-labelledby="products-heading">
           <div class="section-heading">
             <h2 id="products-heading">Today's Deals</h2>
+            <div class="view-toggle" role="group" aria-label="Product view">
+              <button type="button" class="view-toggle-button active" data-view="card" aria-pressed="true">▦ <span>Cards</span></button>
+              <button type="button" class="view-toggle-button" data-view="list" aria-pressed="false">☷ <span>List</span></button>
+            </div>
           </div>
 
           <ul id="product-list" class="product-list"></ul>
@@ -193,12 +156,14 @@
         </div>
         <div class="product-copy">
           <strong class="product-title"></strong>
+          <p class="product-description"></p>
           <div class="rating-row" aria-label="Priority">
             <span class="rating-stars" aria-hidden="true">*****</span>
             <span class="priority-label"></span>
           </div>
           <div class="product-meta">
             <span class="department-label"></span>
+            <span class="location-label"></span>
             <span class="moq-label"></span>
             <span class="price-label"></span>
           </div>
@@ -207,7 +172,6 @@
         <div class="product-actions">
           <button type="button" class="add-cart-button">Add to Cart</button>
           <button type="button" class="view-details-button">Details</button>
-          <button type="button" class="delete-product-button" aria-label="Delete product">Delete</button>
         </div>
       </li>
     </template>

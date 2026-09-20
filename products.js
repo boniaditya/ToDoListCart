@@ -3,16 +3,17 @@
   const state = {
     data: Store.normalizeData({}),
     department: "all",
-    query: ""
+    query: "",
+    viewMode: localStorage.getItem("todoListCart.productView") === "list" ? "list" : "card"
   };
 
   const elements = {
     brandName: document.querySelector(".brand-name"),
-    authorPill: document.querySelector(".author-pill"),
     searchForm: document.querySelector("#search-form"),
     searchInput: document.querySelector("#search-products"),
     departments: document.querySelector(".departments"),
     productList: document.querySelector("#product-list"),
+    viewButtons: document.querySelectorAll(".view-toggle-button"),
     productTemplate: document.querySelector("#product-template"),
     emptyProducts: document.querySelector("#empty-products"),
     productCount: document.querySelector("#product-count"),
@@ -52,6 +53,7 @@
         product.title,
         categoryName,
         product.priority,
+        product.location,
         product.description,
         product.moq,
         product.price
@@ -67,16 +69,62 @@
 
   function renderProductImage(container, product) {
     container.replaceChildren();
+    const images = product.images || [];
 
-    if (product.image && state.data.settings.showImages) {
+    if (images.length && state.data.settings.showImages) {
       const image = document.createElement("img");
-      image.src = product.image;
-      image.alt = `${product.title} product image`;
+      image.src = images[0].src;
+      image.alt = `${product.title} product image 1 of ${images.length}`;
       container.append(image);
+
+      if (images.length > 1) {
+        const previous = document.createElement("button");
+        const next = document.createElement("button");
+        const count = document.createElement("span");
+
+        previous.type = "button";
+        previous.className = "carousel-button previous";
+        previous.dataset.carouselDirection = "-1";
+        previous.setAttribute("aria-label", `Show previous image for ${product.title}`);
+        previous.textContent = "‹";
+
+        next.type = "button";
+        next.className = "carousel-button next";
+        next.dataset.carouselDirection = "1";
+        next.setAttribute("aria-label", `Show next image for ${product.title}`);
+        next.textContent = "›";
+
+        count.className = "carousel-count";
+        count.textContent = `1 / ${images.length}`;
+        container.dataset.imageIndex = "0";
+        container.append(previous, next, count);
+      }
+
       return;
     }
 
     container.append(document.createElement("span"));
+  }
+
+  function moveCarousel(button) {
+    const card = button.closest(".product-card");
+    const product = state.data.products.find((entry) => entry.id === card?.dataset.id);
+    const container = button.closest(".product-image");
+    const images = product?.images || [];
+
+    if (!container || images.length < 2) {
+      return;
+    }
+
+    const currentIndex = Number(container.dataset.imageIndex || 0);
+    const direction = Number(button.dataset.carouselDirection || 1);
+    const nextIndex = (currentIndex + direction + images.length) % images.length;
+    const image = container.querySelector("img");
+
+    container.dataset.imageIndex = String(nextIndex);
+    image.src = images[nextIndex].src;
+    image.alt = `${product.title} product image ${nextIndex + 1} of ${images.length}`;
+    container.querySelector(".carousel-count").textContent = `${nextIndex + 1} / ${images.length}`;
   }
 
   function renderCartSelector() {
@@ -105,7 +153,7 @@
       const button = document.createElement("button");
       button.type = "button";
       button.dataset.department = category.id;
-      button.textContent = category.name;
+      Store.renderCategory(button, state.data, category.id);
       elements.departments.append(button);
     });
 
@@ -144,21 +192,27 @@
       const node = elements.productTemplate.content.firstElementChild.cloneNode(true);
       const imageBox = node.querySelector(".product-image");
       const title = node.querySelector(".product-title");
+      const description = node.querySelector(".product-description");
       const stars = node.querySelector(".rating-stars");
       const priority = node.querySelector(".priority-label");
       const department = node.querySelector(".department-label");
+      const location = node.querySelector(".location-label");
       const moq = node.querySelector(".moq-label");
       const price = node.querySelector(".price-label");
       const addButton = node.querySelector(".add-cart-button");
       const detailButton = node.querySelector(".view-details-button");
-      const deleteButton = node.querySelector(".delete-product-button");
 
       node.dataset.id = product.id;
+      node.tabIndex = 0;
+      node.setAttribute("role", "link");
+      node.setAttribute("aria-label", `View details for ${product.title}`);
       renderProductImage(imageBox, product);
       title.textContent = product.title;
+      description.textContent = product.description || "No additional details provided.";
       stars.textContent = Store.getStars(product.priority);
       priority.textContent = Store.getPriorityLabel(product.priority);
-      department.textContent = getCategoryName(product);
+      Store.renderCategory(department, state.data, product.department);
+      location.textContent = product.location;
       moq.textContent = Store.formatMoq(product.moq);
       price.textContent = Store.formatMoney(product.price);
 
@@ -169,7 +223,6 @@
       }
 
       detailButton.setAttribute("aria-label", `View details for ${product.title}`);
-      deleteButton.setAttribute("aria-label", `Delete ${product.title}`);
       elements.productList.append(node);
     });
 
@@ -182,11 +235,27 @@
     renderCartSelector();
     renderProducts();
     renderSummary();
+    renderViewMode();
+  }
+
+  function renderViewMode() {
+    elements.productList.classList.toggle("list-view", state.viewMode === "list");
+    elements.productList.classList.toggle("card-view", state.viewMode === "card");
+    elements.viewButtons.forEach((button) => {
+      const active = button.dataset.view === state.viewMode;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+  }
+
+  function setViewMode(viewMode) {
+    state.viewMode = viewMode === "list" ? "list" : "card";
+    localStorage.setItem("todoListCart.productView", state.viewMode);
+    renderViewMode();
   }
 
   function renderSettings() {
     elements.brandName.textContent = state.data.settings.storeName;
-    elements.authorPill.textContent = `by ${state.data.settings.accountName}`;
     document.body.classList.toggle("compact-mode", state.data.settings.compactMode);
   }
 
@@ -216,15 +285,6 @@
         : cart
     ));
 
-    await persistAndRender();
-  }
-
-  async function deleteProduct(productId) {
-    state.data.products = state.data.products.filter((product) => product.id !== productId);
-    state.data.carts = state.data.carts.map((cart) => ({
-      ...cart,
-      items: cart.items.filter((item) => item.productId !== productId)
-    }));
     await persistAndRender();
   }
 
@@ -261,26 +321,48 @@
       }
     });
 
+    elements.viewButtons.forEach((button) => {
+      button.addEventListener("click", () => setViewMode(button.dataset.view));
+    });
+
     elements.cartSelect.addEventListener("change", async () => {
       state.data.activeCartId = elements.cartSelect.value;
       await persistAndRender();
     });
 
     elements.productList.addEventListener("click", (event) => {
+      const carouselButton = event.target.closest(".carousel-button");
       const addButton = event.target.closest(".add-cart-button");
       const detailButton = event.target.closest(".view-details-button");
-      const deleteButton = event.target.closest(".delete-product-button");
+
+      if (carouselButton) {
+        moveCarousel(carouselButton);
+        return;
+      }
 
       if (addButton) {
         addToCart(addButton.closest(".product-card").dataset.id);
+        return;
       }
 
       if (detailButton) {
         openProductDetail(detailButton.closest(".product-card").dataset.id);
+        return;
       }
 
-      if (deleteButton) {
-        deleteProduct(deleteButton.closest(".product-card").dataset.id);
+      const card = event.target.closest(".product-card");
+
+      if (card) {
+        openProductDetail(card.dataset.id);
+      }
+    });
+
+    elements.productList.addEventListener("keydown", (event) => {
+      const card = event.target.closest(".product-card");
+
+      if (card && event.target === card && (event.key === "Enter" || event.key === " ")) {
+        event.preventDefault();
+        openProductDetail(card.dataset.id);
       }
     });
 
