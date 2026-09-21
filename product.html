@@ -96,24 +96,66 @@
             </dl>
           </section>
 
-          <section class="detail-description" aria-label="Description">
-            <h2>About this product</h2>
-            <p id="detail-description"></p>
-          </section>
-
-          <section id="detail-references" class="detail-references" aria-labelledby="detail-references-heading" hidden>
-            <h2 id="detail-references-heading">Reference links</h2>
-            <ul id="detail-reference-list"></ul>
-          </section>
-          <section id="detail-related-products" class="detail-references" hidden>
-            <h2>Related products</h2><ul></ul>
-          </section>
-          <section id="detail-bundle-products" class="detail-references" hidden>
-            <h2>Buy together</h2><ul></ul>
+          <section id="detail-resource-tabs" class="detail-resource-tabs" aria-label="Product details tabs">
+            <div class="detail-resource-tablist" role="tablist" aria-label="Product resources">
+              <button type="button" role="tab" id="resource-tab-description" aria-controls="detail-description-panel" data-resource-tab="description">Description</button>
+              <button type="button" role="tab" id="resource-tab-references" aria-controls="detail-references" data-resource-tab="references">Reference links</button>
+              <button type="button" role="tab" id="resource-tab-related" aria-controls="detail-related-products" data-resource-tab="related">Related products</button>
+              <button type="button" role="tab" id="resource-tab-bundle" aria-controls="detail-bundle-products" data-resource-tab="bundle">Buy together</button>
+              <button type="button" role="tab" id="resource-tab-comments" aria-controls="product-comments" data-resource-tab="comments">COMMENTS</button>
+              <button type="button" id="toggle-comment-panel" class="comment-panel-toggle-icon comment-tab-toggle" aria-pressed="false" aria-label="Move add comment to side panel" title="Move add comment to side panel">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                  <path d="M14 4v16M7 12h6M10 9l3 3-3 3"></path>
+                </svg>
+              </button>
+            </div>
+            <section id="detail-description-panel" class="detail-description detail-resource-panel" role="tabpanel" aria-labelledby="resource-tab-description" data-resource-panel="description">
+              <h2>About this product</h2>
+              <p id="detail-description"></p>
+            </section>
+            <section id="detail-references" class="detail-references detail-resource-panel" role="tabpanel" aria-labelledby="resource-tab-references" data-resource-panel="references" hidden>
+              <h2>Reference links</h2>
+              <ul id="detail-reference-list"></ul>
+            </section>
+            <section id="detail-related-products" class="detail-references detail-resource-panel" role="tabpanel" aria-labelledby="resource-tab-related" data-resource-panel="related" hidden>
+              <h2>Related products</h2><ul></ul>
+            </section>
+            <section id="detail-bundle-products" class="detail-references detail-resource-panel" role="tabpanel" aria-labelledby="resource-tab-bundle" data-resource-panel="bundle" hidden>
+              <h2>Buy together</h2><ul></ul>
+            </section>
+            <section id="product-comments" class="product-comments detail-resource-panel" role="tabpanel" aria-labelledby="resource-tab-comments" data-resource-panel="comments">
+              <div class="comments-heading">
+                <h2 id="comments-heading">Comments</h2>
+                <div class="comments-heading-actions">
+                  <span id="comment-count">0 comments</span>
+                </div>
+              </div>
+              <form id="comment-form" class="comment-form">
+                <label class="comment-title-field">
+                  <span>Title <em>Optional</em></span>
+                  <input id="comment-title" maxlength="100" placeholder="Comment title">
+                </label>
+                <label class="comment-body-field">
+                  <span>Comment</span>
+                  <textarea id="comment-text" maxlength="500" placeholder="Add a note, update, or follow-up…"></textarea>
+                </label>
+                <label class="comment-image-upload" for="comment-image-file">
+                  <span>Add images</span>
+                  <input id="comment-image-file" type="file" accept="image/*" multiple>
+                </label>
+                <p class="comment-image-hint">or paste images from your clipboard</p>
+                <div id="comment-image-preview" class="comment-image-preview" hidden></div>
+                <button type="submit" class="primary-button">Add comment</button>
+              </form>
+              <ol id="comment-list" class="comment-list"></ol>
+              <p id="empty-comments" class="comments-empty">No comments yet.</p>
+            </section>
           </section>
 
         </article>
 
+        <div class="detail-sidebar">
         <aside class="detail-actions" aria-label="Product actions">
           <div class="cart-manager">
             <label for="cart-select">Active cart</label>
@@ -162,40 +204,7 @@
         <aside id="comment-composer-panel" class="comment-composer-panel" aria-label="Add a comment" hidden>
           <p class="comment-composer-title">Add a comment</p>
         </aside>
-
-        <section class="product-comments" aria-labelledby="comments-heading">
-          <div class="comments-heading">
-            <h2 id="comments-heading">Comments</h2>
-            <div class="comments-heading-actions">
-              <span id="comment-count">0 comments</span>
-              <button type="button" id="toggle-comment-panel" class="comment-panel-toggle-icon" aria-pressed="false" aria-label="Move add comment to side panel" title="Move add comment to side panel">
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <rect x="3" y="4" width="18" height="16" rx="2"></rect>
-                  <path d="M14 4v16M7 12h6M10 9l3 3-3 3"></path>
-                </svg>
-              </button>
-            </div>
-          </div>
-          <form id="comment-form" class="comment-form">
-            <label class="comment-title-field">
-              <span>Title <em>Optional</em></span>
-              <input id="comment-title" maxlength="100" placeholder="Comment title">
-            </label>
-            <label class="comment-body-field">
-              <span>Comment</span>
-              <textarea id="comment-text" maxlength="500" placeholder="Add a note, update, or follow-up…"></textarea>
-            </label>
-            <label class="comment-image-upload" for="comment-image-file">
-              <span>Add images</span>
-              <input id="comment-image-file" type="file" accept="image/*" multiple>
-            </label>
-            <p class="comment-image-hint">or paste images from your clipboard</p>
-            <div id="comment-image-preview" class="comment-image-preview" hidden></div>
-            <button type="submit" class="primary-button">Add comment</button>
-          </form>
-          <ol id="comment-list" class="comment-list"></ol>
-          <p id="empty-comments" class="comments-empty">No comments yet.</p>
-        </section>
+        </div>
 
         <dialog id="comment-image-dialog" class="comment-image-dialog" aria-labelledby="comment-image-dialog-title">
           <div class="comment-image-dialog-header">

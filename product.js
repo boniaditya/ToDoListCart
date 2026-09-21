@@ -5,6 +5,7 @@
     data: Store.normalizeData({}),
     productId: new URLSearchParams(window.location.search).get("id"),
     detailImageIndex: 0,
+    activeResourceTab: "description",
     commentImages: []
   };
 
@@ -30,6 +31,10 @@
     referenceList: document.querySelector("#detail-reference-list"),
     relatedProducts: document.querySelector("#detail-related-products"),
     bundleProducts: document.querySelector("#detail-bundle-products"),
+    descriptionPanel: document.querySelector("#detail-description-panel"),
+    commentsPanel: document.querySelector("#product-comments"),
+    resourceTabs: document.querySelector("#detail-resource-tabs"),
+    resourceTabButtons: document.querySelectorAll("[data-resource-tab]"),
     commentForm: document.querySelector("#comment-form"),
     commentTitle: document.querySelector("#comment-title"),
     commentText: document.querySelector("#comment-text"),
@@ -226,7 +231,14 @@
       remove.className = "delete-comment-button";
       remove.setAttribute("aria-label", `Delete comment${comment.title ? `: ${comment.title}` : ""}`);
       remove.title = "Delete comment";
-      remove.textContent = "Delete";
+      remove.innerHTML = `
+        <svg class="comment-delete-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M3 6h18"></path>
+          <path d="M8 6V4h8v2"></path>
+          <path d="M19 6l-1 14H6L5 6"></path>
+          <path d="M10 11v5M14 11v5"></path>
+        </svg>
+      `;
       remove.addEventListener("click", () => deleteComment(comment.id));
       meta.append(timestamp, remove);
       item.append(meta);
@@ -287,7 +299,7 @@
   function renderReferences(product) {
     const referenceUrls = product.referenceUrls || [];
     elements.referenceList.replaceChildren();
-    elements.references.hidden = referenceUrls.length === 0;
+    elements.references.dataset.available = String(referenceUrls.length > 0);
 
     referenceUrls.forEach((url) => {
       const item = document.createElement("li");
@@ -307,18 +319,76 @@
       const products = ids.map((id) => state.data.products.find((entry) => entry.id === id)).filter(Boolean);
       const list = container.querySelector("ul");
       list.replaceChildren();
-      container.hidden = products.length === 0;
+      list.className = "relation-preview-list";
+      container.dataset.available = String(products.length > 0);
       products.forEach((related) => {
         const item = document.createElement("li");
         const link = document.createElement("a");
+        const media = document.createElement("div");
+        const copy = document.createElement("div");
+        const title = document.createElement("strong");
+        const description = document.createElement("p");
+        const metadata = document.createElement("span");
+        const price = document.createElement("b");
+        const image = related.images?.[0]?.src;
+
+        item.className = "relation-preview-item";
         link.href = Store.getExtensionUrl(`product.html?id=${encodeURIComponent(related.id)}`);
-        link.textContent = related.title;
+        link.className = "relation-product-preview";
+        media.className = "relation-preview-image";
+        if (image && state.data.settings.showImages) {
+          const thumbnail = document.createElement("img");
+          thumbnail.src = image;
+          thumbnail.alt = "";
+          media.append(thumbnail);
+        } else {
+          media.textContent = "Product";
+        }
+        copy.className = "relation-preview-copy";
+        title.textContent = related.title;
+        description.textContent = related.description || "No product details added.";
+        metadata.textContent = `${Store.getCategoryLabel(state.data, related.department)} · ${Store.formatMoq(related.moq)}`;
+        price.textContent = `${Store.formatMoney(related.price, state.data.settings)} · ${related.inStock ? "In stock" : "Out of stock"}`;
+        copy.append(title, description, metadata, price);
+        link.append(media, copy);
         item.append(link);
         list.append(item);
       });
     };
     renderRelation(elements.relatedProducts, product.relatedProductIds || []);
     renderRelation(elements.bundleProducts, product.bundleProductIds || []);
+    renderResourceTabs();
+  }
+
+  function setResourceTab(tabName) {
+    state.activeResourceTab = tabName;
+    renderResourceTabs();
+  }
+
+  function renderResourceTabs() {
+    elements.descriptionPanel.dataset.available = "true";
+    elements.commentsPanel.dataset.available = "true";
+    const panels = [...elements.resourceTabs.querySelectorAll("[data-resource-panel]")];
+    const availablePanels = panels.filter((panel) => panel.dataset.available !== "false");
+    elements.resourceTabs.hidden = availablePanels.length === 0;
+
+    if (!availablePanels.length) {
+      return;
+    }
+
+    const selectedPanel = availablePanels.find((panel) => panel.dataset.resourcePanel === state.activeResourceTab)
+      || availablePanels[0];
+    state.activeResourceTab = selectedPanel.dataset.resourcePanel;
+    panels.forEach((panel) => {
+      panel.hidden = panel !== selectedPanel;
+    });
+    elements.resourceTabButtons.forEach((button) => {
+      const selected = button.dataset.resourceTab === state.activeResourceTab;
+      const hasPanel = availablePanels.some((panel) => panel.dataset.resourcePanel === button.dataset.resourceTab);
+      button.hidden = !hasPanel;
+      button.setAttribute("aria-selected", String(selected));
+      button.tabIndex = selected ? 0 : -1;
+    });
   }
 
   function renderMissing() {
@@ -568,6 +638,9 @@
     elements.removeCart.addEventListener("click", removeFromCart);
     elements.done.addEventListener("change", () => toggleDone(elements.done.checked));
     elements.commentPanelToggle.addEventListener("click", toggleCommentPanelPlacement);
+    elements.resourceTabButtons.forEach((button) => {
+      button.addEventListener("click", () => setResourceTab(button.dataset.resourceTab));
+    });
     elements.closeCommentImageDialog.addEventListener("click", closeCommentImageDialog);
     elements.commentImageDialog.addEventListener("click", (event) => {
       if (event.target === elements.commentImageDialog) {

@@ -197,59 +197,65 @@
             <h2>Checkout & Display</h2>
           </div>
 
-          <label>
-            After checkout
-            <select id="setting-checkout-behavior">
-              <option value="keep">Keep items in cart as checked out</option>
-              <option value="clear">Clear checked-out cart items</option>
-            </select>
-          </label>
+          <div class="checkout-display-grid">
+            <div class="checkout-display-column">
+              <label>
+                After checkout
+                <select id="setting-checkout-behavior">
+                  <option value="keep">Keep items in cart as checked out</option>
+                  <option value="clear">Clear checked-out cart items</option>
+                </select>
+              </label>
 
-          <label class="settings-toggle">
-            <input id="setting-show-images" type="checkbox">
-            <span>Show product images across the extension</span>
-          </label>
+              <label class="settings-toggle">
+                <input id="setting-show-images" type="checkbox">
+                <span>Show product images across the extension</span>
+              </label>
 
-          <label class="settings-toggle">
-            <input id="setting-compact-mode" type="checkbox">
-            <span>Use compact product cards</span>
-          </label>
+              <label class="settings-toggle">
+                <input id="setting-compact-mode" type="checkbox">
+                <span>Use compact product cards</span>
+              </label>
+            </div>
 
-          <label>
-            Add comments section
-            <select id="setting-comment-composer-placement">
-              <option value="below">Below the product details</option>
-              <option value="side">Sticky right side panel</option>
-            </select>
-          </label>
+            <div class="checkout-display-column">
+              <label>
+                Add comments section
+                <select id="setting-comment-composer-placement">
+                  <option value="below">Below the product details</option>
+                  <option value="side">Sticky right side panel</option>
+                </select>
+              </label>
 
-          <label>
-            Default full listing view
-            <select id="setting-default-product-view">
-              <option value="card">Cards</option>
-              <option value="list">List</option>
-            </select>
-          </label>
+              <label>
+                Default full listing view
+                <select id="setting-default-product-view">
+                  <option value="card">Cards</option>
+                  <option value="list">List</option>
+                </select>
+              </label>
 
-          <label>
-            Products per page
-            <select id="setting-products-per-page">
-              <option value="6">6</option>
-              <option value="12">12</option>
-              <option value="24">24</option>
-              <option value="48">48</option>
-            </select>
-          </label>
+              <label>
+                Products per page
+                <select id="setting-products-per-page">
+                  <option value="6">6</option>
+                  <option value="12">12</option>
+                  <option value="24">24</option>
+                  <option value="48">48</option>
+                </select>
+              </label>
 
-          <label class="settings-toggle">
-            <input id="setting-show-product-descriptions" type="checkbox">
-            <span>Show product descriptions on cards</span>
-          </label>
+              <label class="settings-toggle">
+                <input id="setting-show-product-descriptions" type="checkbox">
+                <span>Show product descriptions on cards</span>
+              </label>
 
-          <label class="settings-toggle">
-            <input id="setting-show-delivery-status" type="checkbox">
-            <span>Show delivery status on cards</span>
-          </label>
+              <label class="settings-toggle">
+                <input id="setting-show-delivery-status" type="checkbox">
+                <span>Show delivery status on cards</span>
+              </label>
+            </div>
+          </div>
 
           </section>
 
