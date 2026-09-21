@@ -18,15 +18,20 @@
             <span class="brand-domain">.tasks</span>
           </a>
 
-          <div class="detail-search-spacer"></div>
+          <form class="search-bar" action="newtab.html" method="get" autocomplete="off">
+            <label class="visually-hidden" for="detail-product-search">Search task products</label>
+            <input id="detail-product-search" name="q" type="search" placeholder="Search task products">
+            <button type="submit">Search</button>
+          </form>
 
 
           <a class="page-link-button" href="create-product.html">Create</a>
 
-          <button type="button" class="page-link-button" id="open-products-page">Products</button>
+          <button type="button" class="page-link-button" id="open-products-page" hidden>Products</button>
           <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
           <a class="page-link-button" id="open-home-page" href="newtab.html">Workspace</a>
           <button type="button" class="page-link-button" id="open-orders-page">Orders</button>
+          <a class="page-link-button" href="tally.html">Tally</a>
           <button type="button" class="page-link-button" id="open-account-page">Account</button>
 
           <a class="cart-button" href="newtab.html#cart-panel" aria-label="Open shopping cart">
@@ -57,32 +62,54 @@
             <span id="detail-priority" class="priority-label"></span>
           </div>
 
-          <dl class="detail-specs">
-            <div>
-              <dt>Category</dt>
-              <dd id="detail-department"></dd>
-            </div>
-            <div>
-              <dt>Location</dt>
-              <dd id="detail-location"></dd>
-            </div>
-            <div>
-              <dt>MOQ</dt>
-              <dd id="detail-moq"></dd>
-            </div>
-            <div>
-              <dt>Price</dt>
-              <dd id="detail-price"></dd>
-            </div>
-            <div>
-              <dt>Created</dt>
-              <dd id="detail-created"></dd>
-            </div>
-          </dl>
+          <section class="detail-information" aria-labelledby="detail-information-heading">
+            <h2 id="detail-information-heading">Product information</h2>
+            <dl class="detail-specs">
+              <div>
+                <dt>Category</dt>
+                <dd id="detail-department"></dd>
+              </div>
+              <div>
+                <dt>Type</dt>
+                <dd id="detail-product-type"></dd>
+              </div>
+              <div>
+                <dt>Location</dt>
+                <dd id="detail-location"></dd>
+              </div>
+              <div>
+                <dt>MOQ</dt>
+                <dd id="detail-moq"></dd>
+              </div>
+              <div>
+                <dt>Units in stock</dt>
+                <dd id="detail-stock-units"></dd>
+              </div>
+              <div>
+                <dt>Price</dt>
+                <dd id="detail-price"></dd>
+              </div>
+              <div>
+                <dt>Created</dt>
+                <dd id="detail-created"></dd>
+              </div>
+            </dl>
+          </section>
 
           <section class="detail-description" aria-label="Description">
             <h2>About this product</h2>
             <p id="detail-description"></p>
+          </section>
+
+          <section id="detail-references" class="detail-references" aria-labelledby="detail-references-heading" hidden>
+            <h2 id="detail-references-heading">Reference links</h2>
+            <ul id="detail-reference-list"></ul>
+          </section>
+          <section id="detail-related-products" class="detail-references" hidden>
+            <h2>Related products</h2><ul></ul>
+          </section>
+          <section id="detail-bundle-products" class="detail-references" hidden>
+            <h2>Buy together</h2><ul></ul>
           </section>
 
         </article>
@@ -132,10 +159,22 @@
           </div>
         </aside>
 
+        <aside id="comment-composer-panel" class="comment-composer-panel" aria-label="Add a comment" hidden>
+          <p class="comment-composer-title">Add a comment</p>
+        </aside>
+
         <section class="product-comments" aria-labelledby="comments-heading">
           <div class="comments-heading">
             <h2 id="comments-heading">Comments</h2>
-            <span id="comment-count">0 comments</span>
+            <div class="comments-heading-actions">
+              <span id="comment-count">0 comments</span>
+              <button type="button" id="toggle-comment-panel" class="comment-panel-toggle-icon" aria-pressed="false" aria-label="Move add comment to side panel" title="Move add comment to side panel">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                  <path d="M14 4v16M7 12h6M10 9l3 3-3 3"></path>
+                </svg>
+              </button>
+            </div>
           </div>
           <form id="comment-form" class="comment-form">
             <label class="comment-title-field">
@@ -150,12 +189,21 @@
               <span>Add images</span>
               <input id="comment-image-file" type="file" accept="image/*" multiple>
             </label>
+            <p class="comment-image-hint">or paste images from your clipboard</p>
             <div id="comment-image-preview" class="comment-image-preview" hidden></div>
             <button type="submit" class="primary-button">Add comment</button>
           </form>
           <ol id="comment-list" class="comment-list"></ol>
           <p id="empty-comments" class="comments-empty">No comments yet.</p>
         </section>
+
+        <dialog id="comment-image-dialog" class="comment-image-dialog" aria-labelledby="comment-image-dialog-title">
+          <div class="comment-image-dialog-header">
+            <h2 id="comment-image-dialog-title">Comment image</h2>
+            <button type="button" id="close-comment-image-dialog" class="comment-image-dialog-close" aria-label="Close image preview">×</button>
+          </div>
+          <img id="comment-image-dialog-image" alt="">
+        </dialog>
       </section>
     </main>
 

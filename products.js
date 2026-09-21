@@ -71,6 +71,19 @@
     return `${count} ${count === 1 ? singular : plural}`;
   }
 
+  function createWishlistIcon() {
+    const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+
+    icon.classList.add("wishlist-icon");
+    icon.setAttribute("viewBox", "0 0 24 24");
+    icon.setAttribute("aria-hidden", "true");
+    icon.setAttribute("focusable", "false");
+    path.setAttribute("d", "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z");
+    icon.append(path);
+    return icon;
+  }
+
   function renderProductImage(container, product, isWishlisted) {
     container.replaceChildren();
     const images = product.images || [];
@@ -130,8 +143,9 @@
     wishlistButton.className = "wishlist-button";
     wishlistButton.setAttribute("aria-label", isWishlisted ? `Remove ${product.title} from wishlist` : `Add ${product.title} to wishlist`);
     wishlistButton.setAttribute("aria-pressed", String(isWishlisted));
-    wishlistButton.textContent = isWishlisted ? "♥" : "♡";
+    wishlistButton.append(createWishlistIcon());
     container.append(wishlistButton);
+
   }
 
   function moveCarousel(button) {
@@ -253,6 +267,7 @@
       const addButton = node.querySelector(".add-cart-button");
 
       node.dataset.id = product.id;
+      node.classList.toggle("out-of-stock", !product.inStock);
       node.tabIndex = 0;
       node.setAttribute("role", "link");
       node.setAttribute("aria-label", `View details for ${product.title}`);
@@ -269,7 +284,9 @@
       location.textContent = product.location;
       moq.textContent = Store.formatMoq(product.moq);
       price.textContent = Store.formatMoney(product.price, state.data.settings);
-      stockStatus.hidden = product.inStock;
+      if (stockStatus) {
+        stockStatus.hidden = product.inStock;
+      }
 
       if (!product.inStock) {
         addButton.textContent = "Out of stock";

@@ -1,5 +1,6 @@
 (function () {
   const STORE_KEY = "todoListCart.store";
+  const BACKUP_HISTORY_KEY = "todoListCart.backupHistory";
   const LEGACY_PRODUCTS_KEY = "todoListCart.products";
   const LEGACY_TASKS_KEY = "todoListCart.tasks";
   const DEFAULT_CART_ID = "cart-default";
@@ -9,6 +10,31 @@
     { id: "errands", name: "Errands", iconName: "mdi:shopping-outline" },
     { id: "study", name: "Study", iconName: "mdi:book-open-page-variant-outline" }
   ];
+  const LOCAL_CATEGORY_ICON_GLYPHS = Object.freeze({
+    "mdi:briefcase-outline": "💼",
+    "mdi:home-outline": "⌂",
+    "mdi:shopping-outline": "🛍",
+    "mdi:book-open-page-variant-outline": "📖",
+    "local:tag": "🏷",
+    "local:tools": "🛠",
+    "local:car": "🚗",
+    "local:truck": "🚚",
+    "local:computer": "💻",
+    "local:camera": "📷",
+    "local:calendar": "🗓",
+    "local:heart": "♥",
+    "local:star": "★",
+    "local:lightbulb": "💡",
+    "local:food": "🍽",
+    "local:travel": "✈",
+    "local:health": "✚",
+    "local:music": "♫",
+    "local:education": "🎓",
+    "local:finance": "₹"
+  });
+  // These definitions are registered from the extension's bundled icon JSON
+  // files. They are never requested from a remote host at runtime.
+  const BUNDLED_ICON_DEFINITIONS = new Map();
   const DEFAULT_SETTINGS = {
     accountName: "boni aditya",
     storeName: "ToDoList Cart",
@@ -22,7 +48,13 @@
     timeRate: "1",
     checkoutBehavior: "keep",
     showImages: true,
-    compactMode: false
+    compactMode: false,
+    commentComposerPlacement: "below",
+    defaultProductType: "product",
+    defaultProductView: "card",
+    productsPerPage: 12,
+    showProductDescriptions: true,
+    showDeliveryStatus: true
   };
 
   function hasOwn(object, key) {
@@ -179,6 +211,22 @@
     const images = normalizeImages(product.images, product.image, product.imageName);
     const availableUnits = normalizeMoq(product.availableUnits || "1");
     const completedUnits = Math.max(0, Math.floor(Number(product.completedUnits) || 0));
+    const referenceUrls = getArray(product.referenceUrls)
+      .map((value) => {
+        try {
+          const url = new URL(String(value || "").trim());
+          return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+        } catch {
+          return "";
+        }
+      })
+      .filter((url, index, urls) => url && urls.indexOf(url) === index)
+      .slice(0, 8);
+    const relatedProductIds = [...new Set(getArray(product.relatedProductIds).map(String).filter(Boolean))];
+    const bundleProductIds = [...new Set(getArray(product.bundleProductIds).map(String).filter(Boolean))];
+    const productType = ["product", "service", "project"].includes(product.productType)
+      ? product.productType
+      : "product";
     const comments = getArray(product.comments)
       .map((comment) => ({
         id: String(comment?.id || createId("comment")),
@@ -193,6 +241,7 @@
       id: product.id || createId("product"),
       title: product.title || "Untitled product",
       department: slugify(product.department || "work"),
+      productType,
       location: String(product.location || "").trim() || "Unspecified",
       priority: product.priority || "standard",
       moq,
@@ -200,6 +249,9 @@
       price: normalizeMoney(product.price),
       availableUnits,
       completedUnits,
+      referenceUrls,
+      relatedProductIds,
+      bundleProductIds,
       inStock: product.inStock !== false && completedUnits < Number(availableUnits),
       description: product.description || "",
       images,
@@ -238,6 +290,10 @@
     const priorities = ["standard", "important", "urgent"];
     const checkoutBehaviors = ["keep", "clear"];
     const currencies = ["USD", "INR", "EUR", "GBP", "JPY"];
+    const commentComposerPlacements = ["below", "side"];
+    const productTypes = ["product", "service", "project"];
+    const productViews = ["card", "list"];
+    const pageSizes = [6, 12, 24, 48];
     const categoryIds = new Set(getArray(categories).map((category) => category.id));
     const defaultDepartment = slugify(nextSettings.defaultDepartment || DEFAULT_SETTINGS.defaultDepartment);
 
@@ -263,7 +319,21 @@
       })(),
       checkoutBehavior: checkoutBehaviors.includes(nextSettings.checkoutBehavior) ? nextSettings.checkoutBehavior : DEFAULT_SETTINGS.checkoutBehavior,
       showImages: nextSettings.showImages !== false,
-      compactMode: Boolean(nextSettings.compactMode)
+      compactMode: Boolean(nextSettings.compactMode),
+      commentComposerPlacement: commentComposerPlacements.includes(nextSettings.commentComposerPlacement)
+        ? nextSettings.commentComposerPlacement
+        : DEFAULT_SETTINGS.commentComposerPlacement,
+      defaultProductType: productTypes.includes(nextSettings.defaultProductType)
+        ? nextSettings.defaultProductType
+        : DEFAULT_SETTINGS.defaultProductType,
+      defaultProductView: productViews.includes(nextSettings.defaultProductView)
+        ? nextSettings.defaultProductView
+        : DEFAULT_SETTINGS.defaultProductView,
+      productsPerPage: pageSizes.includes(Number(nextSettings.productsPerPage))
+        ? Number(nextSettings.productsPerPage)
+        : DEFAULT_SETTINGS.productsPerPage,
+      showProductDescriptions: nextSettings.showProductDescriptions !== false,
+      showDeliveryStatus: nextSettings.showDeliveryStatus !== false
     };
   }
 
@@ -312,11 +382,12 @@
     });
   }
 
-  function createProduct({ title, department, location, priority, moq, effort, price, inStock, availableUnits, completedUnits, description, images, image, imageName }) {
+  function createProduct({ title, department, productType, location, priority, moq, effort, price, inStock, availableUnits, completedUnits, description, referenceUrls, relatedProductIds, bundleProductIds, images, image, imageName }) {
     return normalizeProduct({
       id: createId("product"),
       title,
       department,
+      productType,
       location,
       priority,
       moq: moq || effort,
@@ -325,6 +396,9 @@
       availableUnits,
       completedUnits,
       description,
+      referenceUrls,
+      relatedProductIds,
+      bundleProductIds,
       images,
       image,
       imageName,
@@ -491,6 +565,28 @@
     return normalizedData;
   }
 
+  async function loadBackupHistory() {
+    const localArea = getStorageArea("local");
+    const result = await readChrome(localArea, [BACKUP_HISTORY_KEY]);
+    if (hasOwn(result, BACKUP_HISTORY_KEY)) {
+      return getArray(result[BACKUP_HISTORY_KEY]);
+    }
+
+    return getArray(readLocal(BACKUP_HISTORY_KEY));
+  }
+
+  async function saveBackupHistory(history) {
+    const nextHistory = getArray(history);
+    const localArea = getStorageArea("local");
+
+    if (await writeChrome(localArea, { [BACKUP_HISTORY_KEY]: nextHistory })) {
+      return nextHistory;
+    }
+
+    writeLocal(BACKUP_HISTORY_KEY, nextHistory);
+    return nextHistory;
+  }
+
   function getActiveCart(data) {
     return data.carts.find((cart) => cart.id === data.activeCartId) || data.carts[0];
   }
@@ -505,17 +601,40 @@
   }
 
   function getCategoryIconSource(category) {
-    if (category?.icon) {
+    if (category?.icon && !/^https?:/i.test(category.icon)) {
       return category.icon;
     }
 
-    if (category?.iconName && category.iconName.includes(":")) {
-      const [prefix, ...nameParts] = category.iconName.split(":");
-      const name = nameParts.join(":");
-      return `https://api.iconify.design/${encodeURIComponent(prefix)}/${encodeURIComponent(name)}.svg?color=%23007185`;
+    const iconName = String(category?.iconName || "");
+    const bundledIcon = BUNDLED_ICON_DEFINITIONS.get(iconName);
+    if (bundledIcon) {
+      const width = bundledIcon.width || 24;
+      const height = bundledIcon.height || 24;
+      const isTabler = bundledIcon.collectionPrefix === "tabler";
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" color="#007185" fill="${isTabler ? "none" : "currentColor"}" stroke="${isTabler ? "currentColor" : "none"}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${bundledIcon.body}</svg>`;
+      return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    }
+    const glyph = iconName.startsWith("emoji:")
+      ? iconName.slice("emoji:".length)
+      : LOCAL_CATEGORY_ICON_GLYPHS[iconName] || "🏷";
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><text x="12" y="17" text-anchor="middle" font-size="17">${glyph}</text></svg>`;
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  }
+
+  function registerBundledIconCollection(collection) {
+    if (!collection?.prefix || !collection?.icons) {
+      return 0;
     }
 
-    return "";
+    Object.entries(collection.icons).forEach(([name, definition]) => {
+      if (definition?.body) {
+        BUNDLED_ICON_DEFINITIONS.set(`${collection.prefix}:${name}`, {
+          ...definition,
+          collectionPrefix: collection.prefix
+        });
+      }
+    });
+    return BUNDLED_ICON_DEFINITIONS.size;
   }
 
   function renderCategory(element, data, categoryId) {
@@ -615,10 +734,12 @@
     }
 
     const seconds = Math.round(amount / rate);
-    const hours = Math.floor(seconds / 3600);
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const remainder = seconds % 60;
     const duration = [
+      ...(days ? [`${days}d`] : []),
       ...(hours ? [`${hours}h`] : []),
       ...(minutes ? [`${minutes}m`] : []),
       `${remainder}s`
@@ -629,6 +750,14 @@
 
   function formatMoq(value) {
     return `MOQ ${normalizeMoq(value)}`;
+  }
+
+  function getUnitsInStock(product) {
+    if (!product?.inStock) {
+      return 0;
+    }
+
+    return Math.max(0, Number(product.availableUnits || 0) - Number(product.completedUnits || 0));
   }
 
   function fileToDataUrl(file) {
@@ -681,6 +810,8 @@
     getStars,
     getTotalAmount,
     getTotalMoq,
+    getUnitsInStock,
+    loadBackupHistory,
     loadData,
     normalizeCategory,
     normalizeData,
@@ -689,7 +820,9 @@
     normalizeProduct,
     normalizeSettings,
     openExtensionPage,
+    registerBundledIconCollection,
     renderCategory,
+    saveBackupHistory,
     saveData
   };
 })();

@@ -18,14 +18,19 @@
             <span class="brand-domain">.tasks</span>
           </a>
 
-          <div class="detail-search-spacer"></div>
+          <form class="search-bar" action="newtab.html" method="get" autocomplete="off">
+            <label class="visually-hidden" for="orders-product-search">Search task products</label>
+            <input id="orders-product-search" name="q" type="search" placeholder="Search task products">
+            <button type="submit">Search</button>
+          </form>
 
 
           <a class="page-link-button" href="create-product.html">Create</a>
 
           <a class="page-link-button" id="open-home-page" href="newtab.html">Workspace</a>
-          <button type="button" class="page-link-button" id="open-products-page">Products</button>
+          <button type="button" class="page-link-button" id="open-products-page" hidden>Products</button>
           <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
+          <a class="page-link-button" href="tally.html">Tally</a>
           <button type="button" class="page-link-button" id="open-account-page">Account</button>
 
           <button type="button" class="cart-button" id="cart-jump" aria-label="Cart count">

@@ -20,7 +20,7 @@
 
           <button type="button" class="full-tab-button" id="open-full-tab">Full Tab</button>
 
-          <button type="button" class="full-tab-button" id="open-products-page">Products</button>
+          <button type="button" class="full-tab-button" id="open-products-page" hidden>Products</button>
 
           <a class="full-tab-button" href="products.html?view=wishlist" target="_blank">Wishlist</a>
 
@@ -61,6 +61,14 @@
             <option value="important">Important</option>
             <option value="urgent">Urgent</option>
           </select>
+          <div class="stock-filter" role="group" aria-label="Stock availability">
+            <span>Availability</span>
+            <div class="stock-filter-options">
+              <button type="button" data-stock="all" aria-pressed="false">Any</button>
+              <button type="button" data-stock="in-stock" aria-pressed="true">In stock</button>
+              <button type="button" data-stock="out-of-stock" aria-pressed="false">Out of stock</button>
+            </div>
+          </div>
           <div class="range-filter">
             <span class="range-filter-label">Price</span>
             <div class="range-filter-values"><output id="filter-price-min-output">Any</output><output id="filter-price-max-output">Any</output></div>
@@ -79,12 +87,14 @@
             </div>
             <div class="range-reference"><output></output><output></output><output></output></div>
           </div>
-          <label for="filter-cart-status">Cart status</label>
-          <select id="filter-cart-status">
-            <option value="all">All products</option>
-            <option value="in-cart">In cart</option>
-            <option value="not-in-cart">Not in cart</option>
-          </select>
+          <div class="cart-status-filter" role="group" aria-label="Cart status">
+            <span>Cart status</span>
+            <div class="cart-status-filter-options">
+              <button type="button" data-cart-status="all" aria-pressed="true">All products</button>
+              <button type="button" data-cart-status="in-cart" aria-pressed="false">In cart</button>
+              <button type="button" data-cart-status="not-in-cart" aria-pressed="false">Not in cart</button>
+            </div>
+          </div>
           <button type="button" id="clear-filters" class="filter-reset">Clear filters</button>
           <a class="create-product-link" href="create-product.html" target="_blank">+ Create a product</a>
         </div>
@@ -185,6 +195,7 @@
         <div class="cart-copy">
           <strong></strong>
           <span></span>
+          <span class="cart-stock"></span>
         </div>
         <button type="button" class="remove-cart-button" aria-label="Remove from cart">Remove</button>
       </li>

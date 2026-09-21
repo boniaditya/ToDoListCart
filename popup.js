@@ -1,35 +1,56 @@
 (function () {
   const Store = globalThis.ToDoCartStore;
-  const MAX_IMAGE_BYTES = 1024 * 1024;
+  const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
   const state = {
     data: Store.normalizeData({}),
     department: "all",
     priority: "all",
     location: "all",
     cartStatus: "all",
+    stockAvailability: "in-stock",
     priceMin: null,
     priceMax: null,
     timeMin: null,
     timeMax: null,
     isPopup: document.body.dataset.view === "popup",
-    query: "",
-    viewMode: localStorage.getItem("todoListCart.productView") === "list" ? "list" : "card",
+    query: new URLSearchParams(window.location.search).get("q") || "",
+    viewMode: document.body.dataset.view === "popup"
+      ? "card"
+      : (localStorage.getItem("todoListCart.productView") === "list" ? "list" : "card"),
     editProductId: null,
-    formImages: []
+    formImages: [],
+    referenceUrls: [],
+    relationQuery: "",
+    relationSelections: null,
+    currentPage: 1,
+    pageSize: 12
   };
 
   const elements = {
     brandName: document.querySelector(".brand-name"),
     productForm: document.querySelector("#product-form"),
+    productPagination: document.querySelector("#product-pagination"),
+    productsPerPage: document.querySelector("#products-per-page"),
+    previousProductPage: document.querySelector("#previous-product-page"),
+    nextProductPage: document.querySelector("#next-product-page"),
+    productPageStatus: document.querySelector("#product-page-status"),
     titleInput: document.querySelector("#product-title"),
     descriptionInput: document.querySelector("#product-description"),
     locationInput: document.querySelector("#product-location"),
+    locationSuggestions: document.querySelector("#product-location-suggestions"),
     departmentInput: document.querySelector("#product-department"),
+    productTypeInputs: document.querySelectorAll("input[name='productType']"),
     priorityInputs: document.querySelectorAll("input[name='priority']"),
     moqInput: document.querySelector("#product-moq"),
     priceInput: document.querySelector("#product-price"),
     availableUnitsInput: document.querySelector("#product-available-units"),
     inStockInput: document.querySelector("#product-in-stock"),
+    referenceUrlInput: document.querySelector("#product-reference-url"),
+    addReferenceUrl: document.querySelector("#add-reference-url"),
+    referenceUrlList: document.querySelector("#reference-url-list"),
+    relationSearchInput: document.querySelector("#product-relation-search"),
+    relatedProductsInput: document.querySelector("#product-related-products"),
+    bundleProductsInput: document.querySelector("#product-bundle-products"),
     imageUrlInput: document.querySelector("#product-image-url"),
     imageFileInput: document.querySelector("#product-image-file"),
     imageDropzone: document.querySelector("#product-image-dropzone"),
@@ -46,7 +67,8 @@
     filterDepartment: document.querySelector("#filter-department"),
     filterPriority: document.querySelector("#filter-priority"),
     filterLocation: document.querySelector("#filter-location"),
-    filterCartStatus: document.querySelector("#filter-cart-status"),
+    cartStatusFilter: document.querySelector(".cart-status-filter"),
+    stockFilter: document.querySelector(".stock-filter"),
     filterPriceMin: document.querySelector("#filter-price-min"),
     filterPriceMax: document.querySelector("#filter-price-max"),
     filterTimeMin: document.querySelector("#filter-time-min"),
@@ -99,6 +121,16 @@
     return [...elements.priorityInputs].find((input) => input.checked)?.value || "standard";
   }
 
+  function getProductTypeValue() {
+    return [...elements.productTypeInputs].find((input) => input.checked)?.value || "product";
+  }
+
+  function setProductTypeValue(productType) {
+    elements.productTypeInputs.forEach((input) => {
+      input.checked = input.value === productType;
+    });
+  }
+
   function setPriorityValue(priority) {
     elements.priorityInputs.forEach((input) => {
       input.checked = input.value === priority;
@@ -107,6 +139,19 @@
 
   function getCategoryName(product) {
     return Store.getCategoryLabel(state.data, product.department);
+  }
+
+  function createWishlistIcon() {
+    const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+
+    icon.classList.add("wishlist-icon");
+    icon.setAttribute("viewBox", "0 0 24 24");
+    icon.setAttribute("aria-hidden", "true");
+    icon.setAttribute("focusable", "false");
+    path.setAttribute("d", "M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78Z");
+    icon.append(path);
+    return icon;
   }
 
   function cartHasProduct(productId) {
@@ -131,6 +176,9 @@
       const matchesCartStatus = state.cartStatus === "all"
         || (state.cartStatus === "in-cart" && isInCart)
         || (state.cartStatus === "not-in-cart" && !isInCart);
+      const matchesStockAvailability = state.stockAvailability === "all"
+        || (state.stockAvailability === "in-stock" && product.inStock)
+        || (state.stockAvailability === "out-of-stock" && !product.inStock);
       const price = Number(product.price);
       const time = getTimeEquivalentSeconds(price);
       const matchesPrice = (state.priceMin === null || price >= state.priceMin)
@@ -147,7 +195,8 @@
         product.price
       ].some((value) => String(value).toLowerCase().includes(query));
 
-      return matchesDepartment && matchesPriority && matchesLocation && matchesCartStatus && matchesPrice && matchesTime && matchesQuery;
+      return matchesDepartment && matchesPriority && matchesLocation && matchesCartStatus
+        && matchesStockAvailability && matchesPrice && matchesTime && matchesQuery;
     });
   }
 
@@ -158,10 +207,12 @@
 
   function formatDuration(seconds) {
     const rounded = Math.max(0, Math.round(seconds));
-    const hours = Math.floor(rounded / 3600);
+    const days = Math.floor(rounded / 86400);
+    const hours = Math.floor((rounded % 86400) / 3600);
     const minutes = Math.floor((rounded % 3600) / 60);
     const remainder = rounded % 60;
     return [
+      ...(days ? [`${days}d`] : []),
       ...(hours ? [`${hours}h`] : []),
       ...(minutes ? [`${minutes}m`] : []),
       `${remainder}s`
@@ -198,6 +249,22 @@
 
     setRange(elements.filterPriceMin, elements.filterPriceMax, elements.filterPriceMinOutput, elements.filterPriceMaxOutput, 0, priceMaximum, (value) => Store.formatMoney(value, moneySettings), state.priceMin, state.priceMax);
     setRange(elements.filterTimeMin, elements.filterTimeMax, elements.filterTimeMinOutput, elements.filterTimeMaxOutput, 0, timeMaximum, formatDuration, state.timeMin, state.timeMax);
+  }
+
+  function renderStockFilter() {
+    elements.stockFilter?.querySelectorAll("button[data-stock]").forEach((button) => {
+      const active = button.dataset.stock === state.stockAvailability;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+  }
+
+  function renderCartStatusFilter() {
+    elements.cartStatusFilter?.querySelectorAll("button[data-cart-status]").forEach((button) => {
+      const active = button.dataset.cartStatus === state.cartStatus;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
   }
 
   function pluralize(count, singular, plural) {
@@ -262,8 +329,9 @@
     wishlistButton.className = "wishlist-button";
     wishlistButton.setAttribute("aria-label", isWishlisted ? `Remove ${product.title} from wishlist` : `Add ${product.title} to wishlist`);
     wishlistButton.setAttribute("aria-pressed", String(isWishlisted));
-    wishlistButton.textContent = isWishlisted ? "♥" : "♡";
+    wishlistButton.append(createWishlistIcon());
     container.append(wishlistButton);
+
   }
 
   function setCarouselImage(container, index) {
@@ -430,6 +498,62 @@
     elements.filterLocation.value = state.location;
   }
 
+  function renderLocationSuggestions() {
+    if (!elements.locationSuggestions) {
+      return;
+    }
+
+    const locations = [...new Set(state.data.products
+      .map((product) => product.location)
+      .filter((location) => location && location !== "Unspecified"))]
+      .sort((first, second) => first.localeCompare(second));
+
+    elements.locationSuggestions.replaceChildren();
+    locations.forEach((location) => {
+      const option = document.createElement("option");
+      option.value = location;
+      elements.locationSuggestions.append(option);
+    });
+  }
+
+  function renderProductRelationOptions() {
+    const currentId = state.editProductId;
+    const current = state.data.products.find((product) => product.id === currentId);
+    const selected = state.relationSelections || {
+      related: current?.relatedProductIds || [],
+      bundle: current?.bundleProductIds || []
+    };
+    state.relationSelections = {
+      related: [...selected.related],
+      bundle: [...selected.bundle]
+    };
+    const query = state.relationQuery.toLocaleLowerCase();
+    const renderOptions = (select, selectedIds) => {
+      if (!select) return;
+      select.replaceChildren();
+      state.data.products
+        .filter((product) => product.id !== currentId)
+        .filter((product) => !query || product.title.toLocaleLowerCase().includes(query) || selectedIds.includes(product.id))
+        .forEach((product) => {
+        const option = document.createElement("option");
+        option.value = product.id;
+        option.textContent = product.title;
+        option.selected = selectedIds.includes(product.id);
+        select.append(option);
+      });
+    };
+    renderOptions(elements.relatedProductsInput, state.relationSelections.related);
+    renderOptions(elements.bundleProductsInput, state.relationSelections.bundle);
+  }
+
+  function syncRelationSelection(select, key) {
+    if (!select || !state.relationSelections) {
+      return;
+    }
+
+    state.relationSelections[key] = [...select.selectedOptions].map((option) => option.value);
+  }
+
   function renderCartSelector() {
     if (!elements.cartSelect) {
       return;
@@ -496,9 +620,15 @@
     }
 
     const visibleProducts = getVisibleProducts();
+    const totalPages = Math.max(1, Math.ceil(visibleProducts.length / state.pageSize));
+    state.currentPage = Math.min(state.currentPage, totalPages);
+    const pageStart = (state.currentPage - 1) * state.pageSize;
+    const productsOnPage = elements.productPagination
+      ? visibleProducts.slice(pageStart, pageStart + state.pageSize)
+      : visibleProducts;
     elements.productList.replaceChildren();
 
-    visibleProducts.forEach((product) => {
+    productsOnPage.forEach((product) => {
       const node = elements.productTemplate.content.firstElementChild.cloneNode(true);
       const imageBox = node.querySelector(".product-image");
       const title = node.querySelector(".product-title");
@@ -514,6 +644,7 @@
       const addButton = node.querySelector(".add-cart-button");
 
       node.dataset.id = product.id;
+      node.classList.toggle("out-of-stock", !product.inStock);
       node.tabIndex = 0;
       node.setAttribute("role", "link");
       node.setAttribute("aria-label", `View details for ${product.title}`);
@@ -555,6 +686,19 @@
     if (elements.emptyProducts) {
       elements.emptyProducts.hidden = visibleProducts.length > 0;
     }
+
+    if (elements.productPagination) {
+      const hasProducts = visibleProducts.length > 0;
+      elements.productPagination.hidden = !hasProducts;
+      elements.productsPerPage.value = String(state.pageSize);
+      elements.previousProductPage.disabled = state.currentPage <= 1;
+      elements.nextProductPage.disabled = state.currentPage >= totalPages;
+      elements.productPageStatus.textContent = `Page ${state.currentPage} of ${totalPages}`;
+    }
+  }
+
+  function resetProductPage() {
+    state.currentPage = 1;
   }
 
   function renderCart() {
@@ -573,6 +717,7 @@
       const imageBox = node.querySelector(".cart-product-image");
       const title = node.querySelector(".cart-copy strong");
       const meta = node.querySelector(".cart-copy span");
+      const stock = node.querySelector(".cart-stock");
       const removeButton = node.querySelector(".remove-cart-button");
 
       node.dataset.productId = product.id;
@@ -590,6 +735,8 @@
       }
       title.textContent = product.title;
       meta.textContent = `${getCategoryName(product)} | ${Store.getPriorityLabel(product.priority)} | ${Store.formatMoq(product.moq)} | ${Store.formatMoney(product.price, state.data.settings)}`;
+      const unitsInStock = Store.getUnitsInStock(product);
+      stock.textContent = `${unitsInStock} ${unitsInStock === 1 ? "unit" : "units"} in stock`;
       removeButton.setAttribute("aria-label", `Remove ${product.title} from cart`);
 
       elements.cartList.append(node);
@@ -606,14 +753,23 @@
     }
 
     document.body.classList.toggle("compact-mode", state.data.settings.compactMode);
+    document.body.classList.toggle("hide-product-descriptions", !state.data.settings.showProductDescriptions);
+    document.body.classList.toggle("hide-delivery-status", !state.data.settings.showDeliveryStatus);
   }
 
   function render() {
+    if (elements.searchInput && elements.searchInput.value !== state.query) {
+      elements.searchInput.value = state.query;
+    }
     renderSettings();
     renderCategoryControls();
     renderLocationOptions();
+    renderLocationSuggestions();
+    renderProductRelationOptions();
     renderCartSelector();
     renderRangeFilters();
+    renderStockFilter();
+    renderCartStatusFilter();
     renderProducts();
     renderCart();
     renderImagePreview();
@@ -647,6 +803,7 @@
     }
 
     setPriorityValue(state.data.settings.defaultPriority);
+    setProductTypeValue(state.data.settings.defaultProductType);
 
     if (elements.moqInput) {
       elements.moqInput.value = state.data.settings.defaultMoq;
@@ -673,12 +830,18 @@
     elements.descriptionInput.value = product.description;
     elements.locationInput.value = product.location;
     elements.departmentInput.value = product.department;
+    setProductTypeValue(product.productType);
     setPriorityValue(product.priority);
     elements.moqInput.value = product.moq;
     elements.priceInput.value = product.price;
     elements.availableUnitsInput.value = product.availableUnits;
     elements.inStockInput.checked = product.inStock;
     state.formImages = product.images.map((image) => ({ ...image }));
+    state.referenceUrls = [...product.referenceUrls];
+    state.relationSelections = {
+      related: [...product.relatedProductIds],
+      bundle: [...product.bundleProductIds]
+    };
 
     if (elements.createTitle) {
       elements.createTitle.textContent = `Edit ${product.title}`;
@@ -693,6 +856,7 @@
     }
 
     renderImagePreview();
+    renderReferenceUrls();
     return true;
   }
 
@@ -716,7 +880,7 @@
     }
 
     if (file.size > MAX_IMAGE_BYTES) {
-      alert("Choose an image under 1 MB, or use an image URL.");
+      alert("Choose an image up to 3 MB, or use an image URL.");
       return { image: "", imageName: "" };
     }
 
@@ -756,6 +920,7 @@
     const productValues = {
       title,
       department: elements.departmentInput.value,
+      productType: getProductTypeValue(),
       location: elements.locationInput?.value.trim() || "Unspecified",
       priority: getPriorityValue(),
       moq: elements.moqInput.value,
@@ -764,6 +929,9 @@
       completedUnits: state.editProductId ? state.data.products.find((product) => product.id === state.editProductId)?.completedUnits : 0,
       inStock: elements.inStockInput.checked,
       description: elements.descriptionInput?.value.trim() || "",
+      referenceUrls: state.referenceUrls,
+      relatedProductIds: state.relationSelections?.related || [],
+      bundleProductIds: state.relationSelections?.bundle || [],
       images
     };
 
@@ -974,6 +1142,7 @@
 
   function setDepartment(department) {
     state.department = department;
+    resetProductPage();
     renderCategoryControls();
     renderProducts();
   }
@@ -990,6 +1159,45 @@
     }
 
     renderImagePreview();
+  }
+
+  function renderReferenceUrls() {
+    if (!elements.referenceUrlList) {
+      return;
+    }
+
+    elements.referenceUrlList.replaceChildren();
+    elements.referenceUrlList.hidden = state.referenceUrls.length === 0;
+    state.referenceUrls.forEach((url, index) => {
+      const item = document.createElement("li");
+      const link = document.createElement("a");
+      const remove = document.createElement("button");
+
+      link.href = url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.textContent = url;
+      remove.type = "button";
+      remove.className = "remove-reference-url";
+      remove.dataset.referenceIndex = String(index);
+      remove.setAttribute("aria-label", `Remove reference link ${index + 1}`);
+      remove.textContent = "×";
+      item.append(link, remove);
+      elements.referenceUrlList.append(item);
+    });
+  }
+
+  function addReferenceUrl() {
+    const rawUrl = elements.referenceUrlInput?.value.trim() || "";
+    const url = Store.normalizeProduct({ referenceUrls: [rawUrl] }).referenceUrls[0];
+
+    if (!url || state.referenceUrls.includes(url) || state.referenceUrls.length >= 8) {
+      return;
+    }
+
+    state.referenceUrls.push(url);
+    elements.referenceUrlInput.value = "";
+    renderReferenceUrls();
   }
 
   function removeImage(index) {
@@ -1117,6 +1325,32 @@
     });
 
     elements.clearImage?.addEventListener("click", clearImageSelection);
+    elements.addReferenceUrl?.addEventListener("click", addReferenceUrl);
+    elements.referenceUrlInput?.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        addReferenceUrl();
+      }
+    });
+    elements.referenceUrlList?.addEventListener("click", (event) => {
+      const button = event.target.closest(".remove-reference-url");
+      if (!button) {
+        return;
+      }
+
+      state.referenceUrls.splice(Number(button.dataset.referenceIndex), 1);
+      renderReferenceUrls();
+    });
+    elements.relationSearchInput?.addEventListener("input", () => {
+      state.relationQuery = elements.relationSearchInput.value.trim();
+      renderProductRelationOptions();
+    });
+    elements.relatedProductsInput?.addEventListener("change", () => {
+      syncRelationSelection(elements.relatedProductsInput, "related");
+    });
+    elements.bundleProductsInput?.addEventListener("change", () => {
+      syncRelationSelection(elements.bundleProductsInput, "bundle");
+    });
     elements.imagePreview?.addEventListener("click", (event) => {
       const button = event.target.closest(".remove-image-button");
 
@@ -1129,11 +1363,30 @@
     elements.searchForm?.addEventListener("submit", (event) => {
       event.preventDefault();
       state.query = elements.searchInput.value.trim();
+      resetProductPage();
       renderProducts();
     });
 
     elements.searchInput?.addEventListener("input", () => {
       state.query = elements.searchInput.value.trim();
+      resetProductPage();
+      renderProducts();
+    });
+
+    elements.productsPerPage?.addEventListener("change", () => {
+      state.pageSize = Number(elements.productsPerPage.value);
+      resetProductPage();
+      localStorage.setItem("todoListCart.productsPerPage", String(state.pageSize));
+      renderProducts();
+    });
+
+    elements.previousProductPage?.addEventListener("click", () => {
+      state.currentPage = Math.max(1, state.currentPage - 1);
+      renderProducts();
+    });
+
+    elements.nextProductPage?.addEventListener("click", () => {
+      state.currentPage += 1;
       renderProducts();
     });
 
@@ -1155,16 +1408,37 @@
 
     elements.filterPriority?.addEventListener("change", () => {
       state.priority = elements.filterPriority.value;
+      resetProductPage();
       renderProducts();
     });
 
     elements.filterLocation?.addEventListener("change", () => {
       state.location = elements.filterLocation.value;
+      resetProductPage();
       renderProducts();
     });
 
-    elements.filterCartStatus?.addEventListener("change", () => {
-      state.cartStatus = elements.filterCartStatus.value;
+    elements.cartStatusFilter?.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-cart-status]");
+      if (!button) {
+        return;
+      }
+
+      state.cartStatus = button.dataset.cartStatus;
+      resetProductPage();
+      renderCartStatusFilter();
+      renderProducts();
+    });
+
+    elements.stockFilter?.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-stock]");
+      if (!button) {
+        return;
+      }
+
+      state.stockAvailability = button.dataset.stock;
+      resetProductPage();
+      renderStockFilter();
       renderProducts();
     });
 
@@ -1173,6 +1447,7 @@
       if (state.priceMax !== null && state.priceMin > state.priceMax) {
         state.priceMax = state.priceMin;
       }
+      resetProductPage();
       renderRangeFilters();
       renderProducts();
     });
@@ -1182,6 +1457,7 @@
       if (state.priceMin !== null && state.priceMax < state.priceMin) {
         state.priceMin = state.priceMax;
       }
+      resetProductPage();
       renderRangeFilters();
       renderProducts();
     });
@@ -1191,6 +1467,7 @@
       if (state.timeMax !== null && state.timeMin > state.timeMax) {
         state.timeMax = state.timeMin;
       }
+      resetProductPage();
       renderRangeFilters();
       renderProducts();
     });
@@ -1200,6 +1477,7 @@
       if (state.timeMin !== null && state.timeMax < state.timeMin) {
         state.timeMin = state.timeMax;
       }
+      resetProductPage();
       renderRangeFilters();
       renderProducts();
     });
@@ -1209,11 +1487,13 @@
       state.priority = "all";
       state.location = "all";
       state.cartStatus = "all";
+      state.stockAvailability = "in-stock";
       state.priceMin = null;
       state.priceMax = null;
       state.timeMin = null;
       state.timeMax = null;
       state.query = "";
+      resetProductPage();
 
       if (elements.searchInput) {
         elements.searchInput.value = "";
@@ -1223,10 +1503,6 @@
         elements.filterPriority.value = "all";
       }
 
-      if (elements.filterCartStatus) {
-        elements.filterCartStatus.value = "all";
-      }
-
       if (elements.filterLocation) {
         elements.filterLocation.value = "all";
       }
@@ -1234,6 +1510,8 @@
       renderCategoryControls();
       renderLocationOptions();
       renderRangeFilters();
+      renderStockFilter();
+      renderCartStatusFilter();
       renderProducts();
     });
 
@@ -1309,6 +1587,13 @@
   async function init() {
     bindEvents();
     state.data = await Store.loadData();
+    const savedPageSize = Number(localStorage.getItem("todoListCart.productsPerPage"));
+    state.pageSize = [6, 12, 24, 48].includes(savedPageSize)
+      ? savedPageSize
+      : state.data.settings.productsPerPage;
+    if (!state.isPopup && !localStorage.getItem("todoListCart.productView")) {
+      state.viewMode = state.data.settings.defaultProductView;
+    }
     if (elements.productForm) {
       state.editProductId = new URLSearchParams(window.location.search).get("id");
     }

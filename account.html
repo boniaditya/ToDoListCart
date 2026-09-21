@@ -18,15 +18,20 @@
             <span class="brand-domain">.tasks</span>
           </a>
 
-          <div class="detail-search-spacer"></div>
+          <form class="search-bar" action="newtab.html" method="get" autocomplete="off">
+            <label class="visually-hidden" for="account-product-search">Search task products</label>
+            <input id="account-product-search" name="q" type="search" placeholder="Search task products">
+            <button type="submit">Search</button>
+          </form>
 
 
           <a class="page-link-button" href="create-product.html">Create</a>
 
           <a class="page-link-button" id="open-home-page" href="newtab.html">Workspace</a>
-          <button type="button" class="page-link-button" id="open-products-page">Products</button>
+          <button type="button" class="page-link-button" id="open-products-page" hidden>Products</button>
           <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
           <button type="button" class="page-link-button" id="open-orders-page">Orders</button>
+          <a class="page-link-button" href="tally.html">Tally</a>
 
           <button type="button" class="cart-button" id="cart-jump" aria-label="Cart count">
             <span class="cart-icon" aria-hidden="true"></span>
@@ -50,19 +55,22 @@
 
       <section class="account-layout" aria-label="Account settings">
         <form id="settings-form" class="settings-card" autocomplete="off">
+          <section class="settings-column settings-product-column" aria-label="Product details settings">
           <div class="section-heading">
             <h2>Profile</h2>
           </div>
 
-          <label>
-            Account name
-            <input id="setting-account-name" type="text" maxlength="48" required>
-          </label>
+          <div class="profile-settings">
+            <label>
+              Account name
+              <input id="setting-account-name" type="text" maxlength="48" required>
+            </label>
 
-          <label>
-            Store name
-            <input id="setting-store-name" type="text" maxlength="48" required>
-          </label>
+            <label>
+              Store name
+              <input id="setting-store-name" type="text" maxlength="48" required>
+            </label>
+          </div>
 
           <div class="section-heading settings-subhead">
             <h2>Product Defaults</h2>
@@ -72,6 +80,15 @@
             <label>
               Default category
               <select id="setting-default-department"></select>
+            </label>
+
+            <label>
+              Default item type
+              <select id="setting-default-product-type">
+                <option value="product">Product</option>
+                <option value="service">Service</option>
+                <option value="project">Project</option>
+              </select>
             </label>
 
             <fieldset class="priority-toggle settings-priority-toggle" aria-label="Default priority">
@@ -128,10 +145,12 @@
               <span class="settings-help">Set the equivalence, for example: 1 second = ₹1, or 10 seconds = ₹1.</span>
             </div>
           </div>
+          </section>
 
+          <section class="settings-column settings-categories-column" aria-labelledby="categories-heading">
           <div class="section-heading settings-subhead">
             <div>
-              <h2>Categories</h2>
+              <h2 id="categories-heading">Categories</h2>
               <p class="settings-help">Rename categories or choose an icon from 10,000+ searchable noun icons.</p>
             </div>
           </div>
@@ -144,15 +163,36 @@
             </div>
             <label for="account-category-name">New category</label>
             <input id="account-category-name" type="text" maxlength="32" placeholder="Marketing">
-            <button type="button" id="new-category-choose-icon" class="secondary-button category-icon-button button-with-icon" aria-label="Choose icon" title="Choose icon">
+            <button type="button" id="new-category-choose-icon" class="secondary-button category-icon-button button-with-icon" aria-label="Search icons" title="Search icons">
               <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path d="M12 20h9"></path>
-                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"></path>
+                <path d="M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16Z"></path>
+                <path d="m21 21-4.35-4.35"></path>
               </svg>
             </button>
             <button type="button" id="account-add-category" class="secondary-button">Add Category</button>
           </div>
 
+          <div class="section-heading settings-subhead">
+            <div>
+              <h2>Data Backup</h2>
+              <p class="settings-help">Export all products, carts, orders, categories, and settings, or restore them from a JSON backup.</p>
+            </div>
+          </div>
+
+          <div class="data-backup">
+            <button type="button" id="export-data" class="secondary-button">Export Data</button>
+            <button type="button" id="import-data" class="secondary-button">Import Data</button>
+            <input id="import-data-file" type="file" accept=".json,application/json" hidden>
+          </div>
+          <div class="backup-history" aria-labelledby="backup-history-heading">
+            <h3 id="backup-history-heading">Backup history</h3>
+            <p class="settings-help">Exports and imports are kept as extension-local restore snapshots. Download a fresh local copy whenever you need it.</p>
+            <ul id="backup-history-list" class="backup-history-list"></ul>
+            <p id="empty-backup-history" class="settings-help">No backups have been recorded yet.</p>
+          </div>
+          </section>
+
+          <section class="settings-column settings-product-column settings-product-secondary" aria-label="Checkout and display settings">
           <div class="section-heading settings-subhead">
             <h2>Checkout & Display</h2>
           </div>
@@ -175,18 +215,43 @@
             <span>Use compact product cards</span>
           </label>
 
-          <div class="section-heading settings-subhead">
-            <div>
-              <h2>Data Backup</h2>
-              <p class="settings-help">Export all products, carts, orders, categories, and settings, or restore them from a JSON backup.</p>
-            </div>
-          </div>
+          <label>
+            Add comments section
+            <select id="setting-comment-composer-placement">
+              <option value="below">Below the product details</option>
+              <option value="side">Sticky right side panel</option>
+            </select>
+          </label>
 
-          <div class="data-backup">
-            <button type="button" id="export-data" class="secondary-button">Export Data</button>
-            <button type="button" id="import-data" class="secondary-button">Import Data</button>
-            <input id="import-data-file" type="file" accept=".json,application/json" hidden>
-          </div>
+          <label>
+            Default full listing view
+            <select id="setting-default-product-view">
+              <option value="card">Cards</option>
+              <option value="list">List</option>
+            </select>
+          </label>
+
+          <label>
+            Products per page
+            <select id="setting-products-per-page">
+              <option value="6">6</option>
+              <option value="12">12</option>
+              <option value="24">24</option>
+              <option value="48">48</option>
+            </select>
+          </label>
+
+          <label class="settings-toggle">
+            <input id="setting-show-product-descriptions" type="checkbox">
+            <span>Show product descriptions on cards</span>
+          </label>
+
+          <label class="settings-toggle">
+            <input id="setting-show-delivery-status" type="checkbox">
+            <span>Show delivery status on cards</span>
+          </label>
+
+          </section>
 
           <div class="settings-actions">
             <button type="submit" class="primary-button button-with-icon">

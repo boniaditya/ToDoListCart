@@ -1,5 +1,6 @@
 (function () {
   const Store = globalThis.ToDoCartStore;
+  const MAX_COMMENT_IMAGE_BYTES = 3 * 1024 * 1024;
   const state = {
     data: Store.normalizeData({}),
     productId: new URLSearchParams(window.location.search).get("id"),
@@ -18,11 +19,17 @@
     rating: document.querySelector(".detail-rating"),
     priority: document.querySelector("#detail-priority"),
     department: document.querySelector("#detail-department"),
+    productType: document.querySelector("#detail-product-type"),
     location: document.querySelector("#detail-location"),
     moq: document.querySelector("#detail-moq"),
+    stockUnits: document.querySelector("#detail-stock-units"),
     price: document.querySelector("#detail-price"),
     created: document.querySelector("#detail-created"),
     description: document.querySelector("#detail-description"),
+    references: document.querySelector("#detail-references"),
+    referenceList: document.querySelector("#detail-reference-list"),
+    relatedProducts: document.querySelector("#detail-related-products"),
+    bundleProducts: document.querySelector("#detail-bundle-products"),
     commentForm: document.querySelector("#comment-form"),
     commentTitle: document.querySelector("#comment-title"),
     commentText: document.querySelector("#comment-text"),
@@ -31,6 +38,12 @@
     commentList: document.querySelector("#comment-list"),
     commentCount: document.querySelector("#comment-count"),
     emptyComments: document.querySelector("#empty-comments"),
+    commentImageDialog: document.querySelector("#comment-image-dialog"),
+    commentImageDialogImage: document.querySelector("#comment-image-dialog-image"),
+    closeCommentImageDialog: document.querySelector("#close-comment-image-dialog"),
+    commentPanelToggle: document.querySelector("#toggle-comment-panel"),
+    commentComposerPanel: document.querySelector("#comment-composer-panel"),
+    commentsHeading: document.querySelector(".comments-heading"),
     cartSelect: document.querySelector("#cart-select"),
     cartCount: document.querySelector("#cart-count"),
     cartStatus: document.querySelector("#detail-cart-status"),
@@ -49,6 +62,32 @@
 
   function getProduct() {
     return state.data.products.find((product) => product.id === state.productId);
+  }
+
+  function applyCommentPanelPlacement() {
+    const inSidePanel = state.data.settings.commentComposerPlacement === "side";
+    elements.productDetail.classList.toggle("comments-in-side-panel", inSidePanel);
+    elements.productDetail.classList.remove("comments-expanded");
+    if (inSidePanel) {
+      elements.commentComposerPanel.hidden = false;
+      elements.commentComposerPanel.append(elements.commentForm);
+    } else {
+      elements.commentComposerPanel.hidden = true;
+      elements.commentsHeading.insertAdjacentElement("afterend", elements.commentForm);
+    }
+    elements.commentPanelToggle.setAttribute("aria-pressed", String(inSidePanel));
+    const panelLabel = inSidePanel
+      ? "Move add comment below details"
+      : "Move add comment to side panel";
+    elements.commentPanelToggle.setAttribute("aria-label", panelLabel);
+    elements.commentPanelToggle.title = panelLabel;
+  }
+
+  async function toggleCommentPanelPlacement() {
+    const willUseSidePanel = !elements.productDetail.classList.contains("comments-in-side-panel");
+    state.data.settings.commentComposerPlacement = willUseSidePanel ? "side" : "below";
+    state.data = await Store.saveData(state.data);
+    applyCommentPanelPlacement();
   }
 
   function getActiveCart() {
@@ -172,15 +211,25 @@
 
     comments.forEach((comment) => {
       const item = document.createElement("li");
+      const meta = document.createElement("div");
       const timestamp = document.createElement("time");
       const title = document.createElement("strong");
       const text = document.createElement("p");
+      const remove = document.createElement("button");
 
       timestamp.dateTime = new Date(comment.createdAt).toISOString();
       timestamp.textContent = Store.formatDateTime(comment.createdAt);
       title.textContent = comment.title;
       text.textContent = comment.text;
-      item.append(timestamp);
+      meta.className = "comment-meta";
+      remove.type = "button";
+      remove.className = "delete-comment-button";
+      remove.setAttribute("aria-label", `Delete comment${comment.title ? `: ${comment.title}` : ""}`);
+      remove.title = "Delete comment";
+      remove.textContent = "Delete";
+      remove.addEventListener("click", () => deleteComment(comment.id));
+      meta.append(timestamp, remove);
+      item.append(meta);
       if (comment.title) {
         item.append(title);
       }
@@ -191,10 +240,16 @@
         const images = document.createElement("div");
         images.className = "comment-images";
         comment.images.forEach((entry, index) => {
+          const imageButton = document.createElement("button");
           const image = document.createElement("img");
+          imageButton.type = "button";
+          imageButton.className = "comment-image-button";
+          imageButton.setAttribute("aria-label", `Open ${comment.title || `comment image ${index + 1}`}`);
           image.src = entry.src;
           image.alt = comment.title || `Comment image ${index + 1}`;
-          images.append(image);
+          imageButton.addEventListener("click", () => openCommentImage(entry, image.alt));
+          imageButton.append(image);
+          images.append(imageButton);
         });
         item.append(images);
       }
@@ -203,6 +258,67 @@
 
     elements.commentCount.textContent = `${comments.length} ${comments.length === 1 ? "comment" : "comments"}`;
     elements.emptyComments.hidden = comments.length > 0;
+  }
+
+  function openCommentImage(entry, alt) {
+    elements.commentImageDialogImage.src = entry.src;
+    elements.commentImageDialogImage.alt = alt;
+    elements.commentImageDialog.showModal();
+  }
+
+  function closeCommentImageDialog() {
+    elements.commentImageDialog.close();
+    elements.commentImageDialogImage.removeAttribute("src");
+  }
+
+  async function deleteComment(commentId) {
+    if (!window.confirm("Delete this comment? This cannot be undone.")) {
+      return;
+    }
+
+    state.data.products = state.data.products.map((product) => (
+      product.id === state.productId
+        ? { ...product, comments: (product.comments || []).filter((comment) => comment.id !== commentId) }
+        : product
+    ));
+    await persistAndRender();
+  }
+
+  function renderReferences(product) {
+    const referenceUrls = product.referenceUrls || [];
+    elements.referenceList.replaceChildren();
+    elements.references.hidden = referenceUrls.length === 0;
+
+    referenceUrls.forEach((url) => {
+      const item = document.createElement("li");
+      const link = document.createElement("a");
+      link.href = url;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.title = url;
+      link.textContent = url;
+      item.append(link);
+      elements.referenceList.append(item);
+    });
+  }
+
+  function renderProductRelations(product) {
+    const renderRelation = (container, ids) => {
+      const products = ids.map((id) => state.data.products.find((entry) => entry.id === id)).filter(Boolean);
+      const list = container.querySelector("ul");
+      list.replaceChildren();
+      container.hidden = products.length === 0;
+      products.forEach((related) => {
+        const item = document.createElement("li");
+        const link = document.createElement("a");
+        link.href = Store.getExtensionUrl(`product.html?id=${encodeURIComponent(related.id)}`);
+        link.textContent = related.title;
+        item.append(link);
+        list.append(item);
+      });
+    };
+    renderRelation(elements.relatedProducts, product.relatedProductIds || []);
+    renderRelation(elements.bundleProducts, product.bundleProductIds || []);
   }
 
   function renderMissing() {
@@ -237,11 +353,16 @@
     elements.rating.setAttribute("aria-label", `Priority: ${elements.priority.textContent}`);
     elements.rating.tabIndex = 0;
     Store.renderCategory(elements.department, state.data, product.department);
+    elements.productType.textContent = product.productType;
     elements.location.textContent = product.location;
     elements.moq.textContent = Store.formatMoq(product.moq);
+    const unitsInStock = Store.getUnitsInStock(product);
+    elements.stockUnits.textContent = `${unitsInStock} ${unitsInStock === 1 ? "unit" : "units"}`;
     elements.price.textContent = Store.formatMoney(product.price, state.data.settings);
     elements.created.textContent = Store.formatDate(product.createdAt);
     elements.description.textContent = product.description || "No description added yet.";
+    renderReferences(product);
+    renderProductRelations(product);
     renderComments(product);
     elements.cartCount.textContent = cartCount;
     elements.cartStatus.textContent = activeItem
@@ -305,12 +426,20 @@
   }
 
   async function addCommentImages(files) {
-    const selected = [...files].filter((file) => file.type.startsWith("image/")).slice(0, 4);
-    const images = [];
+    const remaining = Math.max(0, 4 - state.commentImages.length);
+    const selected = [...files]
+      .filter((file) => file.type.startsWith("image/"))
+      .slice(0, remaining);
+    const images = [...state.commentImages];
 
     for (const file of selected) {
-      if (file.size <= 1024 * 1024) {
-        images.push({ src: await Store.fileToDataUrl(file), name: file.name || "comment-image" });
+      if (file.size <= MAX_COMMENT_IMAGE_BYTES) {
+        images.push({
+          src: await Store.fileToDataUrl(file),
+          name: file.name || "clipboard-image"
+        });
+      } else {
+        alert("Choose comment images up to 3 MB.");
       }
     }
 
@@ -398,23 +527,35 @@
       return;
     }
 
-    const copy = Store.createProduct({
-      title: `${product.title} (Copy)`,
-      department: product.department,
-      location: product.location,
-      priority: product.priority,
-      moq: product.moq,
-      price: product.price,
-      inStock: product.inStock,
-      availableUnits: product.availableUnits,
-      completedUnits: product.completedUnits,
-      description: product.description,
-      images: product.images.map((image) => ({ ...image }))
-    });
+    elements.duplicateProduct.disabled = true;
 
-    state.data.products.unshift(copy);
-    await Store.saveData(state.data);
-    window.location.href = Store.getExtensionUrl(`create-product.html?id=${encodeURIComponent(copy.id)}`);
+    try {
+      const copy = Store.createProduct({
+        title: `${product.title} (Copy)`,
+        department: product.department,
+        productType: product.productType,
+        location: product.location,
+        priority: product.priority,
+        moq: product.moq,
+        price: product.price,
+        inStock: product.inStock,
+        availableUnits: product.availableUnits,
+        completedUnits: product.completedUnits,
+        description: product.description,
+        referenceUrls: [...(product.referenceUrls || [])],
+        relatedProductIds: [...(product.relatedProductIds || [])],
+        bundleProductIds: [...(product.bundleProductIds || [])],
+        images: (product.images || []).map((image) => ({ ...image }))
+      });
+
+      state.data.products.unshift(copy);
+      state.data = await Store.saveData(state.data);
+      window.location.href = Store.getExtensionUrl(`create-product.html?id=${encodeURIComponent(copy.id)}`);
+    } catch (error) {
+      console.error("Could not duplicate product", error);
+      elements.duplicateProduct.disabled = false;
+      window.alert("The product could not be duplicated. Please try again.");
+    }
   }
 
   function bindEvents() {
@@ -426,8 +567,24 @@
     elements.addCart.addEventListener("click", addToCart);
     elements.removeCart.addEventListener("click", removeFromCart);
     elements.done.addEventListener("change", () => toggleDone(elements.done.checked));
+    elements.commentPanelToggle.addEventListener("click", toggleCommentPanelPlacement);
+    elements.closeCommentImageDialog.addEventListener("click", closeCommentImageDialog);
+    elements.commentImageDialog.addEventListener("click", (event) => {
+      if (event.target === elements.commentImageDialog) {
+        closeCommentImageDialog();
+      }
+    });
     elements.commentForm.addEventListener("submit", addComment);
     elements.commentImageInput.addEventListener("change", () => addCommentImages(elements.commentImageInput.files || []));
+    elements.commentForm.addEventListener("paste", (event) => {
+      const files = [...(event.clipboardData?.files || [])]
+        .filter((file) => file.type.startsWith("image/"));
+
+      if (files.length) {
+        event.preventDefault();
+        addCommentImages(files);
+      }
+    });
     elements.editProduct.addEventListener("click", editProduct);
     elements.duplicateProduct.addEventListener("click", duplicateProduct);
     elements.deleteProduct.addEventListener("click", deleteProduct);
@@ -457,6 +614,7 @@
     bindEvents();
     state.data = await Store.loadData();
     render();
+    applyCommentPanelPlacement();
   }
 
   init();

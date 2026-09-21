@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Store Tally - ToDoList Cart</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+    <link rel="stylesheet" href="newtab.css">
+  </head>
+  <body>
+    <main class="store-shell tally-shell" aria-labelledby="tally-title">
+      <header class="store-header">
+        <div class="top-row">
+          <a class="brand" href="newtab.html" aria-label="Go to ToDoList Cart home">
+            <img class="brand-icon" src="icons/icon-48.png" alt="">
+            <span class="brand-name">ToDoList Cart</span><span class="brand-domain">.tasks</span>
+          </a>
+          <form class="search-bar" action="newtab.html" method="get" autocomplete="off">
+            <label class="visually-hidden" for="tally-product-search">Search task products</label>
+            <input id="tally-product-search" name="q" type="search" placeholder="Search task products">
+            <button type="submit">Search</button>
+          </form>
+          <a class="page-link-button" href="create-product.html">Create</a>
+          <a class="page-link-button" href="newtab.html">Workspace</a>
+          <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
+          <a class="page-link-button" href="order-history.html">Orders</a>
+          <a class="page-link-button active-page-link" href="tally.html">Tally</a>
+          <a class="page-link-button" href="account.html">Account</a>
+          <a class="cart-button" href="newtab.html#cart-panel" aria-label="Open shopping cart">
+            <span class="cart-icon" aria-hidden="true"></span><strong id="cart-count">0</strong><span>Cart</span>
+          </a>
+        </div>
+      </header>
+
+      <section class="hero-strip catalog-hero" aria-label="Store tally overview">
+        <div><p>Store finances</p><h1 id="tally-title">Store Tally</h1></div>
+        <div class="hero-stats" aria-live="polite">
+          <span id="tally-order-count">0 orders</span>
+          <span id="tally-open-items">0 open cart items</span>
+          <span id="tally-product-count">0 products</span>
+        </div>
+      </section>
+
+      <section class="tally-layout" aria-label="Financial summary">
+        <div class="tally-stat-grid">
+          <article class="tally-stat spent"><span>Amount spent</span><strong id="tally-spent"></strong><small>Value of checked-out orders</small></article>
+          <article class="tally-stat open"><span>Still to spend</span><strong id="tally-open-value"></strong><small>Open items across all carts</small></article>
+          <article class="tally-stat inventory"><span>Available store value</span><strong id="tally-inventory-value"></strong><small>Value of units still in stock</small></article>
+          <article class="tally-stat potential"><span>Catalog value</span><strong id="tally-catalog-value"></strong><small>One MOQ of every product</small></article>
+        </div>
+
+        <div class="tally-panels">
+          <section class="tally-panel" aria-labelledby="category-tally-heading">
+            <div class="section-heading"><h2 id="category-tally-heading">By category</h2></div>
+            <ul id="category-tally-list" class="tally-list"></ul>
+            <p id="empty-category-tally" class="tally-empty" hidden>No product values to tally yet.</p>
+          </section>
+          <section class="tally-panel" aria-labelledby="cart-tally-heading">
+            <div class="section-heading"><h2 id="cart-tally-heading">Open cart commitments</h2></div>
+            <ul id="cart-tally-list" class="tally-list"></ul>
+            <p id="empty-cart-tally" class="tally-empty" hidden>No open cart items.</p>
+          </section>
+        </div>
+      </section>
+    </main>
+    <script src="store.js"></script>
+    <script src="tally.js"></script>
+  </body>
+</html>
