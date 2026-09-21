@@ -11,6 +11,7 @@
     priceMax: null,
     timeMin: null,
     timeMax: null,
+    isPopup: document.body.dataset.view === "popup",
     query: "",
     viewMode: localStorage.getItem("todoListCart.productView") === "list" ? "list" : "card",
     editProductId: null,
@@ -27,6 +28,7 @@
     priorityInputs: document.querySelectorAll("input[name='priority']"),
     moqInput: document.querySelector("#product-moq"),
     priceInput: document.querySelector("#product-price"),
+    availableUnitsInput: document.querySelector("#product-available-units"),
     inStockInput: document.querySelector("#product-in-stock"),
     imageUrlInput: document.querySelector("#product-image-url"),
     imageFileInput: document.querySelector("#product-image-file"),
@@ -207,7 +209,7 @@
     const images = product.images || [];
 
     if (images.length && state.data.settings.showImages) {
-      if (images.length > 1) {
+      if (images.length > 1 && !state.isPopup) {
         const track = document.createElement("div");
         const previous = document.createElement("button");
         const next = document.createElement("button");
@@ -568,6 +570,7 @@
     cartEntries.forEach(({ item, product }) => {
       const node = elements.cartTemplate.content.firstElementChild.cloneNode(true);
       const checkbox = node.querySelector("input");
+      const imageBox = node.querySelector(".cart-product-image");
       const title = node.querySelector(".cart-copy strong");
       const meta = node.querySelector(".cart-copy span");
       const removeButton = node.querySelector(".remove-cart-button");
@@ -576,6 +579,15 @@
       node.classList.toggle("done", item.done);
       checkbox.checked = item.done;
       checkbox.setAttribute("aria-label", `Mark ${product.title} as ${item.done ? "open" : "checked out"}`);
+      imageBox.replaceChildren();
+      if (product.image && state.data.settings.showImages) {
+        const image = document.createElement("img");
+        image.src = product.image;
+        image.alt = `${product.title} product image`;
+        imageBox.append(image);
+      } else {
+        imageBox.append(document.createElement("span"));
+      }
       title.textContent = product.title;
       meta.textContent = `${getCategoryName(product)} | ${Store.getPriorityLabel(product.priority)} | ${Store.formatMoq(product.moq)} | ${Store.formatMoney(product.price, state.data.settings)}`;
       removeButton.setAttribute("aria-label", `Remove ${product.title} from cart`);
@@ -664,6 +676,7 @@
     setPriorityValue(product.priority);
     elements.moqInput.value = product.moq;
     elements.priceInput.value = product.price;
+    elements.availableUnitsInput.value = product.availableUnits;
     elements.inStockInput.checked = product.inStock;
     state.formImages = product.images.map((image) => ({ ...image }));
 
@@ -747,6 +760,8 @@
       priority: getPriorityValue(),
       moq: elements.moqInput.value,
       price: elements.priceInput.value,
+      availableUnits: elements.availableUnitsInput.value,
+      completedUnits: state.editProductId ? state.data.products.find((product) => product.id === state.editProductId)?.completedUnits : 0,
       inStock: elements.inStockInput.checked,
       description: elements.descriptionInput?.value.trim() || "",
       images
@@ -840,11 +855,29 @@
 
   async function toggleDone(productId, done) {
     const activeCart = getActiveCart();
+    const item = activeCart.items.find((entry) => entry.productId === productId);
+
+    if (!item || item.done === done) {
+      return;
+    }
+
     setActiveCart({
       ...activeCart,
       items: activeCart.items.map((item) => (
         item.productId === productId ? { ...item, done } : item
       ))
+    });
+    state.data.products = state.data.products.map((product) => {
+      if (product.id !== productId) {
+        return product;
+      }
+
+      const completedUnits = Math.max(0, Number(product.completedUnits || 0) + (done ? 1 : -1));
+      return {
+        ...product,
+        completedUnits,
+        inStock: done && completedUnits >= Number(product.availableUnits) ? false : product.inStock
+      };
     });
     await persistAndRender();
   }
@@ -859,6 +892,22 @@
     }
 
     state.data.orders.unshift(order);
+
+    const newlyCompleted = activeCart.items.filter((item) => !item.done);
+    state.data.products = state.data.products.map((product) => {
+      const completedNow = newlyCompleted.filter((item) => item.productId === product.id).length;
+
+      if (!completedNow) {
+        return product;
+      }
+
+      const completedUnits = Number(product.completedUnits || 0) + completedNow;
+      return {
+        ...product,
+        completedUnits,
+        inStock: completedUnits >= Number(product.availableUnits) ? false : product.inStock
+      };
+    });
 
     setActiveCart({
       ...activeCart,

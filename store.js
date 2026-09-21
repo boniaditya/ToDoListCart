@@ -177,6 +177,8 @@
   function normalizeProduct(product) {
     const moq = normalizeMoq(product.moq || product.effort || "1");
     const images = normalizeImages(product.images, product.image, product.imageName);
+    const availableUnits = normalizeMoq(product.availableUnits || "1");
+    const completedUnits = Math.max(0, Math.floor(Number(product.completedUnits) || 0));
     const comments = getArray(product.comments)
       .map((comment) => ({
         id: String(comment?.id || createId("comment")),
@@ -196,7 +198,9 @@
       moq,
       effort: moq,
       price: normalizeMoney(product.price),
-      inStock: product.inStock !== false,
+      availableUnits,
+      completedUnits,
+      inStock: product.inStock !== false && completedUnits < Number(availableUnits),
       description: product.description || "",
       images,
       image: images[0]?.src || "",
@@ -308,7 +312,7 @@
     });
   }
 
-  function createProduct({ title, department, location, priority, moq, effort, price, inStock, description, images, image, imageName }) {
+  function createProduct({ title, department, location, priority, moq, effort, price, inStock, availableUnits, completedUnits, description, images, image, imageName }) {
     return normalizeProduct({
       id: createId("product"),
       title,
@@ -318,6 +322,8 @@
       moq: moq || effort,
       price,
       inStock,
+      availableUnits,
+      completedUnits,
       description,
       images,
       image,

@@ -349,11 +349,29 @@
 
   async function toggleDone(done) {
     const activeCart = getActiveCart();
+    const item = getActiveItem();
+
+    if (!item || item.done === done) {
+      return;
+    }
+
     setActiveCart({
       ...activeCart,
       items: activeCart.items.map((item) => (
         item.productId === state.productId ? { ...item, done } : item
       ))
+    });
+    state.data.products = state.data.products.map((product) => {
+      if (product.id !== state.productId) {
+        return product;
+      }
+
+      const completedUnits = Math.max(0, Number(product.completedUnits || 0) + (done ? 1 : -1));
+      return {
+        ...product,
+        completedUnits,
+        inStock: done && completedUnits >= Number(product.availableUnits) ? false : product.inStock
+      };
     });
     await persistAndRender();
   }
@@ -388,6 +406,8 @@
       moq: product.moq,
       price: product.price,
       inStock: product.inStock,
+      availableUnits: product.availableUnits,
+      completedUnits: product.completedUnits,
       description: product.description,
       images: product.images.map((image) => ({ ...image }))
     });
