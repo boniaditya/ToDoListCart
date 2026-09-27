@@ -30,10 +30,14 @@
           <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
 
           <button type="button" class="page-link-button" id="open-orders-page">Orders</button>
-          <a class="page-link-button" href="tally.html">Tally</a>
+          <a class="page-link-button" href="tally.html">Analytics</a>
+          <a class="page-link-button" href="vendors.html">Vendors</a>
 
           <button type="button" class="page-link-button" id="open-account-page">Account</button>
 
+          <a class="header-icon-button comments-header-button" href="comments.html" aria-label="Open comment trails" title="Comments">
+            <svg class="comment-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.5-4A9 9 0 1 1 21 12Z"></path></svg>
+          </a>
           <button type="button" class="cart-button" id="cart-jump" aria-label="Cart count">
             <span class="cart-icon" aria-hidden="true"></span>
             <strong id="cart-count">0</strong>
@@ -73,9 +77,23 @@
         <section class="product-shelf listing-shelf" aria-labelledby="products-heading">
           <div class="section-heading">
             <h2 id="products-heading">Products</h2>
-            <div class="view-toggle" role="group" aria-label="Product view">
-              <button type="button" class="view-toggle-button active" data-view="card" aria-pressed="true">▦ <span>Cards</span></button>
-              <button type="button" class="view-toggle-button" data-view="list" aria-pressed="false">☷ <span>List</span></button>
+            <div class="listing-toolbar">
+              <label class="product-sort-control" for="product-sort">
+                <span>Sort by</span>
+                <select id="product-sort">
+                  <option value="default">Default</option>
+                  <option value="price-asc">Price: Low to high</option>
+                  <option value="price-desc">Price: High to low</option>
+                  <option value="time-asc">Time: Shortest first</option>
+                  <option value="time-desc">Time: Longest first</option>
+                  <option value="comments-desc">Comments: Most first</option>
+                  <option value="comments-asc">Comments: Fewest first</option>
+                </select>
+              </label>
+              <div class="view-toggle" role="group" aria-label="Product view">
+                <button type="button" class="view-toggle-button active" data-view="card" aria-pressed="true">▦ <span>Cards</span></button>
+                <button type="button" class="view-toggle-button" data-view="list" aria-pressed="false">☷ <span>List</span></button>
+              </div>
             </div>
           </div>
 
@@ -102,16 +120,20 @@
             <span class="priority-label"></span>
           </div>
           <div class="product-meta">
-            <span class="department-label"></span>
-            <span class="location-label"></span>
+            <button type="button" class="department-label card-filter-button" data-card-filter="category"></button>
+            <button type="button" class="location-label card-filter-button" data-card-filter="location"><svg class="card-meta-icon location-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg><span class="location-value"></span></button>
             <span class="moq-label"></span>
+            <span class="units-label"></span>
             <span class="price-label"></span>
+            <span class="time-label" hidden><svg class="card-meta-icon time-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8"></circle><path d="M12 7v5l3 2"></path></svg><span class="time-value"></span></span>
+            <button type="button" class="comment-count-button"><svg class="comment-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.5-4A9 9 0 1 1 21 12Z"></path></svg><span class="comment-count-value">0</span></button>
           </div>
           <div class="delivery-line">Prime task delivery</div>
           <span class="stock-status" hidden>Out of stock</span>
         </div>
         <div class="product-actions">
           <button type="button" class="add-cart-button">Add to Cart</button>
+          <button type="button" class="buy-now-button">Buy Now</button>
         </div>
       </li>
     </template>

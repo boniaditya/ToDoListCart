@@ -47,6 +47,15 @@
     timeSeconds: "1",
     timeRate: "1",
     checkoutBehavior: "keep",
+    stickyCheckoutShowSummary: true,
+    stickyCheckoutShowProgress: true,
+    stickyCheckoutCompact: false,
+    cartPageShowManager: true,
+    cartPageShowProgress: true,
+    cartPageShowImages: true,
+    cartPageShowDescriptions: true,
+    cartPageShowStock: true,
+    cartPageShowRemoveButtons: true,
     showImages: true,
     compactMode: false,
     commentComposerPlacement: "below",
@@ -54,7 +63,37 @@
     defaultProductView: "card",
     productsPerPage: 12,
     showProductDescriptions: true,
-    showDeliveryStatus: true
+    showDeliveryStatus: true,
+    showLocationIcon: true,
+    showTimeIcon: true,
+    listingShowImages: true,
+    listingCompactMode: false,
+    listingShowProductDescriptions: true,
+    listingShowDeliveryStatus: true,
+    listingShowLocationIcon: true,
+    listingShowTimeIcon: true,
+    listingShowPrice: true,
+    listingShowTime: true,
+    listingShowCategory: true,
+    listingShowLocation: true,
+    listingShowRatings: true,
+    listingShowMoq: true,
+    listingShowUnits: true,
+    popupShowImages: true,
+    popupCompactMode: true,
+    popupShowProductDescriptions: false,
+    popupShowDeliveryStatus: false,
+    popupShowLocationIcon: false,
+    popupShowTimeIcon: false,
+    popupShowPrice: false,
+    popupShowTime: false
+    ,
+    popupShowCategory: false,
+    popupShowLocation: false
+    ,
+    popupShowRatings: false,
+    popupShowMoq: false,
+    popupShowUnits: false
   };
 
   function hasOwn(object, key) {
@@ -107,7 +146,8 @@
 
         return {
           src: String(entry?.src || entry?.data || "").trim(),
-          name: String(entry?.name || "").trim()
+          name: String(entry?.name || "").trim(),
+          cardSrc: String(entry?.cardSrc || "").trim()
         };
       })
       .filter((entry) => entry.src);
@@ -118,6 +158,57 @@
     }
 
     return normalized;
+  }
+
+  function createCardImageCopy(source) {
+    const cardSize = 720;
+
+    return new Promise((resolve) => {
+      const image = new Image();
+
+      image.addEventListener("load", () => {
+        if (!image.naturalWidth || !image.naturalHeight) {
+          resolve("");
+          return;
+        }
+
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+
+        if (!context) {
+          resolve("");
+          return;
+        }
+
+        canvas.width = cardSize;
+        canvas.height = cardSize;
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, cardSize, cardSize);
+
+        const scale = Math.min(cardSize / image.naturalWidth, cardSize / image.naturalHeight);
+        const width = Math.round(image.naturalWidth * scale);
+        const height = Math.round(image.naturalHeight * scale);
+        const x = Math.round((cardSize - width) / 2);
+        const y = Math.round((cardSize - height) / 2);
+
+        context.drawImage(image, x, y, width, height);
+
+        try {
+          resolve(canvas.toDataURL("image/jpeg", 0.9));
+        } catch {
+          resolve("");
+        }
+      }, { once: true });
+      image.addEventListener("error", () => resolve(""), { once: true });
+      image.src = source;
+    });
+  }
+
+  async function prepareCardImages(images) {
+    return Promise.all(normalizeImages(images).map(async (entry) => ({
+      ...entry,
+      cardSrc: entry.cardSrc || await createCardImageCopy(entry.src)
+    })));
   }
 
   function normalizeCategory(category) {
@@ -210,6 +301,13 @@
     const moq = normalizeMoq(product.moq || product.effort || "1");
     const images = normalizeImages(product.images, product.image, product.imageName);
     const availableUnits = normalizeMoq(product.availableUnits || "1");
+    const savedTotalPrice = normalizeMoney(product.price ?? product.totalPrice);
+    const explicitUnitPrice = product.unitPrice ?? product.pricePerUnit;
+    const derivedUnitPrice = Number(availableUnits) > 0 ? Number(savedTotalPrice) / Number(availableUnits) : Number(savedTotalPrice);
+    const unitPrice = normalizeMoney(explicitUnitPrice ?? derivedUnitPrice);
+    const totalPrice = explicitUnitPrice == null
+      ? savedTotalPrice
+      : normalizeMoney(Number(unitPrice) * Number(availableUnits));
     const completedUnits = Math.max(0, Math.floor(Number(product.completedUnits) || 0));
     const referenceUrls = getArray(product.referenceUrls)
       .map((value) => {
@@ -246,7 +344,8 @@
       priority: product.priority || "standard",
       moq,
       effort: moq,
-      price: normalizeMoney(product.price),
+      unitPrice,
+      price: totalPrice,
       availableUnits,
       completedUnits,
       referenceUrls,
@@ -260,6 +359,52 @@
       comments,
       createdAt: product.createdAt || Date.now()
     };
+  }
+
+  function normalizeRelatedProductLinks(products) {
+    const productIds = new Set(products.map((product) => product.id));
+    const relatedByProductId = new Map(products.map((product) => [
+      product.id,
+      new Set(product.relatedProductIds.filter((relatedId) => relatedId !== product.id && productIds.has(relatedId)))
+    ]));
+
+    relatedByProductId.forEach((relatedIds, productId) => {
+      relatedIds.forEach((relatedId) => relatedByProductId.get(relatedId)?.add(productId));
+    });
+
+    return products.map((product) => ({
+      ...product,
+      relatedProductIds: [...relatedByProductId.get(product.id)]
+    }));
+  }
+
+  function setRelatedProductLinks(products, productId, relatedProductIds) {
+    const productIds = new Set(products.map((product) => product.id));
+    const selectedIds = new Set(getArray(relatedProductIds)
+      .map(String)
+      .filter((relatedId) => relatedId !== productId && productIds.has(relatedId)));
+
+    return products.map((product) => {
+      const nextRelatedIds = new Set(product.relatedProductIds || []);
+
+      if (product.id === productId) {
+        return {
+          ...product,
+          relatedProductIds: [...selectedIds]
+        };
+      }
+
+      if (selectedIds.has(product.id)) {
+        nextRelatedIds.add(productId);
+      } else {
+        nextRelatedIds.delete(productId);
+      }
+
+      return {
+        ...product,
+        relatedProductIds: [...nextRelatedIds]
+      };
+    });
   }
 
   function normalizeCartItem(item) {
@@ -280,6 +425,49 @@
         .map(normalizeCartItem),
       createdAt: cart.createdAt || Date.now()
     };
+  }
+
+  function normalizeVendorContact(contact) {
+    return {
+      id: String(contact?.id || createId("spoc")),
+      name: String(contact?.name || "").trim(),
+      role: String(contact?.role || "").trim(),
+      phone: String(contact?.phone || "").trim(),
+      email: String(contact?.email || "").trim()
+    };
+  }
+
+  function normalizeVendor(vendor, validProductIds = null) {
+    const vendorTypes = ["person", "organization", "business"];
+    const productIds = [...new Set(getArray(vendor?.productIds).map(String).filter(Boolean))]
+      .filter((productId) => !validProductIds || validProductIds.has(productId));
+    const contacts = getArray(vendor?.contacts || vendor?.spocs)
+      .map(normalizeVendorContact)
+      .filter((contact) => contact.name || contact.role || contact.phone || contact.email);
+
+    return {
+      id: String(vendor?.id || createId("vendor")),
+      name: String(vendor?.name || "Untitled vendor").trim() || "Untitled vendor",
+      type: vendorTypes.includes(vendor?.type) ? vendor.type : "business",
+      phone: String(vendor?.phone || "").trim(),
+      email: String(vendor?.email || "").trim(),
+      website: String(vendor?.website || "").trim(),
+      address: String(vendor?.address || "").trim(),
+      notes: String(vendor?.notes || "").trim(),
+      productIds,
+      contacts,
+      createdAt: Number(vendor?.createdAt) || Date.now(),
+      updatedAt: Number(vendor?.updatedAt) || Number(vendor?.createdAt) || Date.now()
+    };
+  }
+
+  function createVendor(vendor) {
+    return normalizeVendor({
+      ...vendor,
+      id: createId("vendor"),
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    });
   }
 
   function normalizeSettings(settings, categories) {
@@ -318,6 +506,15 @@
         return Number.isFinite(seconds) && seconds > 0 ? String(seconds) : DEFAULT_SETTINGS.timeSeconds;
       })(),
       checkoutBehavior: checkoutBehaviors.includes(nextSettings.checkoutBehavior) ? nextSettings.checkoutBehavior : DEFAULT_SETTINGS.checkoutBehavior,
+      stickyCheckoutShowSummary: hasOwn(settings || {}, "stickyCheckoutShowSummary") ? nextSettings.stickyCheckoutShowSummary !== false : DEFAULT_SETTINGS.stickyCheckoutShowSummary,
+      stickyCheckoutShowProgress: hasOwn(settings || {}, "stickyCheckoutShowProgress") ? nextSettings.stickyCheckoutShowProgress !== false : DEFAULT_SETTINGS.stickyCheckoutShowProgress,
+      stickyCheckoutCompact: hasOwn(settings || {}, "stickyCheckoutCompact") ? Boolean(nextSettings.stickyCheckoutCompact) : DEFAULT_SETTINGS.stickyCheckoutCompact,
+      cartPageShowManager: hasOwn(settings || {}, "cartPageShowManager") ? nextSettings.cartPageShowManager !== false : DEFAULT_SETTINGS.cartPageShowManager,
+      cartPageShowProgress: hasOwn(settings || {}, "cartPageShowProgress") ? nextSettings.cartPageShowProgress !== false : DEFAULT_SETTINGS.cartPageShowProgress,
+      cartPageShowImages: hasOwn(settings || {}, "cartPageShowImages") ? nextSettings.cartPageShowImages !== false : DEFAULT_SETTINGS.cartPageShowImages,
+      cartPageShowDescriptions: hasOwn(settings || {}, "cartPageShowDescriptions") ? nextSettings.cartPageShowDescriptions !== false : DEFAULT_SETTINGS.cartPageShowDescriptions,
+      cartPageShowStock: hasOwn(settings || {}, "cartPageShowStock") ? nextSettings.cartPageShowStock !== false : DEFAULT_SETTINGS.cartPageShowStock,
+      cartPageShowRemoveButtons: hasOwn(settings || {}, "cartPageShowRemoveButtons") ? nextSettings.cartPageShowRemoveButtons !== false : DEFAULT_SETTINGS.cartPageShowRemoveButtons,
       showImages: nextSettings.showImages !== false,
       compactMode: Boolean(nextSettings.compactMode),
       commentComposerPlacement: commentComposerPlacements.includes(nextSettings.commentComposerPlacement)
@@ -333,7 +530,36 @@
         ? Number(nextSettings.productsPerPage)
         : DEFAULT_SETTINGS.productsPerPage,
       showProductDescriptions: nextSettings.showProductDescriptions !== false,
-      showDeliveryStatus: nextSettings.showDeliveryStatus !== false
+      showDeliveryStatus: nextSettings.showDeliveryStatus !== false,
+      showLocationIcon: nextSettings.showLocationIcon !== false,
+      showTimeIcon: nextSettings.showTimeIcon !== false,
+      listingShowImages: hasOwn(settings || {}, "listingShowImages") ? nextSettings.listingShowImages !== false : nextSettings.showImages !== false,
+      listingCompactMode: hasOwn(settings || {}, "listingCompactMode") ? Boolean(nextSettings.listingCompactMode) : Boolean(nextSettings.compactMode),
+      listingShowProductDescriptions: hasOwn(settings || {}, "listingShowProductDescriptions") ? nextSettings.listingShowProductDescriptions !== false : nextSettings.showProductDescriptions !== false,
+      listingShowDeliveryStatus: hasOwn(settings || {}, "listingShowDeliveryStatus") ? nextSettings.listingShowDeliveryStatus !== false : nextSettings.showDeliveryStatus !== false,
+      listingShowLocationIcon: hasOwn(settings || {}, "listingShowLocationIcon") ? nextSettings.listingShowLocationIcon !== false : nextSettings.showLocationIcon !== false,
+      listingShowTimeIcon: hasOwn(settings || {}, "listingShowTimeIcon") ? nextSettings.listingShowTimeIcon !== false : nextSettings.showTimeIcon !== false,
+      listingShowPrice: hasOwn(settings || {}, "listingShowPrice") ? nextSettings.listingShowPrice !== false : true,
+      listingShowTime: hasOwn(settings || {}, "listingShowTime") ? nextSettings.listingShowTime !== false : true,
+      listingShowCategory: hasOwn(settings || {}, "listingShowCategory") ? nextSettings.listingShowCategory !== false : true,
+      listingShowLocation: hasOwn(settings || {}, "listingShowLocation") ? nextSettings.listingShowLocation !== false : true,
+      listingShowRatings: hasOwn(settings || {}, "listingShowRatings") ? nextSettings.listingShowRatings !== false : true,
+      listingShowMoq: hasOwn(settings || {}, "listingShowMoq") ? nextSettings.listingShowMoq !== false : true,
+      listingShowUnits: hasOwn(settings || {}, "listingShowUnits") ? nextSettings.listingShowUnits !== false : true,
+      popupShowImages: hasOwn(settings || {}, "popupShowImages") ? nextSettings.popupShowImages !== false : DEFAULT_SETTINGS.popupShowImages,
+      popupCompactMode: hasOwn(settings || {}, "popupCompactMode") ? Boolean(nextSettings.popupCompactMode) : DEFAULT_SETTINGS.popupCompactMode,
+      popupShowProductDescriptions: hasOwn(settings || {}, "popupShowProductDescriptions") ? nextSettings.popupShowProductDescriptions !== false : DEFAULT_SETTINGS.popupShowProductDescriptions,
+      popupShowDeliveryStatus: hasOwn(settings || {}, "popupShowDeliveryStatus") ? nextSettings.popupShowDeliveryStatus !== false : DEFAULT_SETTINGS.popupShowDeliveryStatus,
+      popupShowLocationIcon: hasOwn(settings || {}, "popupShowLocationIcon") ? nextSettings.popupShowLocationIcon !== false : DEFAULT_SETTINGS.popupShowLocationIcon,
+      popupShowTimeIcon: hasOwn(settings || {}, "popupShowTimeIcon") ? nextSettings.popupShowTimeIcon !== false : DEFAULT_SETTINGS.popupShowTimeIcon,
+      popupShowPrice: hasOwn(settings || {}, "popupShowPrice") ? nextSettings.popupShowPrice !== false : DEFAULT_SETTINGS.popupShowPrice,
+      popupShowTime: hasOwn(settings || {}, "popupShowTime") ? nextSettings.popupShowTime !== false : DEFAULT_SETTINGS.popupShowTime,
+      popupShowCategory: hasOwn(settings || {}, "popupShowCategory") ? nextSettings.popupShowCategory !== false : DEFAULT_SETTINGS.popupShowCategory,
+      popupShowLocation: hasOwn(settings || {}, "popupShowLocation") ? nextSettings.popupShowLocation !== false : DEFAULT_SETTINGS.popupShowLocation
+      ,
+      popupShowRatings: hasOwn(settings || {}, "popupShowRatings") ? nextSettings.popupShowRatings !== false : DEFAULT_SETTINGS.popupShowRatings,
+      popupShowMoq: hasOwn(settings || {}, "popupShowMoq") ? nextSettings.popupShowMoq !== false : DEFAULT_SETTINGS.popupShowMoq,
+      popupShowUnits: hasOwn(settings || {}, "popupShowUnits") ? nextSettings.popupShowUnits !== false : DEFAULT_SETTINGS.popupShowUnits
     };
   }
 
@@ -349,6 +575,7 @@
       priority: item.priority || "standard",
       moq,
       effort: moq,
+      unitPrice: normalizeMoney(item.unitPrice ?? item.pricePerUnit ?? item.price),
       price: normalizeMoney(item.price),
       description: item.description || "",
       images,
@@ -360,6 +587,8 @@
 
   function normalizeOrder(order) {
     const items = getArray(order?.items).map(normalizeOrderItem);
+    const subtotalAmount = normalizeMoney(order?.subtotalAmount ?? getTotalAmount(items));
+    const discountAmount = normalizeMoney(order?.discountAmount ?? 0);
 
     return {
       id: order?.id || createId("order"),
@@ -368,7 +597,10 @@
       items,
       totalMoq: String(order?.totalMoq || order?.totalEffort || getTotalMoq(items)),
       totalEffort: String(order?.totalEffort || order?.totalMoq || getTotalMoq(items)),
-      totalAmount: normalizeMoney(order?.totalAmount || getTotalAmount(items)),
+      subtotalAmount,
+      discountAmount,
+      couponCode: String(order?.couponCode || "").trim(),
+      totalAmount: normalizeMoney(order?.totalAmount ?? Math.max(0, Number(subtotalAmount) - Number(discountAmount))),
       createdAt: order?.createdAt || Date.now()
     };
   }
@@ -382,7 +614,7 @@
     });
   }
 
-  function createProduct({ title, department, productType, location, priority, moq, effort, price, inStock, availableUnits, completedUnits, description, referenceUrls, relatedProductIds, bundleProductIds, images, image, imageName }) {
+  function createProduct({ title, department, productType, location, priority, moq, effort, unitPrice, price, inStock, availableUnits, completedUnits, description, referenceUrls, relatedProductIds, bundleProductIds, images, image, imageName }) {
     return normalizeProduct({
       id: createId("product"),
       title,
@@ -391,6 +623,7 @@
       location,
       priority,
       moq: moq || effort,
+      unitPrice,
       price,
       inStock,
       availableUnits,
@@ -422,6 +655,7 @@
           location: product.location,
           priority: product.priority,
           moq: product.moq,
+          unitPrice: product.unitPrice,
           price: product.price,
           description: product.description,
           images: product.images,
@@ -468,7 +702,7 @@
 
   function normalizeData(data) {
     const rawProducts = getArray(data?.products);
-    const products = rawProducts.map(normalizeProduct);
+    const products = normalizeRelatedProductLinks(rawProducts.map(normalizeProduct));
     const categories = buildCategories(data, products);
     const carts = getArray(data?.carts).map(normalizeCart);
     const fallbackCart = normalizeCart({
@@ -480,6 +714,7 @@
     const normalizedCarts = carts.length ? carts : [fallbackCart];
     const orders = getArray(data?.orders).map(normalizeOrder);
     const productIds = new Set(products.map((product) => product.id));
+    const vendors = getArray(data?.vendors).map((vendor) => normalizeVendor(vendor, productIds));
     const wishlist = [...new Set(getArray(data?.wishlist).filter((productId) => productIds.has(productId)))];
     const settings = normalizeSettings(data?.settings, categories);
     const activeCartId = normalizedCarts.some((cart) => cart.id === data?.activeCartId)
@@ -493,6 +728,7 @@
       activeCartId,
       orders,
       wishlist,
+      vendors,
       settings
     };
   }
@@ -505,6 +741,7 @@
       location: task.location || "Unspecified",
       priority: task.priority || "standard",
       moq: task.moq || task.effort || "1",
+      unitPrice: task.unitPrice || task.pricePerUnit || "",
       price: task.price || "0.00",
       description: task.description || "",
       images: task.images,
@@ -667,8 +904,7 @@
   function getTotalAmount(items) {
     return getArray(items).reduce((total, item) => {
       const price = Number(item.price || 0);
-      const moq = Number(item.moq || item.effort || 1);
-      return total + (Number.isFinite(price) && Number.isFinite(moq) ? price * moq : 0);
+      return total + (Number.isFinite(price) ? price : 0);
     }, 0);
   }
 
@@ -714,12 +950,34 @@
     }).format(new Date(timestamp));
   }
 
+  function formatDuration(value) {
+    const seconds = Math.max(0, Math.round(Number(value) || 0));
+    const totalDays = Math.floor(seconds / 86400);
+    const totalMonths = Math.floor(totalDays / 30);
+    const years = Math.floor(totalMonths / 12);
+    const months = totalMonths % 12;
+    const days = totalDays % 30;
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainder = seconds % 60;
+
+    return [
+      ...(years ? [`${years}y`] : []),
+      ...(months ? [`${months}mo`] : []),
+      ...(days ? [`${days}d`] : []),
+      ...(hours ? [`${hours}h`] : []),
+      ...(minutes ? [`${minutes}m`] : []),
+      `${remainder}s`
+    ].join(" ");
+  }
+
   function formatMoney(value, settings = DEFAULT_SETTINGS) {
     const currency = ["USD", "INR", "EUR", "GBP", "JPY"].includes(settings?.currency)
       ? settings.currency
       : DEFAULT_SETTINGS.currency;
     const amount = Number(normalizeMoney(value));
-    const money = new Intl.NumberFormat(undefined, {
+    const locale = currency === "INR" ? "en-IN" : undefined;
+    const money = new Intl.NumberFormat(locale, {
       style: "currency",
       currency,
       minimumFractionDigits: currency === "JPY" ? 0 : 2,
@@ -733,19 +991,7 @@
       return money;
     }
 
-    const seconds = Math.round(amount / rate);
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const remainder = seconds % 60;
-    const duration = [
-      ...(days ? [`${days}d`] : []),
-      ...(hours ? [`${hours}h`] : []),
-      ...(minutes ? [`${minutes}m`] : []),
-      `${remainder}s`
-    ].join(" ");
-
-    return `${money} · ${duration}`;
+    return `${money} · ${formatDuration(amount / rate)}`;
   }
 
   function formatMoq(value) {
@@ -792,13 +1038,16 @@
 
   globalThis.ToDoCartStore = {
     createCart,
+    createCardImageCopy,
     createCategory,
     createId,
     createOrder,
     createProduct,
+    createVendor,
     fileToDataUrl,
     formatDate,
     formatDateTime,
+    formatDuration,
     formatMoney,
     formatMoq,
     getActiveCart,
@@ -818,8 +1067,11 @@
     normalizeMoq,
     normalizeMoney,
     normalizeProduct,
+    normalizeVendor,
+    setRelatedProductLinks,
     normalizeSettings,
     openExtensionPage,
+    prepareCardImages,
     registerBundledIconCollection,
     renderCategory,
     saveBackupHistory,

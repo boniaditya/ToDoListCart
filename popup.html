@@ -26,6 +26,8 @@
 
           <button type="button" class="full-tab-button" id="open-orders-page">Orders</button>
 
+          <a class="full-tab-button" href="vendors.html" target="_blank">Vendors</a>
+
           <button type="button" class="full-tab-button" id="open-account-page">Account</button>
 
           <button type="button" class="cart-button" id="cart-jump" aria-label="Jump to cart">
@@ -70,7 +72,7 @@
             </div>
           </div>
           <div class="range-filter">
-            <span class="range-filter-label">Price</span>
+            <span class="range-filter-label">Total price</span>
             <div class="range-filter-values"><output id="filter-price-min-output">Any</output><output id="filter-price-max-output">Any</output></div>
             <div class="range-track">
               <input id="filter-price-min" type="range" min="0" max="1" step="0.01" aria-label="Minimum price">
@@ -171,16 +173,20 @@
             <span class="priority-label"></span>
           </div>
           <div class="product-meta">
-            <span class="department-label"></span>
-            <span class="location-label"></span>
+            <button type="button" class="department-label card-filter-button" data-card-filter="category"></button>
+            <button type="button" class="location-label card-filter-button" data-card-filter="location"><svg class="card-meta-icon location-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg><span class="location-value"></span></button>
             <span class="moq-label"></span>
+            <span class="units-label"></span>
             <span class="price-label"></span>
+            <span class="time-label" hidden><svg class="card-meta-icon time-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8"></circle><path d="M12 7v5l3 2"></path></svg><span class="time-value"></span></span>
+            <button type="button" class="comment-count-button"><svg class="comment-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.5-4A9 9 0 1 1 21 12Z"></path></svg><span class="comment-count-value">0</span></button>
           </div>
           <div class="delivery-line">Prime task delivery</div>
           <span class="stock-status" hidden>Out of stock</span>
         </div>
         <div class="product-actions">
           <button type="button" class="add-cart-button">Add to Cart</button>
+          <button type="button" class="buy-now-button">Buy Now</button>
         </div>
       </li>
     </template>
@@ -197,7 +203,16 @@
           <span></span>
           <span class="cart-stock"></span>
         </div>
-        <button type="button" class="remove-cart-button" aria-label="Remove from cart">Remove</button>
+        <button type="button" class="remove-cart-button cart-delete-button" aria-label="Remove from cart" title="Remove item">
+          <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M4 7h16"></path>
+            <path d="M10 11v6"></path>
+            <path d="M14 11v6"></path>
+            <path d="M6 7l1 14h10l1-14"></path>
+            <path d="M9 7V4h6v3"></path>
+          </svg>
+          <span class="visually-hidden">Remove</span>
+        </button>
       </li>
     </template>
 

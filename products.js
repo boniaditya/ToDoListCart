@@ -1,11 +1,23 @@
 (function () {
   const Store = globalThis.ToDoCartStore;
+  const SORT_OPTIONS = new Set([
+    "default",
+    "price-asc",
+    "price-desc",
+    "time-asc",
+    "time-desc",
+    "comments-asc",
+    "comments-desc"
+  ]);
+  const savedSort = localStorage.getItem("todoListCart.productSort");
+  const searchParams = new URLSearchParams(window.location.search);
   const state = {
     data: Store.normalizeData({}),
-    department: "all",
+    department: searchParams.get("department") || "all",
     query: "",
-    wishlistOnly: new URLSearchParams(window.location.search).get("view") === "wishlist",
-    viewMode: localStorage.getItem("todoListCart.productView") === "list" ? "list" : "card"
+    wishlistOnly: searchParams.get("view") === "wishlist",
+    viewMode: localStorage.getItem("todoListCart.productView") === "list" ? "list" : "card",
+    sortMode: SORT_OPTIONS.has(savedSort) ? savedSort : "default"
   };
 
   const elements = {
@@ -15,6 +27,7 @@
     departments: document.querySelector(".departments"),
     productList: document.querySelector("#product-list"),
     listingTitle: document.querySelector("#listing-title"),
+    sortSelect: document.querySelector("#product-sort"),
     viewButtons: document.querySelectorAll(".view-toggle-button"),
     productTemplate: document.querySelector("#product-template"),
     emptyProducts: document.querySelector("#empty-products"),
@@ -48,7 +61,7 @@
   function getVisibleProducts() {
     const query = state.query.toLowerCase();
 
-    return state.data.products.filter((product) => {
+    const visibleProducts = state.data.products.filter((product) => {
       const categoryName = getCategoryName(product);
       const matchesDepartment = state.department === "all" || product.department === state.department;
       const matchesQuery = !query || [
@@ -64,6 +77,30 @@
       const matchesWishlist = !state.wishlistOnly || state.data.wishlist.includes(product.id);
 
       return matchesDepartment && matchesQuery && matchesWishlist;
+    });
+
+    if (state.sortMode === "default") {
+      return visibleProducts;
+    }
+
+    const direction = state.sortMode.endsWith("-desc") ? -1 : 1;
+    const sortKey = state.sortMode.replace(/-(asc|desc)$/, "");
+    const timeRate = Number(state.data.settings.timeRate) / Number(state.data.settings.timeSeconds || 1);
+    const getSortValue = (product) => {
+      if (sortKey === "comments") {
+        return product.comments.length;
+      }
+
+      if (sortKey === "time") {
+        return timeRate > 0 ? Number(product.price || 0) / timeRate : Number(product.price || 0);
+      }
+
+      return Number(product.price || 0);
+    };
+
+    return visibleProducts.sort((first, second) => {
+      const difference = (getSortValue(first) - getSortValue(second)) * direction;
+      return difference || first.title.localeCompare(second.title);
     });
   }
 
@@ -84,11 +121,35 @@
     return icon;
   }
 
+  function fitCardImage(image) {
+    const fit = () => {
+      const frame = image.closest(".product-carousel-slide") || image.closest(".product-image");
+
+      if (!frame?.clientWidth || !frame.clientHeight || !image.naturalWidth || !image.naturalHeight) {
+        return;
+      }
+
+      const imageRatio = image.naturalWidth / image.naturalHeight;
+      const frameRatio = frame.clientWidth / frame.clientHeight;
+      const fillWidth = imageRatio >= frameRatio;
+
+      image.style.setProperty("width", fillWidth ? "100%" : "auto", "important");
+      image.style.setProperty("height", fillWidth ? "auto" : "100%", "important");
+      image.style.setProperty("max-width", "100%", "important");
+      image.style.setProperty("max-height", "100%", "important");
+    };
+
+    image.addEventListener("load", () => requestAnimationFrame(fit), { once: true });
+    if (image.complete) {
+      requestAnimationFrame(fit);
+    }
+  }
+
   function renderProductImage(container, product, isWishlisted) {
     container.replaceChildren();
     const images = product.images || [];
 
-    if (images.length && state.data.settings.showImages) {
+    if (images.length && state.data.settings.listingShowImages) {
       if (images.length > 1) {
         const track = document.createElement("div");
         const previous = document.createElement("button");
@@ -97,10 +158,15 @@
 
         track.className = "product-carousel-track";
         images.forEach((entry, index) => {
+          const slide = document.createElement("div");
           const image = document.createElement("img");
-          image.src = entry.src;
+
+          slide.className = "product-carousel-slide";
+          image.src = entry.cardSrc || entry.src;
           image.alt = `${product.title} product image ${index + 1} of ${images.length}`;
-          track.append(image);
+          fitCardImage(image);
+          slide.append(image);
+          track.append(slide);
         });
 
         previous.type = "button";
@@ -130,8 +196,9 @@
         container.append(track, previous, next, dots);
       } else {
         const image = document.createElement("img");
-        image.src = images[0].src;
+        image.src = images[0].cardSrc || images[0].src;
         image.alt = `${product.title} product image`;
+        fitCardImage(image);
         container.append(image);
       }
     } else {
@@ -261,10 +328,17 @@
       const priority = node.querySelector(".priority-label");
       const department = node.querySelector(".department-label");
       const location = node.querySelector(".location-label");
+      const locationValue = node.querySelector(".location-value");
       const moq = node.querySelector(".moq-label");
+      const units = node.querySelector(".units-label");
       const price = node.querySelector(".price-label");
+      const time = node.querySelector(".time-label");
+      const timeValue = node.querySelector(".time-value");
+      const commentButton = node.querySelector(".comment-count-button");
+      const commentCount = node.querySelector(".comment-count-value");
       const stockStatus = node.querySelector(".stock-status");
       const addButton = node.querySelector(".add-cart-button");
+      const buyNowButton = node.querySelector(".buy-now-button");
 
       node.dataset.id = product.id;
       node.classList.toggle("out-of-stock", !product.inStock);
@@ -276,14 +350,34 @@
       title.textContent = product.title;
       description.textContent = product.description || "No additional details provided.";
       stars.textContent = Store.getStars(product.priority);
+      ratingRow.hidden = !state.data.settings.listingShowRatings;
       priority.textContent = Store.getPriorityLabel(product.priority);
       ratingRow.dataset.priority = priority.textContent;
       ratingRow.setAttribute("aria-label", `Priority: ${priority.textContent}`);
       ratingRow.tabIndex = 0;
       Store.renderCategory(department, state.data, product.department);
-      location.textContent = product.location;
+      department.hidden = !state.data.settings.listingShowCategory;
+      department.dataset.department = product.department;
+      department.setAttribute("aria-label", "Show " + Store.getCategoryLabel(state.data, product.department) + " products");
+      locationValue.textContent = product.location;
+      location.hidden = !state.data.settings.listingShowLocation;
+      location.dataset.location = product.location;
+      location.setAttribute("aria-label", "Show products in " + product.location);
+      location.querySelector(".location-card-icon").hidden = !state.data.settings.listingShowLocationIcon;
       moq.textContent = Store.formatMoq(product.moq);
-      price.textContent = Store.formatMoney(product.price, state.data.settings);
+      moq.hidden = !state.data.settings.listingShowMoq;
+      const unitsInStock = Store.getUnitsInStock(product);
+      units.textContent = `${unitsInStock} ${unitsInStock === 1 ? "unit" : "units"}`;
+      units.hidden = !state.data.settings.listingShowUnits;
+      const [money, duration] = Store.formatMoney(product.price, state.data.settings).split(" · ");
+      price.textContent = `Total ${money}`;
+      price.hidden = !state.data.settings.listingShowPrice;
+      time.hidden = !duration || !state.data.settings.listingShowTime;
+      timeValue.textContent = duration || "";
+      time.querySelector(".time-card-icon").hidden = !state.data.settings.listingShowTimeIcon;
+      commentCount.textContent = String(product.comments.length);
+      commentButton.setAttribute("aria-label", `Open ${product.comments.length} ${product.comments.length === 1 ? "comment" : "comments"} for ${product.title}`);
+      commentButton.title = `${product.comments.length} ${product.comments.length === 1 ? "comment" : "comments"}`;
       if (stockStatus) {
         stockStatus.hidden = product.inStock;
       }
@@ -292,6 +386,7 @@
         addButton.textContent = "Out of stock";
         addButton.disabled = true;
         addButton.classList.add("out-of-stock");
+        buyNowButton.disabled = true;
       } else if (cartHasProduct(product.id)) {
         addButton.textContent = "In Cart";
         addButton.classList.add("in-cart");
@@ -306,6 +401,7 @@
 
   function render() {
     elements.listingTitle.textContent = state.wishlistOnly ? "My wishlist" : "All todo products";
+    elements.sortSelect.value = state.sortMode;
     renderCategoryNav();
     renderSettings();
     renderCartSelector();
@@ -332,7 +428,9 @@
 
   function renderSettings() {
     elements.brandName.textContent = state.data.settings.storeName;
-    document.body.classList.toggle("compact-mode", state.data.settings.compactMode);
+    document.body.classList.toggle("compact-mode", state.data.settings.listingCompactMode);
+    document.body.classList.toggle("hide-product-descriptions", !state.data.settings.listingShowProductDescriptions);
+    document.body.classList.toggle("hide-delivery-status", !state.data.settings.listingShowDeliveryStatus);
   }
 
   async function persistAndRender() {
@@ -366,6 +464,16 @@
     await persistAndRender();
   }
 
+  async function buyNow(productId) {
+    const product = state.data.products.find((entry) => entry.id === productId);
+
+    if (!product?.inStock) {
+      return;
+    }
+
+    window.location.href = Store.getExtensionUrl(`buy-now.html?id=${encodeURIComponent(productId)}`);
+  }
+
   async function toggleWishlist(productId) {
     state.data.wishlist = state.data.wishlist.includes(productId)
       ? state.data.wishlist.filter((id) => id !== productId)
@@ -373,8 +481,9 @@
     await persistAndRender();
   }
 
-  function openProductDetail(productId) {
-    window.location.href = Store.getExtensionUrl(`product.html?id=${encodeURIComponent(productId)}`);
+  function openProductDetail(productId, tabName = "") {
+    const tabQuery = tabName ? `&tab=${encodeURIComponent(tabName)}` : "";
+    window.location.href = Store.getExtensionUrl(`product.html?id=${encodeURIComponent(productId)}${tabQuery}`);
   }
 
   function setDepartment(department) {
@@ -410,16 +519,37 @@
       button.addEventListener("click", () => setViewMode(button.dataset.view));
     });
 
+    elements.sortSelect.addEventListener("change", () => {
+      state.sortMode = SORT_OPTIONS.has(elements.sortSelect.value) ? elements.sortSelect.value : "default";
+      localStorage.setItem("todoListCart.productSort", state.sortMode);
+      renderProducts();
+    });
+
     elements.cartSelect.addEventListener("change", async () => {
       state.data.activeCartId = elements.cartSelect.value;
       await persistAndRender();
     });
 
     elements.productList.addEventListener("click", (event) => {
+      const filterButton = event.target.closest("[data-card-filter]");
       const carouselButton = event.target.closest(".carousel-button");
       const carouselDot = event.target.closest(".carousel-dot");
       const wishlistButton = event.target.closest(".wishlist-button");
+      const commentButton = event.target.closest(".comment-count-button");
       const addButton = event.target.closest(".add-cart-button");
+      const buyNowButton = event.target.closest(".buy-now-button");
+
+      if (filterButton) {
+        if (filterButton.dataset.cardFilter === "category") {
+          setDepartment(filterButton.dataset.department);
+        } else {
+          state.query = filterButton.dataset.location || "";
+          elements.searchInput.value = state.query;
+          renderProducts();
+          renderSummary();
+        }
+        return;
+      }
 
       if (carouselButton) {
         moveCarousel(carouselButton);
@@ -436,8 +566,18 @@
         return;
       }
 
+      if (commentButton) {
+        openProductDetail(commentButton.closest(".product-card").dataset.id, "comments");
+        return;
+      }
+
       if (addButton) {
         addToCart(addButton.closest(".product-card").dataset.id);
+        return;
+      }
+
+      if (buyNowButton) {
+        buyNow(buyNowButton.closest(".product-card").dataset.id);
         return;
       }
 
@@ -470,13 +610,33 @@
     });
 
     elements.cartJump.addEventListener("click", () => {
-      elements.cartSelect.focus();
+      window.location.href = Store.getExtensionUrl("cart.html");
     });
   }
 
   async function init() {
     bindEvents();
     state.data = await Store.loadData();
+    const preparedProducts = await Promise.all(state.data.products.map(async (product) => {
+      const images = await Store.prepareCardImages(product.images || []);
+      return {
+        ...product,
+        images,
+        image: images[0]?.src || "",
+        imageName: images[0]?.name || ""
+      };
+    }));
+    if (preparedProducts.some((product, index) => product.images.some((image, imageIndex) => image.cardSrc !== state.data.products[index].images[imageIndex]?.cardSrc))) {
+      state.data.products = preparedProducts;
+      state.data = await Store.saveData(state.data);
+    }
+    chrome.storage?.onChanged?.addListener(async (_changes, areaName) => {
+      if (areaName !== "local") {
+        return;
+      }
+      state.data = await Store.loadData();
+      render();
+    });
     render();
   }
 

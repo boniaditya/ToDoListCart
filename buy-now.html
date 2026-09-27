@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Confirm Buy Now - ToDoList Cart</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+    <link rel="stylesheet" href="newtab.css">
+  </head>
+  <body>
+    <main class="store-shell buy-now-shell" aria-labelledby="buy-now-title">
+      <header class="store-header">
+        <div class="top-row">
+          <a class="brand" href="newtab.html" aria-label="Go to ToDoList Cart home">
+            <img class="brand-icon" src="icons/icon-48.png" alt="">
+            <span class="brand-name">ToDoList Cart</span>
+            <span class="brand-domain">.tasks</span>
+          </a>
+
+          <form class="search-bar" action="newtab.html" method="get" autocomplete="off">
+            <label class="visually-hidden" for="buy-now-product-search">Search task products</label>
+            <input id="buy-now-product-search" name="q" type="search" placeholder="Search task products">
+            <button type="submit">Search</button>
+          </form>
+
+          <a class="page-link-button" href="create-product.html">Create</a>
+          <a class="page-link-button" href="newtab.html">Workspace</a>
+          <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
+          <a class="page-link-button" href="order-history.html">Orders</a>
+          <a class="page-link-button" href="tally.html">Analytics</a>
+          <a class="page-link-button" href="vendors.html">Vendors</a>
+          <a class="page-link-button" href="account.html">Account</a>
+
+          <a class="header-icon-button comments-header-button" href="comments.html" aria-label="Open comment trails" title="Comments">
+            <svg class="comment-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.5-4A9 9 0 1 1 21 12Z"></path></svg>
+          </a>
+          <a class="cart-button" href="cart.html" aria-label="Open shopping cart">
+            <span class="cart-icon" aria-hidden="true"></span>
+            <strong id="cart-count">0</strong>
+            <span>Cart</span>
+          </a>
+        </div>
+      </header>
+
+      <section id="missing-buy-now-product" class="empty-state detail-missing" hidden>
+        <strong>Product not found</strong>
+        <span>This product may have been deleted or is no longer available.</span>
+        <a class="primary-button empty-state-link" href="newtab.html">Back to products</a>
+      </section>
+
+      <section id="buy-now-confirmation" class="buy-now-layout" hidden>
+        <article class="buy-now-card">
+          <p class="detail-kicker">Order confirmation</p>
+          <h1 id="buy-now-title">Confirm Buy Now</h1>
+          <p class="buy-now-help">Review the item, discounts, coupon, and final spend before finishing this purchase.</p>
+
+          <div class="buy-now-product">
+            <div class="buy-now-product-image" id="buy-now-image"><span></span></div>
+            <div>
+              <h2 id="buy-now-product-title"></h2>
+              <p id="buy-now-product-meta"></p>
+              <p id="buy-now-product-stock"></p>
+            </div>
+          </div>
+
+          <section class="buy-now-coupon-panel" aria-labelledby="coupon-heading">
+            <h2 id="coupon-heading">Discounts & coupons</h2>
+            <div class="buy-now-coupon-form">
+              <label for="coupon-code">Coupon code</label>
+              <div>
+                <input id="coupon-code" type="text" placeholder="Try SAVE10, SAVE5, TODO100">
+                <button type="button" class="secondary-button" id="apply-coupon">Apply</button>
+              </div>
+              <p id="coupon-message" class="buy-now-note">Optional — apply a coupon before confirming.</p>
+            </div>
+            <div class="coupon-chip-row" aria-label="Quick coupons">
+              <button type="button" data-coupon="SAVE10">SAVE10</button>
+              <button type="button" data-coupon="SAVE5">SAVE5</button>
+              <button type="button" data-coupon="TODO100">TODO100</button>
+            </div>
+          </section>
+        </article>
+
+        <aside class="buy-now-summary" aria-label="Buy Now summary">
+          <h2>Purchase summary</h2>
+          <dl>
+            <div>
+              <dt>Unit price</dt>
+              <dd id="summary-unit-price"></dd>
+            </div>
+            <div>
+              <dt>Units</dt>
+              <dd id="summary-units">1</dd>
+            </div>
+            <div>
+              <dt>Subtotal</dt>
+              <dd id="summary-subtotal"></dd>
+            </div>
+            <div>
+              <dt>Coupon discount</dt>
+              <dd id="summary-discount"></dd>
+            </div>
+            <div>
+              <dt>Estimated taxes/fees</dt>
+              <dd id="summary-fees"></dd>
+            </div>
+            <div class="buy-now-summary-total">
+              <dt>Total spend</dt>
+              <dd id="summary-total"></dd>
+            </div>
+          </dl>
+          <p id="summary-time" class="buy-now-note"></p>
+          <button type="button" id="confirm-buy-now" class="add-cart-button">Confirm Buy Now</button>
+          <button type="button" id="cancel-buy-now" class="secondary-button">Cancel</button>
+        </aside>
+      </section>
+    </main>
+
+    <script src="store.js"></script>
+    <script src="buy-now.js"></script>
+  </body>
+</html>

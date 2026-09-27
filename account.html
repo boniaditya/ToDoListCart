@@ -31,8 +31,12 @@
           <button type="button" class="page-link-button" id="open-products-page" hidden>Products</button>
           <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
           <button type="button" class="page-link-button" id="open-orders-page">Orders</button>
-          <a class="page-link-button" href="tally.html">Tally</a>
+          <a class="page-link-button" href="tally.html">Analytics</a>
+          <a class="page-link-button" href="vendors.html">Vendors</a>
 
+          <a class="header-icon-button comments-header-button" href="comments.html" aria-label="Open comment trails" title="Comments">
+            <svg class="comment-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.5-4A9 9 0 1 1 21 12Z"></path></svg>
+          </a>
           <button type="button" class="cart-button" id="cart-jump" aria-label="Cart count">
             <span class="cart-icon" aria-hidden="true"></span>
             <strong id="cart-count">0</strong>
@@ -55,7 +59,17 @@
 
       <section class="account-layout" aria-label="Account settings">
         <form id="settings-form" class="settings-card" autocomplete="off">
-          <section class="settings-column settings-product-column" aria-label="Product details settings">
+          <nav class="settings-tablist" role="tablist" aria-label="Plugin settings sections">
+            <button type="button" role="tab" id="settings-tab-general" aria-controls="settings-panel-general" data-settings-tab="general">General settings</button>
+            <button type="button" role="tab" id="settings-tab-categories" aria-controls="settings-panel-categories" data-settings-tab="categories">Categories</button>
+            <button type="button" role="tab" id="settings-tab-listing" aria-controls="settings-panel-listing" data-settings-tab="listing">Product listing preview</button>
+            <button type="button" role="tab" id="settings-tab-cart" aria-controls="settings-panel-cart" data-settings-tab="cart">Cart page</button>
+            <button type="button" role="tab" id="settings-tab-checkout" aria-controls="settings-panel-checkout" data-settings-tab="checkout">Sticky checkout view</button>
+            <button type="button" role="tab" id="settings-tab-popup" aria-controls="settings-panel-popup" data-settings-tab="popup">Browser popup settings</button>
+            <button type="button" role="tab" id="settings-tab-backup" aria-controls="settings-panel-backup" data-settings-tab="backup">Data backup</button>
+          </nav>
+
+          <section id="settings-panel-general" class="settings-column settings-product-column" role="tabpanel" aria-labelledby="settings-tab-general" data-settings-panel="general">
           <div class="section-heading">
             <h2>Profile</h2>
           </div>
@@ -113,7 +127,7 @@
             </label>
 
             <label>
-              Default price
+              Default total price
               <input id="setting-default-price" type="number" min="0" step="0.01" inputmode="decimal" required>
             </label>
 
@@ -147,7 +161,7 @@
           </div>
           </section>
 
-          <section class="settings-column settings-categories-column" aria-labelledby="categories-heading">
+          <section id="settings-panel-categories" class="settings-column settings-categories-column" role="tabpanel" aria-labelledby="settings-tab-categories categories-heading" data-settings-panel="categories" hidden>
           <div class="section-heading settings-subhead">
             <div>
               <h2 id="categories-heading">Categories</h2>
@@ -172,32 +186,134 @@
             <button type="button" id="account-add-category" class="secondary-button">Add Category</button>
           </div>
 
+          </section>
+
+          <section id="settings-panel-listing" class="settings-column settings-listing-preview-column" role="tabpanel" aria-labelledby="settings-tab-listing" data-settings-panel="listing" hidden>
+            <div class="card-view-preview">
+              <div>
+                <h3 id="card-view-preview-heading">Product listing preview</h3>
+                <p class="settings-help">Updates immediately as you change card display options.</p>
+                <div class="preview-layout-toggle" role="group" aria-label="Product listing preview layout">
+                  <button type="button" class="active" data-preview-kind="listing" data-preview-layout="grid">Grid</button>
+                  <button type="button" data-preview-kind="listing" data-preview-layout="list">List</button>
+                </div>
+              </div>
+              <article class="settings-product-card-preview" aria-label="Example product card">
+                <div id="preview-product-image" class="settings-preview-image" aria-hidden="true">Product</div>
+                <strong>Example product</strong>
+                <span class="settings-preview-rating" aria-label="Four out of five stars">★★★★</span>
+                <p id="preview-product-description" class="settings-preview-description">A short example of product details shown on cards.</p>
+                <div class="settings-preview-meta">
+                  <span class="department-label">⌂ Home</span>
+                  <span class="location-label"><svg id="preview-location-icon" class="card-meta-icon location-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg><span>Online</span></span>
+                  <span class="moq-label">MOQ 1</span>
+                  <span class="units-label">1 unit</span>
+                  <span class="price-label">$128.00</span>
+                  <span class="time-label"><svg id="preview-time-icon" class="card-meta-icon time-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8"></circle><path d="M12 7v5l3 2"></path></svg><span>14d 19h</span></span>
+                </div>
+                <span id="preview-delivery-status" class="delivery-line">Prime task delivery</span>
+              </article>
+            </div>
+
+            <div class="card-display-customization listing-card-display-customization">
+              <div class="card-display-toggles">
+                <h3>Product listing cards</h3>
+                <label class="settings-toggle">
+                  <input id="setting-listing-show-images" type="checkbox">
+                  <span>Show product images</span>
+                </label>
+
+                <label class="settings-toggle">
+                  <input id="setting-listing-compact-mode" type="checkbox">
+                  <span>Use compact cards</span>
+                </label>
+
+                <label class="settings-toggle">
+                  <input id="setting-listing-show-product-descriptions" type="checkbox">
+                  <span>Show product descriptions on cards</span>
+                </label>
+
+                <label class="settings-toggle">
+                  <input id="setting-listing-show-delivery-status" type="checkbox">
+                  <span>Show delivery status on cards</span>
+                </label>
+
+                <label class="settings-toggle">
+                  <input id="setting-listing-show-location-icon" type="checkbox">
+                  <span>Show location icon on cards</span>
+                </label>
+
+                <label class="settings-toggle">
+                  <input id="setting-listing-show-time-icon" type="checkbox">
+                  <span>Show time icon on cards</span>
+                </label>
+                <label class="settings-toggle"><input id="setting-listing-show-price" type="checkbox"><span>Show price on cards</span></label>
+                <label class="settings-toggle"><input id="setting-listing-show-time" type="checkbox"><span>Show time on cards</span></label>
+                <label class="settings-toggle"><input id="setting-listing-show-category" type="checkbox"><span>Show category on cards</span></label>
+                <label class="settings-toggle"><input id="setting-listing-show-location" type="checkbox"><span>Show location on cards</span></label>
+                <label class="settings-toggle"><input id="setting-listing-show-ratings" type="checkbox"><span>Show star ratings on cards</span></label>
+                <label class="settings-toggle"><input id="setting-listing-show-moq" type="checkbox"><span>Show MOQ on cards</span></label>
+                <label class="settings-toggle"><input id="setting-listing-show-units" type="checkbox"><span>Show units on cards</span></label>
+              </div>
+            </div>
+          </section>
+
+          <section id="settings-panel-popup" class="settings-embedded-panel" role="tabpanel" aria-labelledby="settings-tab-popup" data-settings-panel="popup" hidden>
+            <iframe class="settings-page-frame" src="popup-settings.html?embedded=1" title="Browser popup settings"></iframe>
+          </section>
+
+          <section id="settings-panel-cart" class="settings-column settings-cart-panel" role="tabpanel" aria-labelledby="settings-tab-cart" data-settings-panel="cart" hidden>
           <div class="section-heading settings-subhead">
             <div>
-              <h2>Data Backup</h2>
-              <p class="settings-help">Export all products, carts, orders, categories, and settings, or restore them from a JSON backup.</p>
+              <h2>Cart page</h2>
+              <p class="settings-help">Control what appears on the shopping cart page.</p>
             </div>
           </div>
 
-          <div class="data-backup">
-            <button type="button" id="export-data" class="secondary-button">Export Data</button>
-            <button type="button" id="import-data" class="secondary-button">Import Data</button>
-            <input id="import-data-file" type="file" accept=".json,application/json" hidden>
+          <div class="cart-page-settings-layout">
+            <div class="card-display-toggles">
+              <h3>Cart page display</h3>
+              <label class="settings-toggle"><input id="setting-cart-page-show-manager" type="checkbox"><span>Show active cart controls</span></label>
+              <label class="settings-toggle"><input id="setting-cart-page-show-progress" type="checkbox"><span>Show checked-out progress</span></label>
+              <label class="settings-toggle"><input id="setting-cart-page-show-images" type="checkbox"><span>Show item images</span></label>
+              <label class="settings-toggle"><input id="setting-cart-page-show-descriptions" type="checkbox"><span>Show item descriptions</span></label>
+              <label class="settings-toggle"><input id="setting-cart-page-show-stock" type="checkbox"><span>Show stock status</span></label>
+              <label class="settings-toggle"><input id="setting-cart-page-show-remove-buttons" type="checkbox"><span>Show remove buttons</span></label>
+            </div>
+
+            <article id="cart-page-preview" class="cart-page-preview" aria-label="Cart page preview">
+              <div id="cart-preview-manager" class="cart-preview-manager">
+                <span>Active cart</span>
+                <strong>My Cart</strong>
+                <button type="button" class="secondary-button">Delete Cart</button>
+              </div>
+              <div id="cart-preview-progress" class="progress-wrap cart-page-progress">
+                <div><span>Checked out</span><strong>25%</strong></div>
+                <div class="progress-track" aria-hidden="true"><span></span></div>
+              </div>
+              <div class="cart-preview-item">
+                <span id="cart-preview-image" class="cart-preview-image" aria-hidden="true"></span>
+                <div>
+                  <strong>Example cart item</strong>
+                  <p id="cart-preview-description">A short detail line for the product in the cart.</p>
+                  <span id="cart-preview-stock">1 unit in stock</span>
+                  <button id="cart-preview-remove" type="button" class="secondary-button">Remove</button>
+                </div>
+              </div>
+            </article>
           </div>
-          <div class="backup-history" aria-labelledby="backup-history-heading">
-            <h3 id="backup-history-heading">Backup history</h3>
-            <p class="settings-help">Exports and imports are kept as extension-local restore snapshots. Download a fresh local copy whenever you need it.</p>
-            <ul id="backup-history-list" class="backup-history-list"></ul>
-            <p id="empty-backup-history" class="settings-help">No backups have been recorded yet.</p>
-          </div>
+
           </section>
 
-          <section class="settings-column settings-product-column settings-product-secondary" aria-label="Checkout and display settings">
+          <section id="settings-panel-checkout" class="settings-column settings-checkout-panel" role="tabpanel" aria-labelledby="settings-tab-checkout" data-settings-panel="checkout" hidden>
           <div class="section-heading settings-subhead">
-            <h2>Checkout & Display</h2>
+            <div>
+              <h2>Sticky checkout view</h2>
+              <p class="settings-help">Control the pinned cart summary and checkout preview.</p>
+            </div>
           </div>
 
-          <div class="checkout-display-grid">
+          <div class="checkout-settings-layout">
             <div class="checkout-display-column">
               <label>
                 After checkout
@@ -208,13 +324,18 @@
               </label>
 
               <label class="settings-toggle">
-                <input id="setting-show-images" type="checkbox">
-                <span>Show product images across the extension</span>
+                <input id="setting-sticky-checkout-show-summary" type="checkbox">
+                <span>Show order summary rows</span>
               </label>
 
               <label class="settings-toggle">
-                <input id="setting-compact-mode" type="checkbox">
-                <span>Use compact product cards</span>
+                <input id="setting-sticky-checkout-show-progress" type="checkbox">
+                <span>Show checked-out progress</span>
+              </label>
+
+              <label class="settings-toggle">
+                <input id="setting-sticky-checkout-compact" type="checkbox">
+                <span>Use compact sticky checkout</span>
               </label>
             </div>
 
@@ -244,22 +365,51 @@
                   <option value="48">48</option>
                 </select>
               </label>
-
-              <label class="settings-toggle">
-                <input id="setting-show-product-descriptions" type="checkbox">
-                <span>Show product descriptions on cards</span>
-              </label>
-
-              <label class="settings-toggle">
-                <input id="setting-show-delivery-status" type="checkbox">
-                <span>Show delivery status on cards</span>
-              </label>
             </div>
+
+            <article id="sticky-checkout-preview" class="sticky-checkout-preview" aria-label="Sticky checkout preview">
+              <div class="sticky-checkout-preview-header">
+                <span>Order summary</span>
+                <strong>₹42,24,000.00</strong>
+              </div>
+              <div id="sticky-checkout-preview-progress" class="progress-wrap sticky-checkout-preview-progress">
+                <div><span>Checked out</span><strong>60%</strong></div>
+                <div class="progress-track" aria-hidden="true"><span></span></div>
+              </div>
+              <dl id="sticky-checkout-preview-summary" class="sticky-checkout-preview-list">
+                <div><dt>Products</dt><dd>5</dd></div>
+                <div><dt>Total MOQ</dt><dd>8</dd></div>
+                <div><dt>Open items</dt><dd>2</dd></div>
+                <div><dt>Time equivalent</dt><dd>1mo 10d</dd></div>
+              </dl>
+              <button type="button" class="checkout-button">Checkout</button>
+              <a href="order-history.html" class="cart-orders-link">View order history</a>
+            </article>
           </div>
 
           </section>
 
-          <div class="settings-actions">
+          <section id="settings-panel-backup" class="settings-column settings-backup-panel" role="tabpanel" aria-labelledby="settings-tab-backup" data-settings-panel="backup" hidden>
+            <div class="section-heading settings-subhead">
+              <div>
+                <h2>Data Backup</h2>
+                <p class="settings-help">Export all products, vendors, carts, orders, categories, and settings, or restore them from a JSON backup.</p>
+              </div>
+            </div>
+            <div class="data-backup">
+              <button type="button" id="export-data" class="secondary-button">Export Data</button>
+              <button type="button" id="import-data" class="secondary-button">Import Data</button>
+              <input id="import-data-file" type="file" accept=".json,application/json" hidden>
+            </div>
+            <div class="backup-history" aria-labelledby="backup-history-heading">
+              <h3 id="backup-history-heading">Backup history</h3>
+              <p class="settings-help">Exports and imports are kept as extension-local restore snapshots. Download a fresh local copy whenever you need it.</p>
+              <ul id="backup-history-list" class="backup-history-list"></ul>
+              <p id="empty-backup-history" class="settings-help">No backups have been recorded yet.</p>
+            </div>
+          </section>
+
+          <div class="settings-actions" data-settings-save-actions>
             <button type="submit" class="primary-button button-with-icon">
               <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"></path>
@@ -268,10 +418,10 @@
               </svg>
               <span>Save Settings</span>
             </button>
-            <button type="button" id="reset-settings" class="secondary-button">Reset Defaults</button>
+            <button type="button" id="reset-settings" class="secondary-button">Reset Account Defaults</button>
           </div>
 
-          <p id="settings-status" class="settings-status" aria-live="polite"></p>
+          <p id="settings-status" class="settings-status" data-settings-save-actions aria-live="polite"></p>
         </form>
       </section>
 

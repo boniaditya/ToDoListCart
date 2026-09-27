@@ -27,9 +27,13 @@
           <a class="page-link-button" href="products.html" hidden>Products</a>
           <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
           <a class="page-link-button" href="order-history.html">Orders</a>
-          <a class="page-link-button" href="tally.html">Tally</a>
+          <a class="page-link-button" href="tally.html">Analytics</a>
+          <a class="page-link-button" href="vendors.html">Vendors</a>
           <a class="page-link-button" href="account.html">Account</a>
-          <a class="cart-button" href="newtab.html#cart-panel" aria-label="Open shopping cart">
+          <a class="header-icon-button comments-header-button" href="comments.html" aria-label="Open comment trails" title="Comments">
+            <svg class="comment-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.5-4A9 9 0 1 1 21 12Z"></path></svg>
+          </a>
+          <a class="cart-button" href="cart.html" aria-label="Open shopping cart">
             <span class="cart-icon" aria-hidden="true"></span>
             <strong id="cart-count">0</strong>
             <span>Cart</span>
@@ -101,12 +105,13 @@
                 </fieldset>
                 <div class="moq-price-row">
                   <label>MOQ<input id="product-moq" name="moq" type="number" min="1" step="1" inputmode="numeric" required></label>
-                  <label>Price<input id="product-price" name="price" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00" required></label>
+                  <label>Units in stock<input id="product-available-units" type="number" min="1" step="1" inputmode="numeric" value="1" required></label>
+                  <label>Price of each unit<input id="product-unit-price" name="unitPrice" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00" required></label>
+                  <label>Total price<input id="product-price" name="price" type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00" readonly required></label>
                 </div>
                 <label class="available-units-field">
-                  Available units
-                  <input id="product-available-units" type="number" min="1" step="1" inputmode="numeric" value="1" required>
-                  <span>Each checked-out cart item uses one unit. The product becomes out of stock when all units are completed.</span>
+                  MOQ meaning
+                  <span>MOQ is the minimum order quantity or smallest task chunk you can pursue at the same time. Total price is units in stock × price of each unit.</span>
                 </label>
                 <label class="product-stock-toggle">
                   <input id="product-in-stock" type="checkbox" checked>
@@ -140,6 +145,15 @@
                     <select id="product-bundle-products" multiple size="4" aria-describedby="bundle-products-help"></select>
                     <span id="bundle-products-help">Products that should be purchased with this one.</span>
                   </div>
+                  <label class="relation-search" for="product-vendor-search">
+                    Find vendors
+                    <input id="product-vendor-search" type="search" placeholder="Search vendors to connect">
+                  </label>
+                  <div class="product-relation-field">
+                    <label for="product-vendors">Vendors</label>
+                    <select id="product-vendors" multiple size="4" aria-describedby="product-vendors-help"></select>
+                    <span id="product-vendors-help">People, organizations, or businesses that can provide this product.</span>
+                  </div>
                 </div>
               </section>
 
@@ -148,7 +162,7 @@
                 <div class="image-row">
                   <label>Image URL<input id="product-image-url" name="imageUrl" type="url" placeholder="https://example.com/product.png"></label>
                   <label class="image-upload" for="product-image-file">
-                    <span>Upload Images (up to 8)</span>
+                    <span>Upload Images</span>
                     <input id="product-image-file" name="imageFile" type="file" accept="image/*" multiple>
                   </label>
                 </div>

@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Browser Popup Settings - ToDoList Cart</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+    <link rel="stylesheet" href="newtab.css">
+  </head>
+  <body>
+    <main class="store-shell popup-settings-shell" aria-labelledby="popup-settings-title">
+      <header class="store-header">
+        <div class="top-row">
+          <a class="brand" href="newtab.html" aria-label="Go to ToDoList Cart home">
+            <img class="brand-icon" src="icons/icon-48.png" alt="">
+            <span class="brand-name">ToDoList Cart</span><span class="brand-domain">.tasks</span>
+          </a>
+          <form class="search-bar" action="newtab.html" method="get" autocomplete="off">
+            <label class="visually-hidden" for="popup-settings-search">Search task products</label>
+            <input id="popup-settings-search" name="q" type="search" placeholder="Search task products">
+            <button type="submit">Search</button>
+          </form>
+          <a class="page-link-button" href="create-product.html">Create</a>
+          <a class="page-link-button" href="newtab.html">Workspace</a>
+          <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
+          <a class="page-link-button" href="order-history.html">Orders</a>
+          <a class="page-link-button" href="tally.html">Analytics</a>
+          <a class="page-link-button" href="vendors.html">Vendors</a>
+          <a class="page-link-button active-page-link" href="account.html">Account</a>
+          <a class="header-icon-button comments-header-button" href="comments.html" aria-label="Open comment trails" title="Comments">
+            <svg class="comment-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.5-4A9 9 0 1 1 21 12Z"></path></svg>
+          </a>
+          <a class="cart-button" href="cart.html" aria-label="Open shopping cart">
+            <span class="cart-icon" aria-hidden="true"></span><strong id="cart-count">0</strong><span>Cart</span>
+          </a>
+        </div>
+        <nav class="departments" aria-label="Categories"></nav>
+      </header>
+
+      <section class="hero-strip catalog-hero" aria-label="Browser popup settings overview">
+        <div><p>Display settings</p><h1 id="popup-settings-title">Browser popup cards</h1></div>
+        <div class="hero-stats"><a href="account.html">← Back to account settings</a></div>
+      </section>
+
+      <section class="popup-settings-layout" aria-label="Browser popup card settings">
+        <form id="popup-settings-form" class="settings-card popup-settings-card" autocomplete="off">
+          <section class="card-display-customization" aria-labelledby="popup-card-options-heading">
+            <div class="card-display-toggles">
+              <div class="section-heading">
+                <div>
+                  <p class="section-kicker">Card content</p>
+                  <h2 id="popup-card-options-heading">Browser popup cards</h2>
+                  <p class="settings-help">Choose which information appears on product cards in the browser popup.</p>
+                </div>
+              </div>
+              <label class="settings-toggle"><input id="setting-popup-show-images" type="checkbox"><span>Show product images</span></label>
+              <label class="settings-toggle"><input id="setting-popup-compact-mode" type="checkbox"><span>Use compact cards</span></label>
+              <label class="settings-toggle"><input id="setting-popup-show-product-descriptions" type="checkbox"><span>Show product descriptions on cards</span></label>
+              <label class="settings-toggle"><input id="setting-popup-show-delivery-status" type="checkbox"><span>Show delivery status on cards</span></label>
+              <label class="settings-toggle"><input id="setting-popup-show-location-icon" type="checkbox"><span>Show location icon on cards</span></label>
+              <label class="settings-toggle"><input id="setting-popup-show-time-icon" type="checkbox"><span>Show time icon on cards</span></label>
+              <label class="settings-toggle"><input id="setting-popup-show-price" type="checkbox"><span>Show price on cards</span></label>
+              <label class="settings-toggle"><input id="setting-popup-show-time" type="checkbox"><span>Show time on cards</span></label>
+              <label class="settings-toggle"><input id="setting-popup-show-category" type="checkbox"><span>Show category on cards</span></label>
+              <label class="settings-toggle"><input id="setting-popup-show-location" type="checkbox"><span>Show location on cards</span></label>
+              <label class="settings-toggle"><input id="setting-popup-show-ratings" type="checkbox"><span>Show star ratings on cards</span></label>
+              <label class="settings-toggle"><input id="setting-popup-show-moq" type="checkbox"><span>Show MOQ on cards</span></label>
+              <label class="settings-toggle"><input id="setting-popup-show-units" type="checkbox"><span>Show units on cards</span></label>
+            </div>
+          </section>
+
+          <section class="card-view-preview popup-settings-preview" aria-labelledby="popup-card-preview-heading">
+            <div>
+              <p class="section-kicker">Live preview</p>
+              <h2 id="popup-card-preview-heading">Browser popup preview</h2>
+              <p class="settings-help">Updates immediately as you change popup card options.</p>
+              <div class="preview-layout-toggle" role="group" aria-label="Browser popup preview layout">
+                <button type="button" class="active" data-preview-layout="grid">Grid</button>
+                <button type="button" data-preview-layout="list">List</button>
+              </div>
+            </div>
+            <article id="popup-preview-card" class="settings-product-card-preview" aria-label="Example browser popup product card">
+              <div id="popup-preview-product-image" class="settings-preview-image" aria-hidden="true">Product</div>
+              <strong>Example product</strong>
+              <span class="settings-preview-rating" aria-label="Four out of five stars">★★★★</span>
+              <p id="popup-preview-product-description" class="settings-preview-description">A short example of product details shown on cards.</p>
+              <div class="settings-preview-meta">
+                <span class="department-label">⌂ Home</span>
+                <span class="location-label"><svg id="popup-preview-location-icon" class="card-meta-icon location-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg><span>Online</span></span>
+                <span class="moq-label">MOQ 1</span>
+                <span class="units-label">1 unit</span>
+                <span class="price-label">$128.00</span>
+                <span class="time-label"><svg id="popup-preview-time-icon" class="card-meta-icon time-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8"></circle><path d="M12 7v5l3 2"></path></svg><span>14d 19h</span></span>
+              </div>
+              <span id="popup-preview-delivery-status" class="delivery-line">Prime task delivery</span>
+            </article>
+          </section>
+
+          <div class="settings-actions popup-settings-actions">
+            <button type="submit" class="primary-button">Save Popup Settings</button>
+            <button type="button" id="reset-popup-settings" class="secondary-button">Reset Popup Defaults</button>
+          </div>
+          <p id="popup-settings-status" class="settings-status" aria-live="polite"></p>
+        </form>
+      </section>
+    </main>
+    <script src="store.js"></script>
+    <script src="popup-settings.js"></script>
+  </body>
+</html>

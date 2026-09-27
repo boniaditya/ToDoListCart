@@ -1,11 +1,13 @@
 (function () {
   const Store = globalThis.ToDoCartStore;
-  const MAX_COMMENT_IMAGE_BYTES = 3 * 1024 * 1024;
+  const MAX_COMMENT_IMAGE_BYTES = 5 * 1024 * 1024;
   const state = {
     data: Store.normalizeData({}),
     productId: new URLSearchParams(window.location.search).get("id"),
     detailImageIndex: 0,
-    activeResourceTab: "description",
+    dialogImages: [],
+    dialogImageIndex: 0,
+    activeResourceTab: new URLSearchParams(window.location.search).get("tab") || "description",
     commentImages: []
   };
 
@@ -14,6 +16,7 @@
     productDetail: document.querySelector("#product-detail"),
     missingProduct: document.querySelector("#missing-product"),
     missingProductsLink: document.querySelector("#missing-products-link"),
+    departments: document.querySelector(".departments"),
     detailImage: document.querySelector("#detail-image"),
     title: document.querySelector("#detail-title"),
     stars: document.querySelector("#detail-stars"),
@@ -24,13 +27,19 @@
     location: document.querySelector("#detail-location"),
     moq: document.querySelector("#detail-moq"),
     stockUnits: document.querySelector("#detail-stock-units"),
+    unitPrice: document.querySelector("#detail-unit-price"),
     price: document.querySelector("#detail-price"),
     created: document.querySelector("#detail-created"),
     description: document.querySelector("#detail-description"),
     references: document.querySelector("#detail-references"),
+    referenceForm: document.querySelector("#detail-reference-form"),
+    referenceInput: document.querySelector("#detail-reference-url"),
+    referenceStatus: document.querySelector("#detail-reference-status"),
     referenceList: document.querySelector("#detail-reference-list"),
+    emptyReferences: document.querySelector("#empty-reference-links"),
     relatedProducts: document.querySelector("#detail-related-products"),
     bundleProducts: document.querySelector("#detail-bundle-products"),
+    vendorsPanel: document.querySelector("#detail-vendors"),
     descriptionPanel: document.querySelector("#detail-description-panel"),
     commentsPanel: document.querySelector("#product-comments"),
     resourceTabs: document.querySelector("#detail-resource-tabs"),
@@ -44,8 +53,12 @@
     commentCount: document.querySelector("#comment-count"),
     emptyComments: document.querySelector("#empty-comments"),
     commentImageDialog: document.querySelector("#comment-image-dialog"),
+    commentImageDialogTitle: document.querySelector("#comment-image-dialog-title"),
     commentImageDialogImage: document.querySelector("#comment-image-dialog-image"),
     closeCommentImageDialog: document.querySelector("#close-comment-image-dialog"),
+    imageDialogReelPrevious: document.querySelector("#image-dialog-reel-previous"),
+    imageDialogReelNext: document.querySelector("#image-dialog-reel-next"),
+    imageDialogReelTrack: document.querySelector("#image-dialog-reel-track"),
     commentPanelToggle: document.querySelector("#toggle-comment-panel"),
     commentComposerPanel: document.querySelector("#comment-composer-panel"),
     commentsHeading: document.querySelector(".comments-heading"),
@@ -56,6 +69,7 @@
     editProduct: document.querySelector("#detail-edit"),
     duplicateProduct: document.querySelector("#detail-duplicate"),
     addCart: document.querySelector("#detail-add-cart"),
+    buyNow: document.querySelector("#detail-buy-now"),
     removeCart: document.querySelector("#detail-remove-cart"),
     done: document.querySelector("#detail-done"),
     deleteProduct: document.querySelector("#detail-delete"),
@@ -67,6 +81,40 @@
 
   function getProduct() {
     return state.data.products.find((product) => product.id === state.productId);
+  }
+
+  function vendorTypeLabel(type) {
+    return { person: "Individual", organization: "Organization", business: "Business" }[type] || "Business";
+  }
+
+  function renderCategoryNav(product) {
+    elements.departments.replaceChildren();
+
+    const addCategoryButton = (categoryId, label) => {
+      const button = document.createElement("button");
+      const active = categoryId === product?.department;
+
+      button.type = "button";
+      button.dataset.department = categoryId;
+      if (categoryId === "all") {
+        button.textContent = label;
+      } else {
+        Store.renderCategory(button, state.data, categoryId);
+      }
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+      elements.departments.append(button);
+    };
+
+    addCategoryButton("all", "All");
+    state.data.categories.forEach((category) => addCategoryButton(category.id, category.name));
+  }
+
+  function openCategory(categoryId) {
+    const categoryQuery = categoryId === "all"
+      ? ""
+      : `?department=${encodeURIComponent(categoryId)}`;
+    window.location.href = Store.getExtensionUrl(`newtab.html${categoryQuery}`);
   }
 
   function applyCommentPanelPlacement() {
@@ -122,10 +170,24 @@
       track.className = "detail-carousel-track";
 
       images.forEach((entry, index) => {
+        const imageButton = document.createElement("button");
         const image = document.createElement("img");
+
+        imageButton.type = "button";
+        imageButton.className = "detail-image-button";
+        imageButton.setAttribute("aria-label", `Open full-size ${product.title} image ${index + 1} of ${images.length}`);
         image.src = entry.src;
         image.alt = `${product.title} product image ${index + 1} of ${images.length}`;
-        track.append(image);
+        imageButton.addEventListener("click", () => openImageDialog(
+          entry,
+          image.alt,
+          `${product.title} image ${index + 1} of ${images.length}`,
+          images,
+          index,
+          product.title
+        ));
+        imageButton.append(image);
+        track.append(imageButton);
       });
 
       elements.detailImage.append(track);
@@ -259,7 +321,7 @@
           imageButton.setAttribute("aria-label", `Open ${comment.title || `comment image ${index + 1}`}`);
           image.src = entry.src;
           image.alt = comment.title || `Comment image ${index + 1}`;
-          imageButton.addEventListener("click", () => openCommentImage(entry, image.alt));
+          imageButton.addEventListener("click", () => openCommentImage(comment.images, index, image.alt));
           imageButton.append(image);
           images.append(imageButton);
         });
@@ -272,15 +334,67 @@
     elements.emptyComments.hidden = comments.length > 0;
   }
 
-  function openCommentImage(entry, alt) {
+  function showDialogImage(index) {
+    if (!state.dialogImages.length) return;
+    state.dialogImageIndex = (index + state.dialogImages.length) % state.dialogImages.length;
+    const entry = state.dialogImages[state.dialogImageIndex];
+    elements.commentImageDialogTitle.textContent = entry.dialogTitle;
     elements.commentImageDialogImage.src = entry.src;
-    elements.commentImageDialogImage.alt = alt;
+    elements.commentImageDialogImage.alt = entry.dialogAlt;
+    elements.imageDialogReelTrack.querySelectorAll("button").forEach((button, buttonIndex) => {
+      const active = buttonIndex === state.dialogImageIndex;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-current", active ? "true" : "false");
+    });
+  }
+
+  function renderImageDialogReel() {
+    const reel = elements.imageDialogReelTrack.parentElement;
+    elements.imageDialogReelTrack.replaceChildren();
+    reel.hidden = state.dialogImages.length <= 1;
+    state.dialogImages.forEach((entry, index) => {
+      const button = document.createElement("button");
+      const image = document.createElement("img");
+      button.type = "button";
+      button.className = "image-dialog-reel-stamp";
+      button.setAttribute("aria-label", `Show image ${index + 1} of ${state.dialogImages.length}`);
+      image.src = entry.src;
+      image.alt = "";
+      button.append(image);
+      button.addEventListener("click", () => showDialogImage(index));
+      elements.imageDialogReelTrack.append(button);
+    });
+  }
+
+  function openImageDialog(entry, alt, title = "Image preview", gallery = [entry], index = 0, baseTitle = title) {
+    state.dialogImages = gallery.map((image, imageIndex) => ({
+      ...image,
+      dialogAlt: imageIndex === index ? alt : `${baseTitle} image ${imageIndex + 1}`,
+      dialogTitle: gallery.length > 1 ? `${baseTitle} image ${imageIndex + 1} of ${gallery.length}` : title
+    }));
+    state.dialogImageIndex = index;
+    renderImageDialogReel();
+    showDialogImage(index);
     elements.commentImageDialog.showModal();
   }
 
+  function openCommentImage(images, index, alt) {
+    openImageDialog(images[index], alt, "Comment image", images, index, "Comment");
+  }
+
   function closeCommentImageDialog() {
-    elements.commentImageDialog.close();
+    if (elements.commentImageDialog.open) {
+      elements.commentImageDialog.close();
+    }
+  }
+
+  function resetImageDialog() {
     elements.commentImageDialogImage.removeAttribute("src");
+    elements.commentImageDialogImage.alt = "";
+    elements.commentImageDialogTitle.textContent = "Image preview";
+    state.dialogImages = [];
+    state.dialogImageIndex = 0;
+    elements.imageDialogReelTrack.replaceChildren();
   }
 
   async function deleteComment(commentId) {
@@ -300,18 +414,73 @@
     const referenceUrls = product.referenceUrls || [];
     elements.referenceList.replaceChildren();
     elements.references.dataset.available = String(referenceUrls.length > 0);
+    elements.emptyReferences.hidden = referenceUrls.length > 0;
 
-    referenceUrls.forEach((url) => {
+    referenceUrls.forEach((url, index) => {
       const item = document.createElement("li");
       const link = document.createElement("a");
+      const remove = document.createElement("button");
       link.href = url;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
       link.title = url;
       link.textContent = url;
-      item.append(link);
+      remove.type = "button";
+      remove.className = "remove-reference-url";
+      remove.dataset.referenceIndex = String(index);
+      remove.setAttribute("aria-label", `Remove reference link ${index + 1}`);
+      remove.title = "Remove reference link";
+      remove.textContent = "×";
+      item.append(link, remove);
       elements.referenceList.append(item);
     });
+  }
+
+  function normalizeReferenceUrl(rawUrl) {
+    const trimmed = rawUrl.trim();
+    const candidate = /^[a-z][a-z\d+.-]*:/i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    return Store.normalizeProduct({ referenceUrls: [candidate] }).referenceUrls[0] || "";
+  }
+
+  async function addReferenceUrl(event) {
+    event.preventDefault();
+    const product = getProduct();
+    const referenceUrls = [...(product?.referenceUrls || [])];
+    const url = normalizeReferenceUrl(elements.referenceInput.value);
+
+    if (!product || !url) {
+      elements.referenceStatus.textContent = "Enter a valid http or https link.";
+      return;
+    }
+    if (referenceUrls.includes(url)) {
+      elements.referenceStatus.textContent = "This reference link is already added.";
+      return;
+    }
+    if (referenceUrls.length >= 8) {
+      elements.referenceStatus.textContent = "A product can have up to 8 reference links.";
+      return;
+    }
+
+    state.data.products = state.data.products.map((entry) => (
+      entry.id === product.id ? { ...entry, referenceUrls: [...referenceUrls, url] } : entry
+    ));
+    elements.referenceInput.value = "";
+    await persistAndRender();
+    elements.referenceStatus.textContent = "Reference link added.";
+  }
+
+  async function removeReferenceUrl(index) {
+    const product = getProduct();
+    const referenceUrls = [...(product?.referenceUrls || [])];
+    const url = referenceUrls[index];
+
+    if (!product || !url || !window.confirm(`Remove reference link ${url}?`)) return;
+    referenceUrls.splice(index, 1);
+    state.data.products = state.data.products.map((entry) => (
+      entry.id === product.id ? { ...entry, referenceUrls } : entry
+    ));
+    await persistAndRender();
+    elements.referenceStatus.textContent = "Reference link removed.";
   }
 
   function renderProductRelations(product) {
@@ -321,6 +490,7 @@
       list.replaceChildren();
       list.className = "relation-preview-list";
       container.dataset.available = String(products.length > 0);
+      container.querySelector(".resource-empty-state").hidden = products.length > 0;
       products.forEach((related) => {
         const item = document.createElement("li");
         const link = document.createElement("a");
@@ -348,7 +518,7 @@
         title.textContent = related.title;
         description.textContent = related.description || "No product details added.";
         metadata.textContent = `${Store.getCategoryLabel(state.data, related.department)} · ${Store.formatMoq(related.moq)}`;
-        price.textContent = `${Store.formatMoney(related.price, state.data.settings)} · ${related.inStock ? "In stock" : "Out of stock"}`;
+        price.textContent = `Total ${Store.formatMoney(related.price, state.data.settings)} · ${related.inStock ? "In stock" : "Out of stock"}`;
         copy.append(title, description, metadata, price);
         link.append(media, copy);
         item.append(link);
@@ -360,16 +530,58 @@
     renderResourceTabs();
   }
 
+  function renderProductVendors(product) {
+    const vendors = state.data.vendors
+      .filter((vendor) => vendor.productIds.includes(product.id))
+      .sort((first, second) => first.name.localeCompare(second.name));
+    const list = elements.vendorsPanel.querySelector("ul");
+    list.replaceChildren();
+    list.className = "vendor-preview-list";
+    elements.vendorsPanel.dataset.available = String(vendors.length > 0);
+    elements.vendorsPanel.querySelector(".resource-empty-state").hidden = vendors.length > 0;
+
+    vendors.forEach((vendor) => {
+      const item = document.createElement("li");
+      const card = document.createElement("a");
+      const title = document.createElement("strong");
+      const type = document.createElement("span");
+      const contact = document.createElement("span");
+      const spocs = document.createElement("span");
+      const directContact = [vendor.phone, vendor.email].filter(Boolean).join(" · ");
+
+      item.className = "vendor-preview-item";
+      card.className = "vendor-product-preview";
+      card.href = Store.getExtensionUrl("vendors.html");
+      title.textContent = vendor.name;
+      type.textContent = vendorTypeLabel(vendor.type);
+      contact.textContent = directContact || vendor.address || vendor.website || "No contact details added";
+      spocs.textContent = vendor.contacts.length
+        ? `${vendor.contacts.length} ${vendor.contacts.length === 1 ? "SPOC" : "SPOCs"} linked`
+        : "No SPOCs linked";
+      card.append(title, type, contact, spocs);
+      item.append(card);
+      list.append(item);
+    });
+
+    renderResourceTabs();
+  }
+
   function setResourceTab(tabName) {
     state.activeResourceTab = tabName;
     renderResourceTabs();
   }
 
   function renderResourceTabs() {
+    const persistentTabs = new Set(["description", "references", "related", "vendors", "comments"]);
     elements.descriptionPanel.dataset.available = "true";
+    elements.references.dataset.available = "true";
+    elements.relatedProducts.dataset.available = "true";
+    elements.vendorsPanel.dataset.available = "true";
     elements.commentsPanel.dataset.available = "true";
     const panels = [...elements.resourceTabs.querySelectorAll("[data-resource-panel]")];
-    const availablePanels = panels.filter((panel) => panel.dataset.available !== "false");
+    const availablePanels = panels.filter((panel) => (
+      persistentTabs.has(panel.dataset.resourcePanel) || panel.dataset.available !== "false"
+    ));
     elements.resourceTabs.hidden = availablePanels.length === 0;
 
     if (!availablePanels.length) {
@@ -413,6 +625,7 @@
     document.title = `${product.title} - ToDoList Cart`;
     elements.productDetail.hidden = false;
     elements.missingProduct.hidden = true;
+    renderCategoryNav(product);
     renderProductImage(product);
     renderCartSelector();
 
@@ -428,11 +641,13 @@
     elements.moq.textContent = Store.formatMoq(product.moq);
     const unitsInStock = Store.getUnitsInStock(product);
     elements.stockUnits.textContent = `${unitsInStock} ${unitsInStock === 1 ? "unit" : "units"}`;
+    elements.unitPrice.textContent = Store.formatMoney(product.unitPrice, state.data.settings);
     elements.price.textContent = Store.formatMoney(product.price, state.data.settings);
     elements.created.textContent = Store.formatDate(product.createdAt);
     elements.description.textContent = product.description || "No description added yet.";
     renderReferences(product);
     renderProductRelations(product);
+    renderProductVendors(product);
     renderComments(product);
     elements.cartCount.textContent = cartCount;
     elements.cartStatus.textContent = activeItem
@@ -440,6 +655,7 @@
       : `Not in ${activeCart.name}`;
     elements.stockStatus.hidden = product.inStock;
     elements.addCart.disabled = Boolean(activeItem) || !product.inStock;
+    elements.buyNow.disabled = !product.inStock;
     elements.removeCart.disabled = !activeItem;
     elements.done.disabled = !activeItem;
     elements.done.checked = Boolean(activeItem?.done);
@@ -509,7 +725,7 @@
           name: file.name || "clipboard-image"
         });
       } else {
-        alert("Choose comment images up to 3 MB.");
+        alert("Choose comment images up to 5 MB.");
       }
     }
 
@@ -535,6 +751,16 @@
     });
 
     await persistAndRender();
+  }
+
+  async function buyNow() {
+    const product = getProduct();
+
+    if (!product?.inStock) {
+      return;
+    }
+
+    window.location.href = Store.getExtensionUrl(`buy-now.html?id=${encodeURIComponent(state.productId)}`);
   }
 
   async function removeFromCart() {
@@ -607,6 +833,7 @@
         location: product.location,
         priority: product.priority,
         moq: product.moq,
+        unitPrice: product.unitPrice,
         price: product.price,
         inStock: product.inStock,
         availableUnits: product.availableUnits,
@@ -635,17 +862,37 @@
     });
 
     elements.addCart.addEventListener("click", addToCart);
+    elements.buyNow.addEventListener("click", buyNow);
     elements.removeCart.addEventListener("click", removeFromCart);
     elements.done.addEventListener("change", () => toggleDone(elements.done.checked));
     elements.commentPanelToggle.addEventListener("click", toggleCommentPanelPlacement);
+    elements.departments.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-department]");
+
+      if (button) {
+        openCategory(button.dataset.department);
+      }
+    });
     elements.resourceTabButtons.forEach((button) => {
       button.addEventListener("click", () => setResourceTab(button.dataset.resourceTab));
+    });
+    elements.referenceForm.addEventListener("submit", addReferenceUrl);
+    elements.referenceList.addEventListener("click", (event) => {
+      const remove = event.target.closest(".remove-reference-url");
+      if (remove) removeReferenceUrl(Number(remove.dataset.referenceIndex));
     });
     elements.closeCommentImageDialog.addEventListener("click", closeCommentImageDialog);
     elements.commentImageDialog.addEventListener("click", (event) => {
       if (event.target === elements.commentImageDialog) {
         closeCommentImageDialog();
       }
+    });
+    elements.commentImageDialog.addEventListener("close", resetImageDialog);
+    elements.imageDialogReelPrevious.addEventListener("click", () => {
+      elements.imageDialogReelTrack.scrollBy({ left: -240, behavior: "smooth" });
+    });
+    elements.imageDialogReelNext.addEventListener("click", () => {
+      elements.imageDialogReelTrack.scrollBy({ left: 240, behavior: "smooth" });
     });
     elements.commentForm.addEventListener("submit", addComment);
     elements.commentImageInput.addEventListener("change", () => addCommentImages(elements.commentImageInput.files || []));

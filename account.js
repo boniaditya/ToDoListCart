@@ -136,6 +136,8 @@
   const state = {
     data: Store.normalizeData({}),
     backupHistory: [],
+    previewLayouts: { listing: "grid" },
+    activeSettingsTab: new URLSearchParams(window.location.search).get("tab") || "general",
     iconTarget: "new",
     newCategoryIcon: {
       icon: "",
@@ -150,6 +152,9 @@
     cartsCount: document.querySelector("#account-carts-count"),
     ordersCount: document.querySelector("#account-orders-count"),
     form: document.querySelector("#settings-form"),
+    settingsTabs: document.querySelectorAll("[data-settings-tab]"),
+    settingsPanels: document.querySelectorAll("[data-settings-panel]"),
+    settingsSaveActions: document.querySelectorAll("[data-settings-save-actions]"),
     accountName: document.querySelector("#setting-account-name"),
     storeName: document.querySelector("#setting-store-name"),
     defaultDepartment: document.querySelector("#setting-default-department"),
@@ -161,14 +166,47 @@
     showTimeEquivalent: document.querySelector("#setting-show-time-equivalent"),
     timeSeconds: document.querySelector("#setting-time-seconds"),
     timeRate: document.querySelector("#setting-time-rate"),
+    listingShowImages: document.querySelector("#setting-listing-show-images"),
+    listingCompactMode: document.querySelector("#setting-listing-compact-mode"),
+    cartPageShowManager: document.querySelector("#setting-cart-page-show-manager"),
+    cartPageShowProgress: document.querySelector("#setting-cart-page-show-progress"),
+    cartPageShowImages: document.querySelector("#setting-cart-page-show-images"),
+    cartPageShowDescriptions: document.querySelector("#setting-cart-page-show-descriptions"),
+    cartPageShowStock: document.querySelector("#setting-cart-page-show-stock"),
+    cartPageShowRemoveButtons: document.querySelector("#setting-cart-page-show-remove-buttons"),
+    cartPreviewManager: document.querySelector("#cart-preview-manager"),
+    cartPreviewProgress: document.querySelector("#cart-preview-progress"),
+    cartPreviewImage: document.querySelector("#cart-preview-image"),
+    cartPreviewDescription: document.querySelector("#cart-preview-description"),
+    cartPreviewStock: document.querySelector("#cart-preview-stock"),
+    cartPreviewRemove: document.querySelector("#cart-preview-remove"),
     checkoutBehavior: document.querySelector("#setting-checkout-behavior"),
-    showImages: document.querySelector("#setting-show-images"),
-    compactMode: document.querySelector("#setting-compact-mode"),
+    stickyCheckoutShowSummary: document.querySelector("#setting-sticky-checkout-show-summary"),
+    stickyCheckoutShowProgress: document.querySelector("#setting-sticky-checkout-show-progress"),
+    stickyCheckoutCompact: document.querySelector("#setting-sticky-checkout-compact"),
+    stickyCheckoutPreview: document.querySelector("#sticky-checkout-preview"),
+    stickyCheckoutPreviewSummary: document.querySelector("#sticky-checkout-preview-summary"),
+    stickyCheckoutPreviewProgress: document.querySelector("#sticky-checkout-preview-progress"),
     commentComposerPlacement: document.querySelector("#setting-comment-composer-placement"),
     defaultProductView: document.querySelector("#setting-default-product-view"),
     productsPerPage: document.querySelector("#setting-products-per-page"),
-    showProductDescriptions: document.querySelector("#setting-show-product-descriptions"),
-    showDeliveryStatus: document.querySelector("#setting-show-delivery-status"),
+    listingShowProductDescriptions: document.querySelector("#setting-listing-show-product-descriptions"),
+    listingShowDeliveryStatus: document.querySelector("#setting-listing-show-delivery-status"),
+    listingShowLocationIcon: document.querySelector("#setting-listing-show-location-icon"),
+    listingShowTimeIcon: document.querySelector("#setting-listing-show-time-icon"),
+    listingShowPrice: document.querySelector("#setting-listing-show-price"),
+    listingShowTime: document.querySelector("#setting-listing-show-time"),
+    listingShowCategory: document.querySelector("#setting-listing-show-category"),
+    listingShowLocation: document.querySelector("#setting-listing-show-location"),
+    listingShowRatings: document.querySelector("#setting-listing-show-ratings"),
+    listingShowMoq: document.querySelector("#setting-listing-show-moq"),
+    listingShowUnits: document.querySelector("#setting-listing-show-units"),
+    previewLocationIcon: document.querySelector("#preview-location-icon"),
+    previewTimeIcon: document.querySelector("#preview-time-icon"),
+    previewProductImage: document.querySelector("#preview-product-image"),
+    previewProductDescription: document.querySelector("#preview-product-description"),
+    previewDeliveryStatus: document.querySelector("#preview-delivery-status"),
+    previewCard: document.querySelector(".settings-product-card-preview"),
     categoryList: document.querySelector("#account-category-list"),
     categoryName: document.querySelector("#account-category-name"),
     addCategory: document.querySelector("#account-add-category"),
@@ -195,6 +233,28 @@
 
   function getActiveCart() {
     return Store.getActiveCart(state.data);
+  }
+
+  function setSettingsTab(tabName, updateUrl = true) {
+    const validTabs = new Set(["general", "categories", "listing", "cart", "checkout", "popup", "backup"]);
+    state.activeSettingsTab = validTabs.has(tabName) ? tabName : "general";
+    elements.settingsTabs.forEach((button) => {
+      const selected = button.dataset.settingsTab === state.activeSettingsTab;
+      button.setAttribute("aria-selected", String(selected));
+      button.tabIndex = selected ? 0 : -1;
+    });
+    elements.settingsPanels.forEach((panel) => {
+      panel.hidden = panel.dataset.settingsPanel !== state.activeSettingsTab;
+    });
+    const showSaveActions = ["general", "categories", "listing", "cart", "checkout"].includes(state.activeSettingsTab);
+    elements.settingsSaveActions.forEach((element) => {
+      element.hidden = !showSaveActions;
+    });
+    if (updateUrl) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", state.activeSettingsTab);
+      window.history.replaceState(null, "", url);
+    }
   }
 
   function getDefaultPriorityValue() {
@@ -342,14 +402,80 @@
     elements.timeSeconds.value = settings.timeSeconds;
     elements.timeRate.value = settings.timeRate;
     elements.checkoutBehavior.value = settings.checkoutBehavior;
-    elements.showImages.checked = settings.showImages;
-    elements.compactMode.checked = settings.compactMode;
+    elements.stickyCheckoutShowSummary.checked = settings.stickyCheckoutShowSummary;
+    elements.stickyCheckoutShowProgress.checked = settings.stickyCheckoutShowProgress;
+    elements.stickyCheckoutCompact.checked = settings.stickyCheckoutCompact;
+    elements.cartPageShowManager.checked = settings.cartPageShowManager;
+    elements.cartPageShowProgress.checked = settings.cartPageShowProgress;
+    elements.cartPageShowImages.checked = settings.cartPageShowImages;
+    elements.cartPageShowDescriptions.checked = settings.cartPageShowDescriptions;
+    elements.cartPageShowStock.checked = settings.cartPageShowStock;
+    elements.cartPageShowRemoveButtons.checked = settings.cartPageShowRemoveButtons;
+    elements.listingShowImages.checked = settings.listingShowImages;
+    elements.listingCompactMode.checked = settings.listingCompactMode;
     elements.commentComposerPlacement.value = settings.commentComposerPlacement;
     elements.defaultProductView.value = settings.defaultProductView;
     elements.productsPerPage.value = String(settings.productsPerPage);
-    elements.showProductDescriptions.checked = settings.showProductDescriptions;
-    elements.showDeliveryStatus.checked = settings.showDeliveryStatus;
-    document.body.classList.toggle("compact-mode", settings.compactMode);
+    elements.listingShowProductDescriptions.checked = settings.listingShowProductDescriptions;
+    elements.listingShowDeliveryStatus.checked = settings.listingShowDeliveryStatus;
+    elements.listingShowLocationIcon.checked = settings.listingShowLocationIcon;
+    elements.listingShowTimeIcon.checked = settings.listingShowTimeIcon;
+    elements.listingShowPrice.checked = settings.listingShowPrice;
+    elements.listingShowTime.checked = settings.listingShowTime;
+    elements.listingShowCategory.checked = settings.listingShowCategory;
+    elements.listingShowLocation.checked = settings.listingShowLocation;
+    elements.listingShowRatings.checked = settings.listingShowRatings;
+    elements.listingShowMoq.checked = settings.listingShowMoq;
+    elements.listingShowUnits.checked = settings.listingShowUnits;
+    renderCardViewPreview();
+    renderCartPagePreview();
+    renderStickyCheckoutPreview();
+    document.body.classList.toggle("compact-mode", settings.listingCompactMode);
+  }
+
+  function renderCardViewPreview() {
+    renderCardPreview("listing");
+  }
+
+  function renderStickyCheckoutPreview() {
+    elements.stickyCheckoutPreview.classList.toggle("is-compact", elements.stickyCheckoutCompact.checked);
+    elements.stickyCheckoutPreviewSummary.hidden = !elements.stickyCheckoutShowSummary.checked;
+    elements.stickyCheckoutPreviewProgress.hidden = !elements.stickyCheckoutShowProgress.checked;
+  }
+
+  function renderCartPagePreview() {
+    elements.cartPreviewManager.hidden = !elements.cartPageShowManager.checked;
+    elements.cartPreviewProgress.hidden = !elements.cartPageShowProgress.checked;
+    elements.cartPreviewImage.hidden = !elements.cartPageShowImages.checked;
+    elements.cartPreviewDescription.hidden = !elements.cartPageShowDescriptions.checked;
+    elements.cartPreviewStock.hidden = !elements.cartPageShowStock.checked;
+    elements.cartPreviewRemove.hidden = !elements.cartPageShowRemoveButtons.checked;
+  }
+
+  function renderCardPreview(kind) {
+    const prefix = "listing";
+    const previewPrefix = "preview";
+    const showImages = elements[prefix + "ShowImages"].checked;
+    elements[previewPrefix + "LocationIcon"].hidden = !elements[prefix + "ShowLocationIcon"].checked;
+    elements[previewPrefix + "TimeIcon"].hidden = !elements[prefix + "ShowTimeIcon"].checked;
+    elements[previewPrefix + "ProductImage"].textContent = showImages ? "Product" : "No image";
+    elements[previewPrefix + "ProductImage"].classList.toggle("is-placeholder", !showImages);
+    elements[previewPrefix + "ProductDescription"].hidden = !elements[prefix + "ShowProductDescriptions"].checked;
+    elements[previewPrefix + "DeliveryStatus"].hidden = !elements[prefix + "ShowDeliveryStatus"].checked;
+    elements[previewPrefix + "Card"].classList.toggle("is-compact", elements[prefix + "CompactMode"].checked);
+    elements[previewPrefix + "Card"].querySelector(".price-label").hidden = !elements[prefix + "ShowPrice"].checked;
+    elements[previewPrefix + "Card"].querySelector(".time-label").hidden = !elements[prefix + "ShowTime"].checked;
+    elements[previewPrefix + "Card"].querySelector(".department-label").hidden = !elements[prefix + "ShowCategory"].checked;
+    elements[previewPrefix + "Card"].querySelector(".location-label").hidden = !elements[prefix + "ShowLocation"].checked;
+    elements[previewPrefix + "Card"].querySelector(".settings-preview-rating").hidden = !elements[prefix + "ShowRatings"].checked;
+    elements[previewPrefix + "Card"].querySelector(".moq-label").hidden = !elements[prefix + "ShowMoq"].checked;
+    elements[previewPrefix + "Card"].querySelector(".units-label").hidden = !elements[prefix + "ShowUnits"].checked;
+    elements[previewPrefix + "Card"].classList.toggle("is-list-preview", state.previewLayouts[kind] === "list");
+    document.querySelectorAll(`[data-preview-kind="${kind}"]`).forEach((button) => {
+      const selected = button.dataset.previewLayout === state.previewLayouts[kind];
+      button.classList.toggle("active", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    });
   }
 
   function renderSummary() {
@@ -364,10 +490,12 @@
     renderSettings();
     renderSummary();
     renderBackupHistory();
+    setSettingsTab(state.activeSettingsTab, false);
   }
 
   function readFormSettings() {
     return Store.normalizeSettings({
+      ...state.data.settings,
       accountName: elements.accountName.value,
       storeName: elements.storeName.value,
       defaultDepartment: elements.defaultDepartment.value,
@@ -380,13 +508,31 @@
       timeSeconds: elements.timeSeconds.value,
       timeRate: elements.timeRate.value,
       checkoutBehavior: elements.checkoutBehavior.value,
-      showImages: elements.showImages.checked,
-      compactMode: elements.compactMode.checked,
+      stickyCheckoutShowSummary: elements.stickyCheckoutShowSummary.checked,
+      stickyCheckoutShowProgress: elements.stickyCheckoutShowProgress.checked,
+      stickyCheckoutCompact: elements.stickyCheckoutCompact.checked,
+      cartPageShowManager: elements.cartPageShowManager.checked,
+      cartPageShowProgress: elements.cartPageShowProgress.checked,
+      cartPageShowImages: elements.cartPageShowImages.checked,
+      cartPageShowDescriptions: elements.cartPageShowDescriptions.checked,
+      cartPageShowStock: elements.cartPageShowStock.checked,
+      cartPageShowRemoveButtons: elements.cartPageShowRemoveButtons.checked,
+      listingShowImages: elements.listingShowImages.checked,
+      listingCompactMode: elements.listingCompactMode.checked,
       commentComposerPlacement: elements.commentComposerPlacement.value,
       defaultProductView: elements.defaultProductView.value,
       productsPerPage: elements.productsPerPage.value,
-      showProductDescriptions: elements.showProductDescriptions.checked,
-      showDeliveryStatus: elements.showDeliveryStatus.checked
+      listingShowProductDescriptions: elements.listingShowProductDescriptions.checked,
+      listingShowDeliveryStatus: elements.listingShowDeliveryStatus.checked,
+      listingShowLocationIcon: elements.listingShowLocationIcon.checked,
+      listingShowTimeIcon: elements.listingShowTimeIcon.checked,
+      listingShowPrice: elements.listingShowPrice.checked,
+      listingShowTime: elements.listingShowTime.checked,
+      listingShowCategory: elements.listingShowCategory.checked,
+      listingShowLocation: elements.listingShowLocation.checked,
+      listingShowRatings: elements.listingShowRatings.checked,
+      listingShowMoq: elements.listingShowMoq.checked,
+      listingShowUnits: elements.listingShowUnits.checked
     }, state.data.categories);
   }
 
@@ -608,7 +754,10 @@
   }
 
   async function resetSettings() {
-    state.data.settings = Store.normalizeSettings({}, state.data.categories);
+    const popupSettings = Object.fromEntries(
+      Object.entries(state.data.settings).filter(([key]) => key.startsWith("popup"))
+    );
+    state.data.settings = Store.normalizeSettings(popupSettings, state.data.categories);
     state.data = await Store.saveData(state.data);
     render();
     showStatus("Defaults restored.");
@@ -759,10 +908,48 @@
 
   function bindEvents() {
     elements.form.addEventListener("submit", saveSettings);
+    elements.settingsTabs.forEach((button) => {
+      button.addEventListener("click", () => setSettingsTab(button.dataset.settingsTab));
+      button.addEventListener("keydown", (event) => {
+        if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+        event.preventDefault();
+        const tabs = [...elements.settingsTabs];
+        const direction = event.key === "ArrowRight" ? 1 : -1;
+        const nextIndex = (tabs.indexOf(button) + direction + tabs.length) % tabs.length;
+        tabs[nextIndex].focus();
+        setSettingsTab(tabs[nextIndex].dataset.settingsTab);
+      });
+    });
     elements.resetSettings.addEventListener("click", resetSettings);
     elements.exportData.addEventListener("click", exportData);
     elements.importData.addEventListener("click", () => elements.importDataFile.click());
     elements.importDataFile.addEventListener("change", importDataFile);
+    document.querySelectorAll("[data-preview-layout]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.previewLayouts[button.dataset.previewKind] = button.dataset.previewLayout;
+        renderCardPreview(button.dataset.previewKind);
+      });
+    });
+    [
+      elements.listingShowImages, elements.listingCompactMode, elements.listingShowProductDescriptions,
+      elements.listingShowDeliveryStatus, elements.listingShowLocationIcon, elements.listingShowTimeIcon,
+      elements.listingShowPrice, elements.listingShowTime,
+      elements.listingShowCategory, elements.listingShowLocation,
+      elements.listingShowRatings, elements.listingShowMoq, elements.listingShowUnits
+    ].forEach((input) => input.addEventListener("change", renderCardViewPreview));
+    [
+      elements.stickyCheckoutShowSummary,
+      elements.stickyCheckoutShowProgress,
+      elements.stickyCheckoutCompact
+    ].forEach((input) => input.addEventListener("change", renderStickyCheckoutPreview));
+    [
+      elements.cartPageShowManager,
+      elements.cartPageShowProgress,
+      elements.cartPageShowImages,
+      elements.cartPageShowDescriptions,
+      elements.cartPageShowStock,
+      elements.cartPageShowRemoveButtons
+    ].forEach((input) => input.addEventListener("change", renderCartPagePreview));
     elements.addCategory.addEventListener("click", addCategoryFromInput);
     elements.chooseNewCategoryIcon.addEventListener("click", () => openIconPicker("new"));
     elements.categoryName.addEventListener("input", renderNewCategoryIcon);
@@ -830,7 +1017,7 @@
     });
 
     elements.cartJump.addEventListener("click", () => {
-      window.location.href = Store.getExtensionUrl("newtab.html");
+      window.location.href = Store.getExtensionUrl("cart.html");
     });
   }
 

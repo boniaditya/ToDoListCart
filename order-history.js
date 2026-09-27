@@ -74,13 +74,17 @@
   function renderOrderItem(item) {
     const node = document.createElement("li");
     node.className = "order-product";
+    node.dataset.productId = item.productId;
+    node.tabIndex = 0;
+    node.setAttribute("role", "link");
+    node.setAttribute("aria-label", `Open ${item.title} product page`);
 
     const copy = document.createElement("div");
     const title = document.createElement("strong");
     const meta = document.createElement("span");
 
     title.textContent = item.title;
-    meta.textContent = `${Store.getCategoryLabel(state.data, item.department)} | ${Store.getPriorityLabel(item.priority)} | ${Store.formatMoq(item.moq)} | ${Store.formatMoney(item.price, state.data.settings)}`;
+    meta.textContent = `${Store.getCategoryLabel(state.data, item.department)} | ${Store.getPriorityLabel(item.priority)} | ${Store.formatMoq(item.moq)} | Unit ${Store.formatMoney(item.unitPrice, state.data.settings)} | Total ${Store.formatMoney(item.price, state.data.settings)}`;
     copy.append(title, meta);
     node.append(renderItemImage(item), copy);
 
@@ -180,6 +184,11 @@
     await persistAndRender();
   }
 
+  function openProduct(productId) {
+    if (!productId) return;
+    window.location.href = Store.getExtensionUrl(`product.html?id=${encodeURIComponent(productId)}`);
+  }
+
   function bindEvents() {
     elements.cartSelect.addEventListener("change", async () => {
       state.data.activeCartId = elements.cartSelect.value;
@@ -191,6 +200,22 @@
 
       if (button) {
         addOrderToActiveCart(button.closest(".order-card").dataset.id);
+        return;
+      }
+
+      const orderProduct = event.target.closest(".order-product");
+
+      if (orderProduct) {
+        openProduct(orderProduct.dataset.productId);
+      }
+    });
+
+    elements.orderList.addEventListener("keydown", (event) => {
+      const orderProduct = event.target.closest(".order-product");
+
+      if (orderProduct && event.target === orderProduct && (event.key === "Enter" || event.key === " ")) {
+        event.preventDefault();
+        openProduct(orderProduct.dataset.productId);
       }
     });
 
@@ -209,7 +234,7 @@
     });
 
     elements.cartJump.addEventListener("click", () => {
-      elements.cartSelect.focus();
+      window.location.href = Store.getExtensionUrl("cart.html");
     });
   }
 

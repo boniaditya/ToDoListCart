@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Comment Trails - ToDoList Cart</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+    <link rel="stylesheet" href="newtab.css">
+  </head>
+  <body>
+    <main class="store-shell comments-page-shell" aria-labelledby="comments-page-title">
+      <header class="store-header">
+        <div class="top-row">
+          <a class="brand" href="newtab.html" aria-label="Go to ToDoList Cart home">
+            <img class="brand-icon" src="icons/icon-48.png" alt="">
+            <span class="brand-name">ToDoList Cart</span><span class="brand-domain">.tasks</span>
+          </a>
+          <form class="search-bar" action="newtab.html" method="get" autocomplete="off">
+            <label class="visually-hidden" for="comments-product-search">Search task products</label>
+            <input id="comments-product-search" name="q" type="search" placeholder="Search task products">
+            <button type="submit">Search</button>
+          </form>
+          <a class="page-link-button" href="create-product.html">Create</a>
+          <a class="page-link-button" href="newtab.html">Workspace</a>
+          <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
+          <a class="page-link-button" href="order-history.html">Orders</a>
+          <a class="page-link-button" href="tally.html">Analytics</a>
+          <a class="page-link-button" href="vendors.html">Vendors</a>
+          <a class="page-link-button" href="account.html">Account</a>
+          <a class="header-icon-button comments-header-button active-comments-page" href="comments.html" aria-label="Open comment trails" title="Comments" aria-current="page">
+            <svg class="comment-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.5-4A9 9 0 1 1 21 12Z"></path></svg>
+          </a>
+          <a class="cart-button" href="cart.html" aria-label="Open shopping cart">
+            <span class="cart-icon" aria-hidden="true"></span><strong id="cart-count">0</strong><span>Cart</span>
+          </a>
+        </div>
+      </header>
+
+      <section class="hero-strip catalog-hero" aria-label="Comment trails overview">
+        <div><p>Product conversations</p><h1 id="comments-page-title">Comment Trails</h1></div>
+        <div class="hero-stats" aria-live="polite">
+          <span id="comments-total-count">0 comments</span>
+          <span id="comments-product-count">0 products with comments</span>
+        </div>
+      </section>
+
+      <section class="comments-trails-layout" aria-labelledby="comment-trails-heading">
+        <div class="section-heading">
+          <div>
+            <p class="section-kicker">Across products</p>
+            <h2 id="comment-trails-heading">All comment trails</h2>
+          </div>
+        </div>
+        <ol id="comments-trail-list" class="comments-trail-list"></ol>
+        <p id="empty-comment-trails" class="empty-state comments-trails-empty" hidden>No product comments yet.</p>
+      </section>
+    </main>
+    <script src="store.js"></script>
+    <script src="comments.js"></script>
+  </body>
+</html>

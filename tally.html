@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Store Tally - ToDoList Cart</title>
+    <title>Analytics - ToDoList Cart</title>
     <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
     <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
     <link rel="stylesheet" href="newtab.css">
@@ -25,16 +25,20 @@
           <a class="page-link-button" href="newtab.html">Workspace</a>
           <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
           <a class="page-link-button" href="order-history.html">Orders</a>
-          <a class="page-link-button active-page-link" href="tally.html">Tally</a>
+          <a class="page-link-button active-page-link" href="tally.html">Analytics</a>
+          <a class="page-link-button" href="vendors.html">Vendors</a>
           <a class="page-link-button" href="account.html">Account</a>
-          <a class="cart-button" href="newtab.html#cart-panel" aria-label="Open shopping cart">
+          <a class="header-icon-button comments-header-button" href="comments.html" aria-label="Open comment trails" title="Comments">
+            <svg class="comment-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.5-4A9 9 0 1 1 21 12Z"></path></svg>
+          </a>
+          <a class="cart-button" href="cart.html" aria-label="Open shopping cart">
             <span class="cart-icon" aria-hidden="true"></span><strong id="cart-count">0</strong><span>Cart</span>
           </a>
         </div>
       </header>
 
-      <section class="hero-strip catalog-hero" aria-label="Store tally overview">
-        <div><p>Store finances</p><h1 id="tally-title">Store Tally</h1></div>
+      <section class="hero-strip catalog-hero" aria-label="Store analytics overview">
+        <div><p>Store analytics</p><h1 id="tally-title">Analytics</h1></div>
         <div class="hero-stats" aria-live="polite">
           <span id="tally-order-count">0 orders</span>
           <span id="tally-open-items">0 open cart items</span>
@@ -42,26 +46,73 @@
         </div>
       </section>
 
-      <section class="tally-layout" aria-label="Financial summary">
+      <section class="tally-layout" aria-label="Analytics summary">
         <div class="tally-stat-grid">
           <article class="tally-stat spent"><span>Amount spent</span><strong id="tally-spent"></strong><small>Value of checked-out orders</small></article>
           <article class="tally-stat open"><span>Still to spend</span><strong id="tally-open-value"></strong><small>Open items across all carts</small></article>
-          <article class="tally-stat inventory"><span>Available store value</span><strong id="tally-inventory-value"></strong><small>Value of units still in stock</small></article>
-          <article class="tally-stat potential"><span>Catalog value</span><strong id="tally-catalog-value"></strong><small>One MOQ of every product</small></article>
+          <article class="tally-stat inventory"><span>Available store value</span><strong id="tally-inventory-value"></strong><small>Total value of products still in stock</small></article>
+          <article class="tally-stat potential"><span>Catalog value</span><strong id="tally-catalog-value"></strong><small>One price per product</small></article>
+        </div>
+
+        <section class="tally-panel analytics-spotlight" aria-labelledby="completion-spotlight-heading">
+          <div class="analytics-spotlight-copy">
+            <div class="section-heading"><h2 id="completion-spotlight-heading">Completed vs pending</h2></div>
+            <p id="completion-summary">Track how much value has already moved through checkout compared with what is still waiting in carts.</p>
+            <div class="completion-total">
+              <span>Total cart commitment</span>
+              <strong id="completion-total-value"></strong>
+            </div>
+          </div>
+          <div class="completion-orbit" aria-label="Completed and pending value">
+            <div id="completion-ring" class="completion-ring">
+              <div class="completion-ring-core">
+                <span id="completion-percent">0%</span>
+                <small>complete</small>
+              </div>
+            </div>
+          </div>
+          <div class="completion-breakdown">
+            <article class="completion-card complete">
+              <span>Completed</span>
+              <strong id="completion-spent-value"></strong>
+              <small id="completion-spent-percent">0% of total</small>
+            </article>
+            <article class="completion-card pending">
+              <span>Pending</span>
+              <strong id="completion-open-value"></strong>
+              <small id="completion-open-percent">0% of total</small>
+            </article>
+            <article class="completion-card stock">
+              <span>Store value</span>
+              <strong id="completion-stock-value"></strong>
+              <small>Available inventory</small>
+            </article>
+          </div>
+        </section>
+
+        <div class="analytics-charts" aria-label="Visual analytics">
+          <section class="tally-panel analytics-panel" aria-labelledby="value-chart-heading">
+            <div class="section-heading"><h2 id="value-chart-heading">Value overview</h2></div>
+            <div id="value-chart" class="analytics-bar-chart"></div>
+          </section>
+          <section class="tally-panel analytics-panel" aria-labelledby="category-chart-heading">
+            <div class="section-heading"><h2 id="category-chart-heading">Category value</h2></div>
+            <div id="category-chart" class="analytics-bar-chart"></div>
+          </section>
         </div>
 
         <div class="tally-panels">
           <section class="tally-panel" aria-labelledby="category-tally-heading">
             <div class="section-heading"><h2 id="category-tally-heading">By category</h2></div>
-            <ul id="category-tally-list" class="tally-list"></ul>
+            <ul id="category-tally-list" class="category-column-chart"></ul>
             <p id="empty-category-tally" class="tally-empty" hidden>No product values to tally yet.</p>
           </section>
-          <section class="tally-panel" aria-labelledby="cart-tally-heading">
-            <div class="section-heading"><h2 id="cart-tally-heading">Open cart commitments</h2></div>
-            <ul id="cart-tally-list" class="tally-list"></ul>
-            <p id="empty-cart-tally" class="tally-empty" hidden>No open cart items.</p>
-          </section>
         </div>
+
+        <section class="tally-panel analytics-panel" aria-labelledby="cart-chart-heading">
+          <div class="section-heading"><h2 id="cart-chart-heading">Cart commitments chart</h2></div>
+          <div id="cart-chart" class="cart-composition-chart"></div>
+        </section>
       </section>
     </main>
     <script src="store.js"></script>

@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Shopping Cart - ToDoList Cart</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+    <link rel="stylesheet" href="newtab.css">
+  </head>
+  <body>
+    <main class="store-shell cart-page-shell" aria-labelledby="cart-page-title">
+      <header class="store-header">
+        <div class="top-row">
+          <a class="brand" href="newtab.html" aria-label="Go to ToDoList Cart home">
+            <img class="brand-icon" src="icons/icon-48.png" alt="">
+            <span class="brand-name">ToDoList Cart</span><span class="brand-domain">.tasks</span>
+          </a>
+          <form class="search-bar" action="newtab.html" method="get" autocomplete="off">
+            <label class="visually-hidden" for="cart-product-search">Search task products</label>
+            <input id="cart-product-search" name="q" type="search" placeholder="Search task products">
+            <button type="submit">Search</button>
+          </form>
+          <a class="page-link-button" href="create-product.html">Create</a>
+          <a class="page-link-button" href="newtab.html">Workspace</a>
+          <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
+          <a class="page-link-button" href="order-history.html">Orders</a>
+          <a class="page-link-button" href="tally.html">Analytics</a>
+          <a class="page-link-button" href="vendors.html">Vendors</a>
+          <a class="page-link-button" href="account.html">Account</a>
+          <a class="header-icon-button comments-header-button" href="comments.html" aria-label="Open comment trails" title="Comments">
+            <svg class="comment-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.5-4A9 9 0 1 1 21 12Z"></path></svg>
+          </a>
+          <a class="cart-button active-cart-page" href="cart.html" aria-label="Open shopping cart" aria-current="page">
+            <span class="cart-icon" aria-hidden="true"></span><strong id="cart-count">0</strong><span>Cart</span>
+          </a>
+        </div>
+        <nav class="departments" aria-label="Categories"></nav>
+      </header>
+
+      <section class="hero-strip catalog-hero" aria-label="Cart overview">
+        <div><p>Shopping cart</p><h1 id="cart-page-title">Your cart</h1></div>
+        <div class="hero-stats" aria-live="polite">
+          <span id="cart-item-count">0 items</span>
+          <span id="cart-open-count">0 open</span>
+          <span id="cart-hero-total">US$0.00</span>
+        </div>
+      </section>
+
+      <section class="cart-page-manager" aria-label="Cart manager">
+        <label for="cart-select">Active cart</label>
+        <select id="cart-select" aria-label="Active cart"></select>
+        <form id="cart-form" class="cart-page-create-form" autocomplete="off">
+          <label class="visually-hidden" for="cart-name">New cart name</label>
+          <input id="cart-name" type="text" maxlength="40" placeholder="New cart name">
+          <button type="submit" class="primary-button">Create Cart</button>
+        </form>
+        <button type="button" id="delete-cart" class="secondary-button">Delete Cart</button>
+      </section>
+
+      <section class="cart-page-layout" aria-label="Cart contents">
+        <section class="cart-page-items-panel" aria-labelledby="cart-items-heading">
+          <div class="section-heading">
+            <div><p class="section-kicker">Active cart</p><h2 id="cart-items-heading">Cart items</h2></div>
+            <a class="back-to-products" href="products.html">Continue shopping</a>
+          </div>
+          <div class="progress-wrap cart-page-progress">
+            <div><span>Checked out</span><strong id="progress-label">0%</strong></div>
+            <div class="progress-track" aria-hidden="true"><span id="progress-bar"></span></div>
+          </div>
+          <ul id="cart-list" class="cart-page-list"></ul>
+          <div id="empty-cart" class="empty-state cart-page-empty" hidden>
+            <strong>Your cart is empty</strong>
+            <span>Add products from the product listing to see them here.</span>
+            <a class="primary-button cart-empty-action" href="products.html">Browse products</a>
+          </div>
+          <button type="button" id="clear-done" class="secondary-button cart-clear-done">Clear checked items</button>
+        </section>
+
+        <aside class="cart-page-summary" aria-labelledby="order-summary-heading">
+          <h2 id="order-summary-heading">Order summary</h2>
+          <dl class="cart-summary-list">
+            <div><dt>Products</dt><dd id="summary-products">0</dd></div>
+            <div><dt>Total MOQ</dt><dd id="summary-moq">0</dd></div>
+            <div><dt>Open items</dt><dd id="summary-open">0</dd></div>
+            <div class="cart-summary-total"><dt>Subtotal</dt><dd id="summary-total">US$0.00</dd></div>
+            <div id="summary-time-row" hidden><dt>Time equivalent</dt><dd id="summary-time"></dd></div>
+          </dl>
+          <button type="button" id="checkout-all" class="checkout-button cart-page-checkout">Checkout</button>
+          <p id="cart-status" class="cart-page-status" aria-live="polite"></p>
+          <a class="cart-orders-link" href="order-history.html">View order history</a>
+        </aside>
+      </section>
+    </main>
+
+    <template id="cart-page-item-template">
+      <li class="cart-page-item">
+        <label class="cart-check cart-page-check"><input type="checkbox"><span aria-hidden="true"></span></label>
+        <a class="cart-page-product-image" href="#"><span></span></a>
+        <div class="cart-page-copy">
+          <a class="cart-page-product-title" href="#"></a>
+          <p class="cart-page-description"></p>
+          <div class="cart-page-meta">
+            <span class="department-label"></span><span class="location-label"></span><span class="moq-label"></span><span class="cart-stock"></span>
+          </div>
+        </div>
+        <div class="cart-page-value"><strong class="cart-item-price"></strong><span class="cart-item-time" hidden></span></div>
+        <button type="button" class="remove-cart-button cart-delete-button" title="Remove item">
+          <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M4 7h16"></path>
+            <path d="M10 11v6"></path>
+            <path d="M14 11v6"></path>
+            <path d="M6 7l1 14h10l1-14"></path>
+            <path d="M9 7V4h6v3"></path>
+          </svg>
+          <span class="visually-hidden">Remove</span>
+        </button>
+      </li>
+    </template>
+
+    <script src="store.js"></script>
+    <script src="cart.js"></script>
+  </body>
+</html>
