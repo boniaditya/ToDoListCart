@@ -25,7 +25,8 @@
     vendorQuery: "",
     selectedVendorIds: new Set(),
     currentPage: 1,
-    pageSize: 12
+    pageSize: 12,
+    isSavingProduct: false
   };
 
   const elements = {
@@ -109,6 +110,63 @@
     cartJump: document.querySelector("#cart-jump"),
     cartPanel: document.querySelector("#cart-panel")
   };
+
+  function ensureProductSaveStatus() {
+    if (!elements.productForm || !elements.createSubmit) {
+      return null;
+    }
+
+    let status = elements.productForm.querySelector(".product-save-status");
+
+    if (status) {
+      return status;
+    }
+
+    status = document.createElement("div");
+    status.className = "product-save-status";
+    status.setAttribute("role", "status");
+    status.setAttribute("aria-live", "polite");
+    status.hidden = true;
+
+    const spinner = document.createElement("span");
+    const message = document.createElement("strong");
+    const progress = document.createElement("span");
+    const progressBar = document.createElement("i");
+
+    spinner.className = "product-save-spinner";
+    spinner.setAttribute("aria-hidden", "true");
+    message.className = "product-save-message";
+    message.textContent = "Saving product...";
+    progress.className = "product-save-progress";
+    progress.setAttribute("aria-hidden", "true");
+    progress.append(progressBar);
+    status.append(spinner, message, progress);
+    elements.createSubmit.insertAdjacentElement("afterend", status);
+    return status;
+  }
+
+  function setProductSaving(isSaving, message = "Saving product...") {
+    const status = ensureProductSaveStatus();
+
+    state.isSavingProduct = Boolean(isSaving);
+
+    if (elements.createSubmit) {
+      elements.createSubmit.disabled = Boolean(isSaving);
+      elements.createSubmit.setAttribute("aria-busy", String(Boolean(isSaving)));
+      elements.createSubmit.textContent = isSaving
+        ? message
+        : (state.editProductId ? "Save Changes" : "Create Product");
+    }
+
+    if (status) {
+      status.hidden = !isSaving;
+      const messageElement = status.querySelector(".product-save-message");
+
+      if (messageElement) {
+        messageElement.textContent = message;
+      }
+    }
+  }
 
   function getCardSettings() {
     const settings = state.data.settings;
@@ -428,18 +486,39 @@
     images.forEach((entry, index) => {
       const previewItem = document.createElement("div");
       const removeButton = document.createElement("button");
+      const orderControls = document.createElement("div");
+      const moveLeft = document.createElement("button");
+      const moveRight = document.createElement("button");
       const image = document.createElement("img");
 
       previewItem.className = "image-preview-item";
       image.src = entry.src;
       image.alt = entry.name || `Selected product image ${index + 1}`;
+      orderControls.className = "image-order-controls";
+      moveLeft.type = "button";
+      moveLeft.className = "move-image-button";
+      moveLeft.dataset.imageIndex = String(index);
+      moveLeft.dataset.imageDirection = "-1";
+      moveLeft.disabled = index === 0;
+      moveLeft.setAttribute("aria-label", `Move image ${index + 1} left`);
+      moveLeft.title = "Move left";
+      moveLeft.textContent = "‹";
+      moveRight.type = "button";
+      moveRight.className = "move-image-button";
+      moveRight.dataset.imageIndex = String(index);
+      moveRight.dataset.imageDirection = "1";
+      moveRight.disabled = index === images.length - 1;
+      moveRight.setAttribute("aria-label", `Move image ${index + 1} right`);
+      moveRight.title = "Move right";
+      moveRight.textContent = "›";
       removeButton.type = "button";
       removeButton.className = "remove-image-button";
       removeButton.dataset.imageIndex = String(index);
       removeButton.setAttribute("aria-label", `Remove image ${index + 1}`);
       removeButton.title = `Remove image ${index + 1}`;
       removeButton.textContent = "×";
-      previewItem.append(image, removeButton);
+      orderControls.append(moveLeft, moveRight);
+      previewItem.append(image, orderControls, removeButton);
       previewGrid?.append(previewItem);
     });
 
@@ -478,6 +557,9 @@
         button.classList.toggle("active", active);
         button.setAttribute("aria-pressed", String(active));
       });
+      if (!state.isPopup) {
+        Store.appendCategoryCreateButton(elements.departments);
+      }
     }
 
     if (elements.departmentInput) {
@@ -862,7 +944,7 @@
       const imageBox = node.querySelector(".cart-product-image");
       const title = node.querySelector(".cart-copy strong");
       const meta = node.querySelector(".cart-copy span");
-      const stock = node.querySelector(".cart-stock");
+      const moveWishlist = node.querySelector(".cart-move-wishlist");
       const removeButton = node.querySelector(".remove-cart-button");
 
       node.dataset.productId = product.id;
@@ -879,9 +961,10 @@
         imageBox.append(document.createElement("span"));
       }
       title.textContent = product.title;
-      meta.textContent = `${getCategoryName(product)} | ${Store.getPriorityLabel(product.priority)} | ${Store.formatMoq(product.moq)} | Total ${Store.formatMoney(product.price, state.data.settings)}`;
-      const unitsInStock = Store.getUnitsInStock(product);
-      stock.textContent = `${unitsInStock} ${unitsInStock === 1 ? "unit" : "units"} in stock`;
+      if (meta) {
+        meta.remove();
+      }
+      moveWishlist.setAttribute("aria-label", `Move ${product.title} from cart to wishlist`);
       removeButton.setAttribute("aria-label", `Remove ${product.title} from cart`);
       node.tabIndex = 0;
       node.setAttribute("role", "link");
@@ -899,6 +982,7 @@
     if (elements.brandName) {
       elements.brandName.textContent = state.data.settings.storeName;
     }
+    Store.renderHeaderCommentBadges(state.data);
 
     const cardSettings = getCardSettings();
     document.body.classList.toggle("compact-mode", cardSettings.compactMode);
@@ -1090,71 +1174,96 @@
 
   async function addProduct(event) {
     event.preventDefault();
+
+    if (state.isSavingProduct) {
+      return;
+    }
+
     const title = elements.titleInput.value.trim();
 
     if (!title) {
       return;
     }
 
-    const images = getSelectedImages();
-    syncVendorSelection();
+    setProductSaving(true, "Preparing product...");
 
-    const productValues = {
-      title,
-      department: elements.departmentInput.value,
-      productType: getProductTypeValue(),
-      location: elements.locationInput?.value.trim() || "Unspecified",
-      priority: getPriorityValue(),
-      moq: elements.moqInput.value,
-      unitPrice: elements.unitPriceInput?.value || getUnitPriceFromTotal(elements.priceInput.value, elements.availableUnitsInput.value),
-      price: elements.priceInput.value,
-      availableUnits: elements.availableUnitsInput.value,
-      completedUnits: state.editProductId ? state.data.products.find((product) => product.id === state.editProductId)?.completedUnits : 0,
-      inStock: elements.inStockInput.checked,
-      description: elements.descriptionInput?.value.trim() || "",
-      referenceUrls: state.referenceUrls,
-      relatedProductIds: state.relationSelections?.related || [],
-      bundleProductIds: state.relationSelections?.bundle || [],
-      images: await Store.prepareCardImages(images)
-    };
+    try {
+      const images = getSelectedImages();
+      syncVendorSelection();
+      setProductSaving(true, images.length ? "Preparing images..." : "Saving product...");
 
-    if (state.editProductId) {
-      const existingProduct = state.data.products.find((product) => product.id === state.editProductId);
+      const availableUnits = Math.max(1, Math.floor(Number(elements.availableUnitsInput.value) || 1));
+      const existingCompletedUnits = state.editProductId
+        ? Number(state.data.products.find((product) => product.id === state.editProductId)?.completedUnits || 0)
+        : 0;
+      const completedUnits = elements.inStockInput.checked && existingCompletedUnits >= availableUnits
+        ? Math.max(0, availableUnits - 1)
+        : existingCompletedUnits;
+      const productValues = {
+        title,
+        department: elements.departmentInput.value,
+        productType: getProductTypeValue(),
+        location: elements.locationInput?.value.trim() || "Unspecified",
+        priority: getPriorityValue(),
+        moq: elements.moqInput.value,
+        unitPrice: elements.unitPriceInput?.value || getUnitPriceFromTotal(elements.priceInput.value, elements.availableUnitsInput.value),
+        price: elements.priceInput.value,
+        availableUnits: String(availableUnits),
+        completedUnits,
+        inStock: elements.inStockInput.checked,
+        description: elements.descriptionInput?.value.trim() || "",
+        referenceUrls: state.referenceUrls,
+        relatedProductIds: state.relationSelections?.related || [],
+        bundleProductIds: state.relationSelections?.bundle || [],
+        images: await Store.prepareCardImages(images)
+      };
 
-      if (existingProduct) {
-        state.data.products = state.data.products.map((product) => (
-          product.id === state.editProductId
-            ? Store.normalizeProduct({
-              ...existingProduct,
-              ...productValues,
-              // The gallery is authoritative on edit; do not restore a removed legacy primary image.
-              image: "",
-              imageName: ""
-            })
-            : product
-        ));
-        state.data.products = Store.setRelatedProductLinks(
-          state.data.products,
-          state.editProductId,
-          productValues.relatedProductIds
-        );
-        updateProductVendors(state.editProductId, state.selectedVendorIds);
-        await Store.saveData(state.data);
-        window.location.href = Store.getExtensionUrl(`product.html?id=${encodeURIComponent(state.editProductId)}`);
-        return;
+      setProductSaving(true, "Saving product...");
+
+      if (state.editProductId) {
+        const existingProduct = state.data.products.find((product) => product.id === state.editProductId);
+
+        if (existingProduct) {
+          state.data.products = state.data.products.map((product) => (
+            product.id === state.editProductId
+              ? Store.normalizeProduct({
+                ...existingProduct,
+                ...productValues,
+                // The gallery is authoritative on edit; do not restore a removed legacy primary image.
+                image: "",
+                imageName: ""
+              })
+              : product
+          ));
+          state.data.products = Store.setRelatedProductLinks(
+            state.data.products,
+            state.editProductId,
+            productValues.relatedProductIds
+          );
+          updateProductVendors(state.editProductId, state.selectedVendorIds);
+          await Store.saveData(state.data);
+          setProductSaving(true, "Opening saved product...");
+          window.location.href = Store.getExtensionUrl(`product.html?id=${encodeURIComponent(state.editProductId)}`);
+          return;
+        }
       }
-    }
 
-    const createdProduct = Store.createProduct(productValues);
-    state.data.products.unshift(createdProduct);
-    state.data.products = Store.setRelatedProductLinks(
-      state.data.products,
-      createdProduct.id,
-      createdProduct.relatedProductIds
-    );
-    updateProductVendors(createdProduct.id, state.selectedVendorIds);
-    await Store.saveData(state.data);
-    window.location.href = Store.getExtensionUrl(`product.html?id=${encodeURIComponent(createdProduct.id)}`);
+      const createdProduct = Store.createProduct(productValues);
+      state.data.products.unshift(createdProduct);
+      state.data.products = Store.setRelatedProductLinks(
+        state.data.products,
+        createdProduct.id,
+        createdProduct.relatedProductIds
+      );
+      updateProductVendors(createdProduct.id, state.selectedVendorIds);
+      await Store.saveData(state.data);
+      setProductSaving(true, "Opening saved product...");
+      window.location.href = Store.getExtensionUrl(`product.html?id=${encodeURIComponent(createdProduct.id)}`);
+    } catch (error) {
+      console.error(error);
+      alert("The product could not be saved. Please try again.");
+      setProductSaving(false);
+    }
   }
 
   async function addCategoryFromInput() {
@@ -1231,6 +1340,30 @@
       items: activeCart.items.filter((item) => item.productId !== productId)
     });
     await persistAndRender();
+  }
+
+  function setMoveWishlistProgress(button, isMoving) {
+    if (!button) return;
+    button.disabled = isMoving;
+    button.classList.toggle("is-moving", isMoving);
+    button.setAttribute("aria-busy", String(isMoving));
+    button.textContent = isMoving ? "Moving..." : "Move to wishlist";
+  }
+
+  async function moveCartItemToWishlist(productId, button) {
+    setMoveWishlistProgress(button, true);
+    const activeCart = getActiveCart();
+    setActiveCart({
+      ...activeCart,
+      items: activeCart.items.filter((item) => item.productId !== productId)
+    });
+    state.data.wishlist = [...new Set([...(state.data.wishlist || []), productId])];
+    try {
+      await persistAndRender();
+    } catch (error) {
+      setMoveWishlistProgress(button, false);
+      throw error;
+    }
   }
 
   async function toggleDone(productId, done) {
@@ -1426,6 +1559,27 @@
     renderImagePreview();
   }
 
+  function moveImage(index, direction) {
+    const imageUrl = elements.imageUrlInput?.value.trim() || "";
+    const images = [
+      ...(imageUrl ? [{ src: imageUrl, name: "Image URL" }] : []),
+      ...state.formImages
+    ];
+    const targetIndex = index + direction;
+
+    if (targetIndex < 0 || targetIndex >= images.length) {
+      return;
+    }
+
+    [images[index], images[targetIndex]] = [images[targetIndex], images[index]];
+
+    if (elements.imageUrlInput) {
+      elements.imageUrlInput.value = "";
+    }
+    state.formImages = images.map((entry) => ({ ...entry }));
+    renderImagePreview();
+  }
+
   async function applyDroppedOrPastedImages(files) {
     if (!files.length) {
       return;
@@ -1571,6 +1725,12 @@
     });
     elements.vendorsInput?.addEventListener("change", syncVendorSelection);
     elements.imagePreview?.addEventListener("click", (event) => {
+      const moveButton = event.target.closest(".move-image-button");
+      if (moveButton) {
+        moveImage(Number(moveButton.dataset.imageIndex), Number(moveButton.dataset.imageDirection));
+        return;
+      }
+
       const button = event.target.closest(".remove-image-button");
 
       if (button) {
@@ -1781,11 +1941,15 @@
       }
 
       if (addButton) {
+        event.preventDefault();
+        event.stopPropagation();
         addToCart(addButton.closest(".product-card").dataset.id);
         return;
       }
 
       if (buyNowButton) {
+        event.preventDefault();
+        event.stopPropagation();
         buyNow(buyNowButton.closest(".product-card").dataset.id);
         return;
       }
@@ -1815,6 +1979,13 @@
     });
 
     elements.cartList?.addEventListener("click", (event) => {
+      const moveWishlist = event.target.closest(".cart-move-wishlist");
+
+      if (moveWishlist) {
+        moveCartItemToWishlist(moveWishlist.closest(".cart-item").dataset.productId, moveWishlist);
+        return;
+      }
+
       const button = event.target.closest(".remove-cart-button");
 
       if (button) {

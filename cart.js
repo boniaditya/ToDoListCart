@@ -71,6 +71,7 @@
       Store.renderCategory(link, state.data, category.id);
       elements.departments.append(link);
     });
+    Store.appendCategoryCreateButton(elements.departments);
   }
 
   function renderCartSelector() {
@@ -98,6 +99,7 @@
     const price = node.querySelector(".cart-item-price");
     const time = node.querySelector(".cart-item-time");
     const remove = node.querySelector(".remove-cart-button");
+    const moveWishlist = node.querySelector(".move-wishlist-button");
     const detailUrl = `product.html?id=${encodeURIComponent(product.id)}`;
     const [money, duration] = Store.formatMoney(product.price, state.data.settings).split(" · ");
     const imageSource = product.images?.[0]?.cardSrc || product.images?.[0]?.src || product.image;
@@ -131,6 +133,7 @@
     time.textContent = formatCartDuration(duration);
     time.hidden = !duration;
     remove.setAttribute("aria-label", `Remove ${product.title} from cart`);
+    moveWishlist.setAttribute("aria-label", `Move ${product.title} from cart to wishlist`);
     imageLink.hidden = !state.data.settings.cartPageShowImages;
     remove.hidden = !state.data.settings.cartPageShowRemoveButtons;
     return node;
@@ -148,6 +151,7 @@
     const [money, duration] = Store.formatMoney(total, state.data.settings).split(" · ");
 
     elements.brandName.textContent = state.data.settings.storeName;
+    Store.renderHeaderCommentBadges(state.data);
     elements.cartManager.hidden = !state.data.settings.cartPageShowManager;
     elements.cartPageLayout.classList.toggle("sticky-checkout-compact", state.data.settings.stickyCheckoutCompact);
     elements.cartPageLayout.classList.toggle("hide-cart-images", !state.data.settings.cartPageShowImages);
@@ -204,6 +208,27 @@
     const activeCart = getActiveCart();
     setActiveCart({ ...activeCart, items: activeCart.items.filter((item) => item.productId !== productId) });
     await persist("Item removed from cart.");
+  }
+
+  function setMoveWishlistProgress(button, isMoving) {
+    if (!button) return;
+    button.disabled = isMoving;
+    button.classList.toggle("is-moving", isMoving);
+    button.setAttribute("aria-busy", String(isMoving));
+    button.textContent = isMoving ? "Moving..." : "Move to wishlist";
+  }
+
+  async function moveItemToWishlist(productId, button) {
+    setMoveWishlistProgress(button, true);
+    const activeCart = getActiveCart();
+    setActiveCart({ ...activeCart, items: activeCart.items.filter((item) => item.productId !== productId) });
+    state.data.wishlist = [...new Set([...(state.data.wishlist || []), productId])];
+    try {
+      await persist("Item moved to wishlist.");
+    } catch (error) {
+      setMoveWishlistProgress(button, false);
+      throw error;
+    }
   }
 
   async function clearDone() {
@@ -266,6 +291,12 @@
       if (checkbox) toggleDone(checkbox.closest(".cart-page-item").dataset.productId, checkbox.checked);
     });
     elements.cartList.addEventListener("click", (event) => {
+      const moveWishlist = event.target.closest(".move-wishlist-button");
+      if (moveWishlist) {
+        moveItemToWishlist(moveWishlist.closest(".cart-page-item").dataset.productId, moveWishlist);
+        return;
+      }
+
       const remove = event.target.closest(".remove-cart-button");
       if (remove) removeItem(remove.closest(".cart-page-item").dataset.productId);
     });

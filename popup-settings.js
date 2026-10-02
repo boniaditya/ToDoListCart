@@ -55,6 +55,7 @@
       Store.renderCategory(link, state.data, category.id);
       elements.departments.append(link);
     });
+    Store.appendCategoryCreateButton(elements.departments);
   }
 
   function settingKey(name) {
@@ -94,6 +95,7 @@
 
   function render() {
     elements.brandName.textContent = state.data.settings.storeName;
+    Store.renderHeaderCommentBadges(state.data);
     elements.cartCount.textContent = String(Store.getActiveCart(state.data).items.length);
     renderCategories();
     applySettingsToForm();

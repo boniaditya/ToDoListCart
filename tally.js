@@ -15,11 +15,14 @@
     completionTotalValue: document.querySelector("#completion-total-value"),
     completionRing: document.querySelector("#completion-ring"),
     completionPercent: document.querySelector("#completion-percent"),
+    completionPercentLabel: document.querySelector("#completion-percent-label"),
+    completionCards: document.querySelectorAll("[data-completion-focus]"),
     completionSpentValue: document.querySelector("#completion-spent-value"),
     completionSpentPercent: document.querySelector("#completion-spent-percent"),
     completionOpenValue: document.querySelector("#completion-open-value"),
     completionOpenPercent: document.querySelector("#completion-open-percent"),
     completionStockValue: document.querySelector("#completion-stock-value"),
+    completionStockPercent: document.querySelector("#completion-stock-percent"),
     valueChart: document.querySelector("#value-chart"),
     categoryChart: document.querySelector("#category-chart"),
     cartChart: document.querySelector("#cart-chart"),
@@ -32,6 +35,41 @@
   const plural = (count, word) => `${count} ${count === 1 ? word : `${word}s`}`;
   const chartColors = ["#9ad9e3", "#ffd28a", "#a8ddb5", "#f4b79f", "#c7d2e5", "#c9b6f2", "#f7b7a3", "#9fd8cf"];
   const moneyAmount = (value) => money(value).split(" · ")[0];
+
+  function setCompletionFocus(focus = "complete") {
+    const mix = state.completionMix;
+    if (!mix) return;
+    const selected = mix[focus] || mix.complete;
+
+    elements.completionPercent.textContent = percentLabel(selected.percent);
+    elements.completionPercentLabel.textContent = selected.label;
+    elements.completionRing.dataset.focus = selected.key;
+    elements.completionCards.forEach((card) => {
+      card.classList.toggle("active", card.dataset.completionFocus === selected.key);
+    });
+  }
+
+  function getCompletionFocusFromPointer(event) {
+    const mix = state.completionMix;
+    if (!mix) return "complete";
+    const rect = elements.completionRing.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const x = event.clientX - centerX;
+    const y = event.clientY - centerY;
+    const distance = Math.sqrt((x * x) + (y * y));
+    const innerRadius = rect.width * 0.24;
+
+    if (distance < innerRadius) {
+      return elements.completionRing.dataset.focus || "complete";
+    }
+
+    const angle = ((Math.atan2(y, x) * 180) / Math.PI + 90 + 360) % 360;
+    const pointerPercent = (angle / 360) * 100;
+    if (pointerPercent <= mix.complete.stop) return "complete";
+    if (pointerPercent <= mix.cart.stop) return "cart";
+    return "stock";
+  }
   const percentLabel = (value) => `${value.toFixed(value >= 10 || value === 0 ? 0 : 1)}%`;
 
   function renderStatValue(element, value) {
@@ -70,8 +108,10 @@
 
   function renderVerticalCategoryChart(container, entries) {
     container.replaceChildren();
-    const visibleEntries = entries.filter((entry) => Number(entry.value) > 0);
-    const maxValue = Math.max(...visibleEntries.map((entry) => entry.value), 0);
+    const visibleEntries = entries.filter((entry) => Number(entry.total) > 0);
+    const values = visibleEntries.map((entry) => Number(entry.total));
+    const maxValue = Math.max(...values, 0);
+    const minValue = Math.min(...values.filter((value) => value > 0), maxValue);
 
     if (!visibleEntries.length) {
       return;
@@ -81,25 +121,46 @@
       const item = document.createElement("li");
       const value = document.createElement("b");
       const barWrap = document.createElement("div");
-      const bar = document.createElement("i");
+      const stack = document.createElement("div");
       const label = document.createElement("a");
       const detail = document.createElement("span");
-      const percent = maxValue ? (Number(entry.value) / maxValue) * 100 : 0;
-      const tooltip = `${entry.label}: ${money(entry.value).split(" · ")[0]} · ${plural(entry.products, "product")} in catalog`;
+      const footer = document.createElement("small");
+      const normalized = maxValue > minValue
+        ? ((Number(entry.total) - minValue) / (maxValue - minValue)) * 72 + 28
+        : 100;
+      const completedPercent = entry.total ? (entry.completed / entry.total) * 100 : 0;
+      const cartPercent = entry.total ? (entry.inCart / entry.total) * 100 : 0;
+      const storePercent = Math.max(0, 100 - completedPercent - cartPercent);
+      const tooltip = `${entry.label}: ${moneyAmount(entry.total)} total · ${moneyAmount(entry.completed)} completed · ${moneyAmount(entry.inCart)} in cart · ${moneyAmount(entry.inStore)} in store`;
 
       item.className = "category-column-item";
       item.title = tooltip;
       item.style.setProperty("--bar-color", chartColors[index % chartColors.length]);
-      value.textContent = money(entry.value).split(" · ")[0];
+      value.textContent = moneyAmount(entry.total);
       barWrap.className = "category-column-bar";
-      bar.style.height = `${Math.max(4, percent)}%`;
+      stack.className = "category-column-stack";
+      stack.style.height = `${Math.max(28, normalized)}%`;
+      [
+        ["complete", completedPercent, entry.completed],
+        ["cart", cartPercent, entry.inCart],
+        ["store", storePercent, entry.inStore]
+      ].forEach(([className, percent, amount]) => {
+        if (amount <= 0 || percent <= 0) {
+          return;
+        }
+        const slice = document.createElement("i");
+        slice.className = className;
+        slice.style.height = `${Math.max(8, percent)}%`;
+        stack.append(slice);
+      });
       label.className = "category-column-link";
       label.href = `products.html?department=${encodeURIComponent(entry.id)}`;
       label.setAttribute("aria-label", `View ${entry.label} products`);
       label.textContent = entry.label;
       detail.textContent = plural(entry.products, "product");
-      barWrap.append(bar);
-      item.append(value, barWrap, label, detail);
+      footer.textContent = `Done ${moneyAmount(entry.completed)} · Cart ${moneyAmount(entry.inCart)} · Store ${moneyAmount(entry.inStore)}`;
+      barWrap.append(stack);
+      item.append(value, barWrap, label, detail, footer);
       container.append(item);
     });
   }
@@ -139,26 +200,68 @@
   }
 
   function renderCompletionSpotlight(spent, openValue, inventoryValue) {
-    const totalCommitment = spent + openValue;
+    const remainingStoreValue = Math.max(0, inventoryValue - openValue);
+    const totalCommitment = spent + openValue + remainingStoreValue;
     const spentPercent = totalCommitment ? (spent / totalCommitment) * 100 : 0;
     const openPercent = totalCommitment ? (openValue / totalCommitment) * 100 : 0;
-    const ringStop = Math.min(100, Math.max(0, spentPercent));
+    const remainingPercent = Math.max(0, 100 - spentPercent - openPercent);
+    const completedStop = Math.min(100, Math.max(0, spentPercent));
+    const cartStop = Math.min(100, Math.max(completedStop, spentPercent + openPercent));
+
+    state.completionMix = {
+      complete: {
+        key: "complete",
+        label: "complete",
+        percent: spentPercent,
+        stop: completedStop
+      },
+      cart: {
+        key: "cart",
+        label: "in cart",
+        percent: openPercent,
+        stop: cartStop
+      },
+      stock: {
+        key: "stock",
+        label: "pending",
+        percent: remainingPercent,
+        stop: 100
+      }
+    };
 
     elements.completionTotalValue.textContent = moneyAmount(totalCommitment);
-    elements.completionPercent.textContent = percentLabel(spentPercent);
     elements.completionSpentValue.textContent = moneyAmount(spent);
     elements.completionSpentPercent.textContent = `${percentLabel(spentPercent)} of total`;
     elements.completionOpenValue.textContent = moneyAmount(openValue);
     elements.completionOpenPercent.textContent = `${percentLabel(openPercent)} of total`;
-    elements.completionStockValue.textContent = moneyAmount(inventoryValue);
-    elements.completionRing.style.setProperty("--completion", `${ringStop}%`);
+    elements.completionStockValue.textContent = moneyAmount(remainingStoreValue);
+    elements.completionStockPercent.textContent = `${percentLabel(remainingPercent)} of total`;
+    elements.completionRing.style.setProperty("--completed-stop", `${completedStop}%`);
+    elements.completionRing.style.setProperty("--cart-stop", `${cartStop}%`);
+    setCompletionFocus(elements.completionRing.dataset.focus || "complete");
 
     if (totalCommitment > 0) {
-      elements.completionSummary.textContent = `${moneyAmount(spent)} is complete, with ${moneyAmount(openValue)} still pending across open carts.`;
+      elements.completionSummary.textContent = `${moneyAmount(spent)} is complete, ${moneyAmount(openValue)} is in carts, and ${moneyAmount(remainingStoreValue)} remains as pending stock.`;
       return;
     }
 
-    elements.completionSummary.textContent = "Completed and pending value will appear here after carts or orders have priced items.";
+    elements.completionSummary.textContent = "Completed, cart, and pending stock value will appear here after priced products are added.";
+  }
+
+  function bindCompletionInteractions() {
+    elements.completionRing.addEventListener("mousemove", (event) => {
+      setCompletionFocus(getCompletionFocusFromPointer(event));
+    });
+    elements.completionRing.addEventListener("mouseleave", () => {
+      setCompletionFocus("complete");
+    });
+    elements.completionCards.forEach((card) => {
+      const focus = card.dataset.completionFocus;
+      card.addEventListener("mouseenter", () => setCompletionFocus(focus));
+      card.addEventListener("focus", () => setCompletionFocus(focus));
+      card.addEventListener("mouseleave", () => setCompletionFocus("complete"));
+      card.addEventListener("blur", () => setCompletionFocus("complete"));
+    });
   }
 
   function renderCartCompositionChart(container, carts) {
@@ -238,6 +341,7 @@
     const activeCart = Store.getActiveCart(state.data);
 
     elements.brandName.textContent = state.data.settings.storeName;
+    Store.renderHeaderCommentBadges(state.data);
     elements.cartCount.textContent = activeCart.items.length;
     elements.orderCount.textContent = plural(orders.length, "order");
     elements.openItems.textContent = plural(openCartEntries.length, "open cart item");
@@ -254,17 +358,50 @@
       { label: "Catalog", value: catalogValue }
     ], { colors: ["#a8ddb5", "#ffd28a", "#9ad9e3", "#c7d2e5"] });
 
+    const completedByCategory = new Map();
+    orders.forEach((order) => {
+      (order.items || []).forEach((item) => {
+        const categoryId = item.department;
+        const current = completedByCategory.get(categoryId) || 0;
+        completedByCategory.set(categoryId, current + Number(item.price || 0));
+      });
+    });
+    const cartByCategory = new Map();
+    openCartEntries.forEach(({ product }) => {
+      const categoryId = product.department;
+      const current = cartByCategory.get(categoryId) || 0;
+      cartByCategory.set(categoryId, current + productValue(product));
+    });
     const categoryTotals = new Map();
     state.data.products.forEach((product) => {
       const categoryId = product.department;
-      const current = categoryTotals.get(categoryId) || { inventory: 0, products: 0 };
-      current.inventory += Store.getUnitsInStock(product) > 0 ? productValue(product) : 0;
+      const current = categoryTotals.get(categoryId) || { inStore: 0, products: 0 };
+      current.inStore += Store.getUnitsInStock(product) > 0 ? productValue(product) : 0;
       current.products += 1;
       categoryTotals.set(categoryId, current);
     });
+    [...completedByCategory.keys(), ...cartByCategory.keys()].forEach((categoryId) => {
+      if (!categoryTotals.has(categoryId)) {
+        categoryTotals.set(categoryId, { inStore: 0, products: 0 });
+      }
+    });
     const categoryEntries = [...categoryTotals.entries()]
-      .sort(([, a], [, b]) => b.inventory - a.inventory)
-      .map(([id, totals]) => ({ id, label: Store.getCategoryLabel(state.data, id), value: totals.inventory, products: totals.products }));
+      .map(([id, totals]) => {
+        const completed = completedByCategory.get(id) || 0;
+        const inCart = cartByCategory.get(id) || 0;
+        const inStore = Math.max(0, totals.inStore - inCart);
+        return {
+          id,
+          label: Store.getCategoryLabel(state.data, id),
+          value: totals.inStore,
+          total: completed + inCart + inStore,
+          completed,
+          inCart,
+          inStore,
+          products: totals.products
+        };
+      })
+      .sort((a, b) => b.total - a.total);
     renderVerticalCategoryChart(elements.categoryList, categoryEntries);
     elements.emptyCategories.hidden = categoryTotals.size > 0;
     renderBarChart(elements.categoryChart, categoryEntries, { colors: chartColors });
@@ -290,5 +427,6 @@
     state.data = await Store.loadData();
     render();
   }
+  bindCompletionInteractions();
   init();
 })();

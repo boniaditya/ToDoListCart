@@ -21,7 +21,6 @@
             <input id="vendor-product-search" name="q" type="search" placeholder="Search task products">
             <button type="submit">Search</button>
           </form>
-          <a class="page-link-button" href="create-product.html">Create</a>
           <a class="page-link-button" href="newtab.html">Workspace</a>
           <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
           <a class="page-link-button" href="order-history.html">Orders</a>
@@ -67,6 +66,27 @@
               <label>Vendor email<input id="vendor-email" type="email" maxlength="120" placeholder="sales@example.com"></label>
             </div>
             <label>Website<input id="vendor-website" type="url" maxlength="240" placeholder="https://example.com"></label>
+            <section class="vendor-links-editor" aria-labelledby="vendor-links-title">
+              <div class="vendor-subsection-heading">
+                <div><h3 id="vendor-links-title">Reference links</h3><p>Add websites, catalog pages, maps, documents, or other vendor references.</p></div>
+              </div>
+              <div class="vendor-link-form">
+                <input id="vendor-reference-url" type="url" maxlength="300" placeholder="https://example.com/reference">
+                <button type="button" class="secondary-button" id="add-vendor-reference">Add link</button>
+              </div>
+              <ul id="vendor-reference-list" class="vendor-reference-list"></ul>
+            </section>
+            <section class="vendor-images-editor" aria-labelledby="vendor-images-title">
+              <div class="vendor-subsection-heading">
+                <div><h3 id="vendor-images-title">Vendor images</h3><p>Attach logos, brochures, product photos, or pasted screenshots.</p></div>
+              </div>
+              <label class="vendor-image-upload" for="vendor-image-file">
+                <span>Upload images</span>
+                <input id="vendor-image-file" type="file" accept="image/*" multiple>
+              </label>
+              <div id="vendor-image-dropzone" class="vendor-image-dropzone" tabindex="0">Drop images here or paste from clipboard</div>
+              <div id="vendor-image-preview" class="vendor-image-preview" hidden></div>
+            </section>
             <label>Address<textarea id="vendor-address" maxlength="300" rows="3" placeholder="Office or business address"></textarea></label>
             <label>Products supplied
               <input id="vendor-product-picker-search" type="search" placeholder="Search products to link">
@@ -86,6 +106,11 @@
             <div class="vendor-form-actions">
               <button type="submit" class="primary-button" id="save-vendor">Save Vendor</button>
               <button type="button" class="secondary-button" id="cancel-vendor-edit" hidden>Cancel edit</button>
+            </div>
+            <div id="vendor-save-progress" class="vendor-save-progress" role="status" aria-live="polite" hidden>
+              <span class="vendor-save-spinner" aria-hidden="true"></span>
+              <strong>Creating vendor...</strong>
+              <span class="vendor-save-bar" aria-hidden="true"><i></i></span>
             </div>
             <p id="vendor-form-status" class="settings-status" aria-live="polite"></p>
           </form>
@@ -122,6 +147,8 @@
         <header class="vendor-card-header"><div><span class="vendor-type-badge"></span><h3></h3></div><div class="vendor-card-actions"><button type="button" class="secondary-button edit-vendor">Edit</button><button type="button" class="secondary-button delete-vendor">Delete</button></div></header>
         <div class="vendor-direct-contact"></div>
         <p class="vendor-address"></p>
+        <div class="vendor-image-gallery"></div>
+        <div class="vendor-reference-links"><strong>Reference links</strong><div></div></div>
         <div class="vendor-products"><strong>Products supplied</strong><div class="vendor-product-links"></div></div>
         <div class="vendor-spocs"><strong>SPOCs</strong><div class="vendor-spoc-list"></div></div>
         <p class="vendor-notes"></p>

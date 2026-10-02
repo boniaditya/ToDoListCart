@@ -1,0 +1,22 @@
+🛒 ToDoList Cart turns your task list into a simple shopping cart workflow.
+
+Instead of managing tasks as a plain checklist, you can create tasks as product style cards, organize them into carts, move active work through checkout, and review completed work later in order history. It is designed to make personal task planning feel more visual, organized, and easy to review.
+
+With ToDoList Cart, each task can include a name, description, category, priority, value, quantity, images, useful links, related items, and vendor details. You can group tasks into carts such as Work, Home, Errands, BUY, Health, or any custom cart you create. When a task is ready to act on, add it to a cart. When it is finished, check it out and keep a record of what was completed.
+
+The extension includes a workspace for browsing task products, a cart page for active work, a wishlist, order history, vendor pages, account settings, and analytics. The analytics page helps you understand completed value, items currently in carts, pending stock, catalog value, and category level progress through visual charts.
+
+Key features:
+
+✅ Create tasks as product cards
+✅ Organize work into carts and categories
+✅ Add images, links, notes, vendors, and related items
+✅ Mark items as available or out of stock
+✅ Check out completed tasks into order history
+✅ View visual analytics for completed, in cart, and pending work
+✅ Customize display settings for a more comfortable workspace
+✅ Store your data locally in your browser
+
+ToDoList Cart is useful when you want a more visual way to plan, review, and complete tasks. It gives your to do list the familiar structure of an online store while keeping the focus on personal productivity.
+
+Your task data is saved in your browser using Chrome storage. The extension does not require an account, does not sell user data, and is built for organizing your own task workflow.

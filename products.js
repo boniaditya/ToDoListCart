@@ -293,6 +293,7 @@
       button.classList.toggle("active", active);
       button.setAttribute("aria-pressed", String(active));
     });
+    Store.appendCategoryCreateButton(elements.departments);
   }
 
   function renderSummary() {
@@ -428,6 +429,7 @@
 
   function renderSettings() {
     elements.brandName.textContent = state.data.settings.storeName;
+    Store.renderHeaderCommentBadges(state.data);
     document.body.classList.toggle("compact-mode", state.data.settings.listingCompactMode);
     document.body.classList.toggle("hide-product-descriptions", !state.data.settings.listingShowProductDescriptions);
     document.body.classList.toggle("hide-delivery-status", !state.data.settings.listingShowDeliveryStatus);

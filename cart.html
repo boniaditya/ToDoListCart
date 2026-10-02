@@ -21,7 +21,6 @@
             <input id="cart-product-search" name="q" type="search" placeholder="Search task products">
             <button type="submit">Search</button>
           </form>
-          <a class="page-link-button" href="create-product.html">Create</a>
           <a class="page-link-button" href="newtab.html">Workspace</a>
           <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
           <a class="page-link-button" href="order-history.html">Orders</a>
@@ -104,7 +103,11 @@
             <span class="department-label"></span><span class="location-label"></span><span class="moq-label"></span><span class="cart-stock"></span>
           </div>
         </div>
-        <div class="cart-page-value"><strong class="cart-item-price"></strong><span class="cart-item-time" hidden></span></div>
+        <div class="cart-page-value">
+          <strong class="cart-item-price"></strong>
+          <span class="cart-item-time" hidden></span>
+          <button type="button" class="move-wishlist-button">Move to wishlist</button>
+        </div>
         <button type="button" class="remove-cart-button cart-delete-button" title="Remove item">
           <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
             <path d="M4 7h16"></path>

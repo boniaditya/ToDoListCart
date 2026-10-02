@@ -59,6 +59,7 @@
     showImages: true,
     compactMode: false,
     commentComposerPlacement: "below",
+    showWeeklyCommentBadge: true,
     defaultProductType: "product",
     defaultProductView: "card",
     productsPerPage: 12,
@@ -444,6 +445,14 @@
     const contacts = getArray(vendor?.contacts || vendor?.spocs)
       .map(normalizeVendorContact)
       .filter((contact) => contact.name || contact.role || contact.phone || contact.email);
+    const referenceUrls = getArray(vendor?.referenceUrls || vendor?.links)
+      .map((url) => String(url || "").trim())
+      .filter(Boolean);
+    const website = String(vendor?.website || "").trim();
+    if (website && !referenceUrls.includes(website)) {
+      referenceUrls.unshift(website);
+    }
+    const images = normalizeImages(vendor?.images, vendor?.image, vendor?.imageName);
 
     return {
       id: String(vendor?.id || createId("vendor")),
@@ -451,9 +460,13 @@
       type: vendorTypes.includes(vendor?.type) ? vendor.type : "business",
       phone: String(vendor?.phone || "").trim(),
       email: String(vendor?.email || "").trim(),
-      website: String(vendor?.website || "").trim(),
+      website,
       address: String(vendor?.address || "").trim(),
       notes: String(vendor?.notes || "").trim(),
+      referenceUrls: [...new Set(referenceUrls)],
+      images,
+      image: images[0]?.src || "",
+      imageName: images[0]?.name || "",
       productIds,
       contacts,
       createdAt: Number(vendor?.createdAt) || Date.now(),
@@ -520,6 +533,9 @@
       commentComposerPlacement: commentComposerPlacements.includes(nextSettings.commentComposerPlacement)
         ? nextSettings.commentComposerPlacement
         : DEFAULT_SETTINGS.commentComposerPlacement,
+      showWeeklyCommentBadge: hasOwn(settings || {}, "showWeeklyCommentBadge")
+        ? nextSettings.showWeeklyCommentBadge !== false
+        : DEFAULT_SETTINGS.showWeeklyCommentBadge,
       defaultProductType: productTypes.includes(nextSettings.defaultProductType)
         ? nextSettings.defaultProductType
         : DEFAULT_SETTINGS.defaultProductType,
@@ -897,6 +913,44 @@
     element.append(text);
   }
 
+  function getRecentCommentCount(data, days = 7) {
+    const since = Date.now() - (days * 24 * 60 * 60 * 1000);
+    return getArray(data?.products).reduce((total, product) => (
+      total + getArray(product?.comments).filter((comment) => Number(comment?.createdAt || 0) >= since).length
+    ), 0);
+  }
+
+  function renderHeaderCommentBadges(data) {
+    const showBadge = data?.settings?.showWeeklyCommentBadge !== false;
+    const count = showBadge ? getRecentCommentCount(data, 7) : 0;
+    document.querySelectorAll(".comments-header-button").forEach((button) => {
+      let badge = button.querySelector(".weekly-comment-badge");
+      if (!showBadge || count <= 0) {
+        badge?.remove();
+        button.setAttribute("aria-label", "Open comment trails");
+        button.title = "Comments";
+        return;
+      }
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "weekly-comment-badge";
+        button.append(badge);
+      }
+      badge.textContent = count > 99 ? "99+" : String(count);
+      button.setAttribute("aria-label", `Open comment trails. ${count} comment${count === 1 ? "" : "s"} in the last week.`);
+      button.title = `${count} comment${count === 1 ? "" : "s"} in the last week`;
+    });
+  }
+
+  function appendCategoryCreateButton(container) {
+    if (!container) return;
+    const link = document.createElement("a");
+    link.className = "category-create-button";
+    link.href = "create-product.html";
+    link.textContent = "+ Create Product";
+    container.append(link);
+  }
+
   function getTotalMoq(items) {
     return getArray(items).reduce((total, item) => total + Number(item.moq || item.effort || 0), 0);
   }
@@ -1071,9 +1125,11 @@
     setRelatedProductLinks,
     normalizeSettings,
     openExtensionPage,
+    appendCategoryCreateButton,
     prepareCardImages,
     registerBundledIconCollection,
     renderCategory,
+    renderHeaderCommentBadges,
     saveBackupHistory,
     saveData
   };

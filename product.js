@@ -49,6 +49,8 @@
     commentText: document.querySelector("#comment-text"),
     commentImageInput: document.querySelector("#comment-image-file"),
     commentImagePreview: document.querySelector("#comment-image-preview"),
+    commentSaveProgress: document.querySelector("#comment-save-progress"),
+    commentSubmit: document.querySelector("#comment-form button[type='submit']"),
     commentList: document.querySelector("#comment-list"),
     commentCount: document.querySelector("#comment-count"),
     emptyComments: document.querySelector("#empty-comments"),
@@ -68,6 +70,7 @@
     stockStatus: document.querySelector("#detail-stock-status"),
     editProduct: document.querySelector("#detail-edit"),
     duplicateProduct: document.querySelector("#detail-duplicate"),
+    duplicateProgress: document.querySelector("#duplicate-progress"),
     addCart: document.querySelector("#detail-add-cart"),
     buyNow: document.querySelector("#detail-buy-now"),
     removeCart: document.querySelector("#detail-remove-cart"),
@@ -108,6 +111,7 @@
 
     addCategoryButton("all", "All");
     state.data.categories.forEach((category) => addCategoryButton(category.id, category.name));
+    Store.appendCategoryCreateButton(elements.departments);
   }
 
   function openCategory(categoryId) {
@@ -663,6 +667,7 @@
 
   function renderSettings() {
     elements.brandName.textContent = state.data.settings.storeName;
+    Store.renderHeaderCommentBadges(state.data);
     document.body.classList.toggle("compact-mode", state.data.settings.compactMode);
   }
 
@@ -671,8 +676,22 @@
     render();
   }
 
+  function setCommentSaving(isSaving) {
+    elements.commentForm.classList.toggle("is-saving", isSaving);
+    elements.commentSaveProgress.hidden = !isSaving;
+    elements.commentSubmit.disabled = isSaving;
+    elements.commentSubmit.setAttribute("aria-busy", String(isSaving));
+    elements.commentSubmit.textContent = isSaving ? "Saving..." : "Add comment";
+    [elements.commentTitle, elements.commentText, elements.commentImageInput].forEach((field) => {
+      field.disabled = isSaving;
+    });
+  }
+
   async function addComment(event) {
     event.preventDefault();
+    if (elements.commentForm.classList.contains("is-saving")) {
+      return;
+    }
     const text = elements.commentText.value.trim();
     const title = elements.commentTitle.value.trim();
 
@@ -680,24 +699,31 @@
       return;
     }
 
-    state.data.products = state.data.products.map((product) => (
-      product.id === state.productId
-        ? {
-          ...product,
-          comments: [...(product.comments || []), {
-            id: Store.createId("comment"),
-            title,
-            text,
-            images: state.commentImages,
-            createdAt: Date.now()
-          }]
-        }
-        : product
-    ));
-    elements.commentForm.reset();
-    state.commentImages = [];
-    renderCommentImagePreview();
-    await persistAndRender();
+    setCommentSaving(true);
+    const images = [...state.commentImages];
+
+    try {
+      state.data.products = state.data.products.map((product) => (
+        product.id === state.productId
+          ? {
+            ...product,
+            comments: [...(product.comments || []), {
+              id: Store.createId("comment"),
+              title,
+              text,
+              images,
+              createdAt: Date.now()
+            }]
+          }
+          : product
+      ));
+      await persistAndRender();
+      elements.commentForm.reset();
+      state.commentImages = [];
+      renderCommentImagePreview();
+    } finally {
+      setCommentSaving(false);
+    }
   }
 
   function renderCommentImagePreview() {
@@ -816,6 +842,13 @@
     window.location.href = Store.getExtensionUrl(`create-product.html?id=${encodeURIComponent(state.productId)}`);
   }
 
+  function setDuplicateProgress(isDuplicating) {
+    elements.duplicateProduct.disabled = isDuplicating;
+    elements.duplicateProduct.setAttribute("aria-busy", String(isDuplicating));
+    elements.duplicateProduct.querySelector("span").textContent = isDuplicating ? "Duplicating..." : "Duplicate";
+    elements.duplicateProgress.hidden = !isDuplicating;
+  }
+
   async function duplicateProduct() {
     const product = getProduct();
 
@@ -823,7 +856,7 @@
       return;
     }
 
-    elements.duplicateProduct.disabled = true;
+    setDuplicateProgress(true);
 
     try {
       const copy = Store.createProduct({
@@ -835,9 +868,9 @@
         moq: product.moq,
         unitPrice: product.unitPrice,
         price: product.price,
-        inStock: product.inStock,
+        inStock: true,
         availableUnits: product.availableUnits,
-        completedUnits: product.completedUnits,
+        completedUnits: 0,
         description: product.description,
         referenceUrls: [...(product.referenceUrls || [])],
         relatedProductIds: [...(product.relatedProductIds || [])],
@@ -850,7 +883,7 @@
       window.location.href = Store.getExtensionUrl(`create-product.html?id=${encodeURIComponent(copy.id)}`);
     } catch (error) {
       console.error("Could not duplicate product", error);
-      elements.duplicateProduct.disabled = false;
+      setDuplicateProgress(false);
       window.alert("The product could not be duplicated. Please try again.");
     }
   }

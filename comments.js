@@ -71,6 +71,7 @@
     const commentedProducts = new Set(trails.map((entry) => entry.product.id));
 
     elements.brandName.textContent = state.data.settings.storeName;
+    Store.renderHeaderCommentBadges(state.data);
     elements.cartCount.textContent = activeCart.items.length;
     elements.totalCount.textContent = plural(trails.length, "comment");
     elements.productCount.textContent = `${commentedProducts.size} ${commentedProducts.size === 1 ? "product" : "products"} with comments`;

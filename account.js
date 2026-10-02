@@ -164,6 +164,7 @@
     defaultPrice: document.querySelector("#setting-default-price"),
     currency: document.querySelector("#setting-currency"),
     showTimeEquivalent: document.querySelector("#setting-show-time-equivalent"),
+    showWeeklyCommentBadge: document.querySelector("#setting-show-weekly-comment-badge"),
     timeSeconds: document.querySelector("#setting-time-seconds"),
     timeRate: document.querySelector("#setting-time-rate"),
     listingShowImages: document.querySelector("#setting-listing-show-images"),
@@ -387,6 +388,7 @@
   function renderSettings() {
     const settings = state.data.settings;
     elements.brandName.textContent = settings.storeName;
+    Store.renderHeaderCommentBadges(state.data);
     renderCategoryOptions();
     renderCategoryList();
     renderNewCategoryIcon();
@@ -399,6 +401,7 @@
     elements.defaultPrice.value = settings.defaultPrice;
     elements.currency.value = settings.currency;
     elements.showTimeEquivalent.checked = settings.showTimeEquivalent;
+    elements.showWeeklyCommentBadge.checked = settings.showWeeklyCommentBadge;
     elements.timeSeconds.value = settings.timeSeconds;
     elements.timeRate.value = settings.timeRate;
     elements.checkoutBehavior.value = settings.checkoutBehavior;
@@ -505,6 +508,7 @@
       defaultPrice: elements.defaultPrice.value,
       currency: elements.currency.value,
       showTimeEquivalent: elements.showTimeEquivalent.checked,
+      showWeeklyCommentBadge: elements.showWeeklyCommentBadge.checked,
       timeSeconds: elements.timeSeconds.value,
       timeRate: elements.timeRate.value,
       checkoutBehavior: elements.checkoutBehavior.value,

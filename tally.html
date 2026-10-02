@@ -21,7 +21,6 @@
             <input id="tally-product-search" name="q" type="search" placeholder="Search task products">
             <button type="submit">Search</button>
           </form>
-          <a class="page-link-button" href="create-product.html">Create</a>
           <a class="page-link-button" href="newtab.html">Workspace</a>
           <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
           <a class="page-link-button" href="order-history.html">Orders</a>
@@ -56,36 +55,36 @@
 
         <section class="tally-panel analytics-spotlight" aria-labelledby="completion-spotlight-heading">
           <div class="analytics-spotlight-copy">
-            <div class="section-heading"><h2 id="completion-spotlight-heading">Completed vs pending</h2></div>
-            <p id="completion-summary">Track how much value has already moved through checkout compared with what is still waiting in carts.</p>
+            <div class="section-heading"><h2 id="completion-spotlight-heading">Store value mix</h2></div>
+            <p id="completion-summary">Track completed value, items already sitting in carts, and the remaining value still available in the store.</p>
             <div class="completion-total">
-              <span>Total cart commitment</span>
+              <span>Total catalog value</span>
               <strong id="completion-total-value"></strong>
             </div>
           </div>
-          <div class="completion-orbit" aria-label="Completed and pending value">
+          <div class="completion-orbit" aria-label="Completed, cart, and store value">
             <div id="completion-ring" class="completion-ring">
               <div class="completion-ring-core">
                 <span id="completion-percent">0%</span>
-                <small>complete</small>
+                <small id="completion-percent-label">complete</small>
               </div>
             </div>
           </div>
           <div class="completion-breakdown">
-            <article class="completion-card complete">
+            <article class="completion-card complete" data-completion-focus="complete" tabindex="0">
               <span>Completed</span>
               <strong id="completion-spent-value"></strong>
               <small id="completion-spent-percent">0% of total</small>
             </article>
-            <article class="completion-card pending">
-              <span>Pending</span>
+            <article class="completion-card pending" data-completion-focus="cart" tabindex="0">
+              <span>In carts</span>
               <strong id="completion-open-value"></strong>
               <small id="completion-open-percent">0% of total</small>
             </article>
-            <article class="completion-card stock">
-              <span>Store value</span>
+            <article class="completion-card stock" data-completion-focus="stock" tabindex="0">
+              <span>Pending stock</span>
               <strong id="completion-stock-value"></strong>
-              <small>Available inventory</small>
+              <small id="completion-stock-percent">0% of total</small>
             </article>
           </div>
         </section>
@@ -104,6 +103,11 @@
         <div class="tally-panels">
           <section class="tally-panel" aria-labelledby="category-tally-heading">
             <div class="section-heading"><h2 id="category-tally-heading">By category</h2></div>
+            <div class="category-chart-legend" aria-label="Category value legend">
+              <span><i class="complete"></i>Completed</span>
+              <span><i class="cart"></i>In cart</span>
+              <span><i class="store"></i>In store</span>
+            </div>
             <ul id="category-tally-list" class="category-column-chart"></ul>
             <p id="empty-category-tally" class="tally-empty" hidden>No product values to tally yet.</p>
           </section>

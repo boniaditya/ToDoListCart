@@ -25,7 +25,6 @@
           </form>
 
 
-          <a class="page-link-button" href="create-product.html">Create</a>
 
           <button type="button" class="page-link-button" id="open-products-page" hidden>Products</button>
           <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
@@ -173,6 +172,11 @@
                 <p class="comment-image-hint">or paste images from your clipboard</p>
                 <div id="comment-image-preview" class="comment-image-preview" hidden></div>
                 <button type="submit" class="primary-button">Add comment</button>
+                <div id="comment-save-progress" class="comment-save-progress" role="status" aria-live="polite" hidden>
+                  <span class="comment-save-spinner" aria-hidden="true"></span>
+                  <strong>Saving comment...</strong>
+                  <span class="comment-save-bar" aria-hidden="true"><i></i></span>
+                </div>
               </form>
               <ol id="comment-list" class="comment-list"></ol>
               <p id="empty-comments" class="comments-empty">No comments yet.</p>
@@ -209,6 +213,11 @@
             </svg>
             <span>Duplicate</span>
           </button>
+          <div id="duplicate-progress" class="duplicate-progress" role="status" aria-live="polite" hidden>
+            <span class="duplicate-spinner" aria-hidden="true"></span>
+            <strong>Duplicating product...</strong>
+            <span class="duplicate-progress-bar" aria-hidden="true"><i></i></span>
+          </div>
 
           <div class="detail-management-actions">
             <button type="button" id="detail-edit" class="secondary-button button-with-icon">

@@ -27,6 +27,7 @@
 
   function renderSettings() {
     elements.brandName.textContent = state.data.settings.storeName;
+  Store.renderHeaderCommentBadges(state.data);
     document.body.classList.toggle("compact-mode", state.data.settings.compactMode);
   }
 

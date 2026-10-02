@@ -1,0 +1,56 @@
+🛒 ToDoList Cart is a visual task manager that turns everyday to do items into product style cards you can organize, add to carts, complete, and review later.
+
+The idea is simple: instead of looking at a flat checklist, you manage your tasks inside a shopping inspired workspace. A task can behave like a product in a store. You can give it a name, description, category, priority, value, quantity, images, links, vendor details, and related items. When something is ready to work on, you add it to a cart. When it is finished, you check it out and keep a clear record in order history.
+
+ToDoList Cart is built for people who prefer a more visual and structured way to manage work. It helps make tasks easier to browse, compare, group, and complete. The store style layout gives each task more context than a normal checkbox, while the cart workflow helps separate planned work, active work, completed work, and remaining items.
+
+What you can do with ToDoList Cart:
+
+✅ Create tasks as product style cards
+✅ Add task descriptions, images, links, and notes
+✅ Organize tasks into custom categories
+✅ Group active tasks into carts
+✅ Create separate carts for different areas of work
+✅ Add available items to cart when they are ready to be handled
+✅ Mark items as unavailable or out of stock when they should stay out of the cart
+✅ Connect related products so similar tasks are easier to find
+✅ Add vendor or source details for tasks that depend on people, services, tools, or places
+✅ Move completed tasks through checkout
+✅ Review finished tasks in order history
+✅ Track values, quantities, cart totals, catalog totals, and remaining stock
+✅ Use analytics to see completed value, in cart value, and pending store value
+✅ Review progress by category with visual charts
+✅ Customize display settings to make the workspace easier to use
+
+The extension includes several connected pages:
+
+🏠 Workspace
+Browse your task products in a visual store layout. Search, review, open, and organize tasks from one central place.
+
+🛒 Cart
+See the tasks you have added to your active cart. This is where planned work becomes current work. When items are complete, you can check them out.
+
+✨ Wishlist
+Keep items you may want to handle later without placing them into an active cart immediately.
+
+📦 Orders
+Review completed work after checkout. This helps you keep a history of what has been finished.
+
+📊 Analytics
+Understand your task system visually. The analytics page shows completed work, work currently in carts, pending stock, catalog value, category totals, and cart activity.
+
+🏷️ Vendors
+Keep track of people, sources, tools, services, or organizations connected with a task product.
+
+⚙️ Account and settings
+Adjust how the workspace displays information, including product cards, cart views, images, descriptions, and layout preferences.
+
+ToDoList Cart works well when your tasks need more detail than a simple line of text. Some tasks have images, references, quantities, costs, sources, or dependencies. This extension gives those tasks a more complete card so you can understand what needs to be done before you open it.
+
+The cart model also makes task planning feel more active. You can keep many tasks in the catalog, place only selected tasks into a cart, and then check out finished work. This makes it easier to separate everything you could do from the smaller set of things you are actively doing now.
+
+The analytics page gives the system a dashboard feel. You can see how much value has already been completed, how much is currently sitting in carts, and how much remains in the store. Category charts help show where most of your task value is located, so the workspace feels easier to review at a glance.
+
+ToDoList Cart is intentionally local and lightweight. Your task data is stored in your browser using Chrome storage. The extension does not require an account, does not sell user data, and does not transfer your personal task content to third parties for advertising or unrelated purposes.
+
+Use ToDoList Cart if you want your to do list to feel more visual, more organized, and more satisfying to complete. It combines the familiar structure of an online store with the practical needs of a personal task manager.

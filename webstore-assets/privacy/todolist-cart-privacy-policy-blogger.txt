@@ -1,0 +1,88 @@
+ToDoList Cart Privacy Policy
+
+Effective date: September 27, 2026
+
+OVERVIEW
+
+ToDoList Cart is a Chrome extension that helps users create, organize, complete, and review personal tasks through a shopping-cart inspired workflow. The extension turns tasks into product-style cards, lets users group them into carts, check out completed work, and view local progress analytics.
+
+This Privacy Policy explains what information ToDoList Cart stores, how that information is used, and how user data is handled.
+
+INFORMATION TODOLIST CART STORES
+
+ToDoList Cart stores information that users create inside the extension so the task workspace can function between browser sessions.
+
+This may include:
+
+• Task/product titles
+• Task/product descriptions
+• Categories and custom category names
+• Cart names and cart items
+• Wishlist items
+• Order history records
+• Task comments and notes
+• Reference links added by the user
+• Task images added by the user
+• Vendor or contact-style information entered by the user
+• Extension settings and display preferences
+• Local analytics values generated from the user’s task, cart, and order data
+
+HOW INFORMATION IS USED
+
+Information stored by ToDoList Cart is used only to provide the extension’s task management features. This includes showing products/tasks, carts, wishlist items, comments, vendors, order history, settings, and analytics inside the extension.
+
+LOCAL STORAGE
+
+ToDoList Cart uses Chrome extension storage to save task data locally in the user’s browser profile. This allows the extension to keep the user’s task workspace available between browser sessions.
+
+The extension also requests unlimitedStorage so users can save richer task data, such as images, comments, references, carts, vendors, categories, and order history, without running into small storage limits.
+
+DATA COLLECTION AND TRANSFER
+
+ToDoList Cart does not sell user data.
+
+ToDoList Cart does not transfer user data to third parties.
+
+ToDoList Cart does not use user data for advertising, creditworthiness, lending, or unrelated purposes.
+
+Data is used only for the extension’s single purpose: helping users manage tasks through the ToDoList Cart workflow.
+
+REMOTE CODE
+
+ToDoList Cart does not use remote code. The extension’s code and required assets are included in the extension package. Bundled icon data and local files are loaded from the extension package to support the extension’s interface.
+
+USER-CREATED CONTENT
+
+Users may choose to enter their own task titles, descriptions, notes, reference links, images, vendor names, or other task-related content. This content is created by the user and stored for the purpose of displaying and managing the user’s task workspace.
+
+Users should avoid storing highly sensitive information, such as passwords, government identification numbers, financial account details, medical records, or other sensitive personal information, inside task notes or product descriptions.
+
+PERMISSIONS
+
+ToDoList Cart uses the following Chrome permissions:
+
+• storage: Used to save task, cart, category, wishlist, comment, vendor, order history, settings, and analytics data.
+• unlimitedStorage: Used to support richer local task data, including images and larger task workspaces.
+
+DATA RETENTION
+
+Task data remains in the user’s browser storage until the user edits or deletes it, clears browser/extension data, or uninstalls the extension.
+
+DATA CONTROL
+
+Users can manage their data inside the extension by editing or deleting tasks, carts, comments, vendors, and related records. Users can also remove extension data through Chrome’s browser settings or by uninstalling the extension.
+
+CHILDREN’S PRIVACY
+
+ToDoList Cart is a general productivity tool and is not specifically directed to children. The extension does not knowingly collect personal information from children.
+
+CHANGES TO THIS PRIVACY POLICY
+
+This Privacy Policy may be updated from time to time to reflect changes to the extension or Chrome Web Store requirements. The effective date at the top of this page will be updated when changes are made.
+
+CONTACT
+
+For support, privacy questions, bug reports, or feature requests, please use the support contact method listed on the ToDoList Cart Chrome Web Store listing.
+
+Product: ToDoList Cart Chrome Extension
+Last updated: September 27, 2026

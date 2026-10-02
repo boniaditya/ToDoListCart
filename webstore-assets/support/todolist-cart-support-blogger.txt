@@ -1,0 +1,135 @@
+ToDoList Cart Support
+
+Help, troubleshooting, privacy notes, and contact information for the ToDoList Cart Chrome extension.
+
+WELCOME
+
+ToDoList Cart is a shopping-site inspired task manager for Chrome. It turns tasks into product-style cards, lets you add work to carts, check out completed tasks, review order history, and view visual analytics for completed and pending work.
+
+This support page explains how to use the extension, how your data is stored, common troubleshooting steps, and how to request help.
+
+WHAT TODOLIST CART HELPS YOU DO
+
+• Create tasks as product-style cards with titles, descriptions, images, priorities, categories, comments, and reference links.
+• Add task products to carts so you can plan focused groups of work.
+• Use Buy Now for quick single-task completion.
+• Check out completed work into order history.
+• Use wishlist, vendors, categories, comments, and product details to keep task context organized.
+• View analytics for completed value, pending cart value, store value, catalog value, and cart commitments.
+
+GETTING STARTED
+
+1. Install ToDoList Cart from the Chrome Web Store.
+2. Click the ToDoList Cart icon in your Chrome toolbar.
+3. Create your first task product using the task/product form.
+4. Add the task product to a cart when you are ready to work on it.
+5. Mark cart items complete as you finish them.
+6. Check out completed work to save it into order history.
+
+MAIN FEATURES
+
+Product-Style Tasks
+
+A product in ToDoList Cart is a task with more context. You can add a title, description, category, priority, location, image, price/value, reference links, comments, related products, and vendor information.
+
+Carts
+
+Carts help you group tasks into focused work plans. You can use carts for today’s work, home tasks, study sessions, client work, errands, launch checklists, or any other workflow.
+
+Checkout and Order History
+
+Checkout turns finished cart items into a completed order record. This gives you a history of completed work instead of simply deleting finished tasks.
+
+Wishlist
+
+Wishlist is useful for tasks, ideas, future purchases, research items, or work you want to save for later without adding it to your active cart.
+
+Analytics
+
+Analytics shows visual summaries of completed value, pending cart value, available store value, category totals, and cart commitments.
+
+FREQUENTLY ASKED QUESTIONS
+
+Is ToDoList Cart a real shopping app?
+
+No. ToDoList Cart uses shopping concepts as a productivity metaphor. Products, carts, prices, stock, and checkout are used to organize tasks and visualize progress.
+
+Where is my data stored?
+
+ToDoList Cart stores task data using Chrome extension storage on your browser. It is designed as a local productivity tool.
+
+Can I use ToDoList Cart for normal tasks?
+
+Yes. You can use it like a regular to-do list, but with more visual organization and richer task details.
+
+Can I create multiple carts?
+
+Yes. You can create separate carts for different projects, contexts, days, or task groups.
+
+Can I attach images to tasks?
+
+Yes. Product-style tasks can include images, which makes the workspace easier to scan and useful for visual planning.
+
+Can I save links and notes?
+
+Yes. You can save reference links and comments on product pages so important context stays connected to the task.
+
+Why do analytics use values and prices?
+
+Values and prices are productivity metaphors. They help you compare workload, track effort, and make pending versus completed work easier to visualize.
+
+TROUBLESHOOTING
+
+The extension icon is not visible
+
+• Click the puzzle-piece Extensions icon in Chrome.
+• Find ToDoList Cart.
+• Pin it to your toolbar.
+
+My tasks are not appearing
+
+• Refresh the ToDoList Cart page.
+• Check that you are using the same Chrome profile where the tasks were created.
+• Check whether filters are hiding some products.
+• Open the full workspace page and review all categories.
+
+Images are not showing
+
+• Make sure image display is enabled in settings.
+• Try refreshing the page.
+• If the image came from a remote URL, the source page may no longer allow it to load.
+
+Checkout does not behave as expected
+
+• Make sure the correct cart is selected.
+• Check that the items you want to complete are marked as checked out or complete.
+• Review your checkout behavior settings.
+
+PRIVACY AND DATA
+
+ToDoList Cart is designed for personal task organization inside Chrome. Task data is stored using Chrome extension storage. The extension uses the permissions listed in the Chrome Web Store listing to save and manage your task data.
+
+Do not store highly sensitive personal, financial, medical, legal, or password information inside task notes or product descriptions unless you are comfortable keeping that information in your browser profile.
+
+FEEDBACK AND SUPPORT
+
+If you need help, want to report a bug, or want to request a feature, use the support contact method listed on the Chrome Web Store listing.
+
+When contacting support, please include:
+
+• A short description of the issue.
+• What you expected to happen.
+• What actually happened.
+• Your Chrome version, if relevant.
+• A screenshot, if it helps explain the issue.
+
+FEATURE REQUESTS
+
+ToDoList Cart is built around a visual product-and-cart workflow for task management. Useful feature requests include improvements to carts, product pages, analytics, categories, wishlist, order history, images, vendors, comments, import/export, and settings.
+
+SUPPORT STATUS
+
+This support page is for the Chrome extension named ToDoList Cart. If you installed a different extension with a similar name, please check that you are contacting the correct developer from the Chrome Web Store listing.
+
+Last updated: September 27, 2026
+Product: ToDoList Cart Chrome Extension
