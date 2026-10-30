@@ -9,6 +9,14 @@
     <link rel="stylesheet" href="newtab.css">
   </head>
   <body>
+    <div id="product-save-skeleton" class="product-save-skeleton" role="status" aria-label="Saving product" hidden>
+      <div class="save-skeleton-header"><i></i><i></i><i></i></div>
+      <div class="save-skeleton-layout">
+        <section><i class="save-skeleton-title"></i><i class="save-skeleton-line"></i><i class="save-skeleton-field"></i><i class="save-skeleton-field"></i><i class="save-skeleton-field short"></i></section>
+        <section><i class="save-skeleton-title"></i><i class="save-skeleton-field"></i><i class="save-skeleton-field"></i><i class="save-skeleton-field"></i><i class="save-skeleton-field short"></i></section>
+        <section><i class="save-skeleton-title"></i><i class="save-skeleton-field"></i><i class="save-skeleton-field"></i><i class="save-skeleton-field"></i><i class="save-skeleton-field"></i></section>
+      </div>
+    </div>
     <main class="store-shell create-page-shell" aria-labelledby="create-title">
       <header class="store-header">
         <div class="top-row">
@@ -23,13 +31,13 @@
             <input id="create-product-search" name="q" type="search" placeholder="Search task products">
             <button type="submit">Search</button>
           </form>
-          <a class="page-link-button" href="newtab.html">Workspace</a>
           <a class="page-link-button" href="products.html" hidden>Products</a>
           <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
           <a class="page-link-button" href="order-history.html">Orders</a>
           <a class="page-link-button" href="tally.html">Analytics</a>
           <a class="page-link-button" href="vendors.html">Vendors</a>
-          <a class="page-link-button" href="account.html">Account</a>
+          <a class="page-link-button" href="products.html?view=archived">Archive</a>
+          <a class="page-link-button" href="account.html">Settings</a>
           <a class="header-icon-button comments-header-button" href="comments.html" aria-label="Open comment trails" title="Comments">
             <svg class="comment-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.5-4A9 9 0 1 1 21 12Z"></path></svg>
           </a>
@@ -71,7 +79,7 @@
                 </div>
                 <div class="form-field">
                   <label for="product-description">Product details</label>
-                  <textarea id="product-description" name="description" maxlength="500" placeholder="Add deadline, notes, or context"></textarea>
+                  <textarea id="product-description" name="description" placeholder="Add deadline, notes, or context"></textarea>
                 </div>
                 <fieldset class="product-type-toggle" aria-label="Item type">
                   <legend>Item type</legend>
@@ -127,7 +135,7 @@
                     <input id="product-reference-url" type="url" placeholder="https://example.com/reference">
                     <button type="button" id="add-reference-url" class="secondary-button">Add link</button>
                   </div>
-                  <p>Attach up to 8 useful product links.</p>
+                  <p>Attach as many useful product links as you need.</p>
                   <ul id="reference-url-list" class="reference-url-list" aria-label="Product reference links" hidden></ul>
                 </div>
                 <div class="product-relations">
@@ -144,6 +152,11 @@
                     <label for="product-bundle-products">Buy together</label>
                     <select id="product-bundle-products" multiple size="4" aria-describedby="bundle-products-help"></select>
                     <span id="bundle-products-help">Products that should be purchased with this one.</span>
+                  </div>
+                  <div class="product-relation-field">
+                    <label for="product-addon-products">Required add-ons</label>
+                    <select id="product-addon-products" multiple size="4" aria-describedby="addon-products-help"></select>
+                    <span id="addon-products-help">Products that should be added to the cart with this product.</span>
                   </div>
                   <label class="relation-search" for="product-vendor-search">
                     Find vendors

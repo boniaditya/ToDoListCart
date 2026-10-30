@@ -8,7 +8,8 @@
   const state = {
     data: Store.normalizeData({}),
     productId: new URLSearchParams(window.location.search).get("id") || "",
-    couponCode: ""
+    couponCode: "",
+    isConfirming: false
   };
 
   const elements = {
@@ -24,6 +25,8 @@
     couponMessage: document.querySelector("#coupon-message"),
     applyCoupon: document.querySelector("#apply-coupon"),
     couponChips: document.querySelectorAll("[data-coupon]"),
+    comment: document.querySelector("#buy-now-comment"),
+    progress: document.querySelector("#buy-now-progress"),
     unitPrice: document.querySelector("#summary-unit-price"),
     units: document.querySelector("#summary-units"),
     subtotal: document.querySelector("#summary-subtotal"),
@@ -81,6 +84,25 @@
     elements.image.append(placeholder);
   }
 
+  function getProductUrl(product) {
+    return Store.getExtensionUrl(`product.html?id=${encodeURIComponent(product.id)}`);
+  }
+
+  function setConfirmProgress(isConfirming) {
+    state.isConfirming = isConfirming;
+    elements.confirm.disabled = isConfirming || !getProduct()?.inStock;
+    elements.confirm.textContent = isConfirming ? "Creating order..." : "Confirm Buy Now";
+    elements.confirm.setAttribute("aria-busy", String(isConfirming));
+    elements.progress.hidden = !isConfirming;
+    elements.cancel.disabled = isConfirming;
+    elements.applyCoupon.disabled = isConfirming;
+    elements.couponInput.disabled = isConfirming;
+    elements.comment.disabled = isConfirming;
+    elements.couponChips.forEach((button) => {
+      button.disabled = isConfirming;
+    });
+  }
+
   function render() {
     const product = getProduct();
     const activeCart = Store.getActiveCart(state.data);
@@ -103,8 +125,11 @@
     document.title = `Confirm ${product.title} - ToDoList Cart`;
     elements.confirmation.hidden = false;
     elements.missing.hidden = true;
-    elements.confirm.disabled = !product.inStock;
+    elements.confirm.disabled = state.isConfirming || !product.inStock;
     renderProductImage(product);
+    const productUrl = getProductUrl(product);
+    elements.image.href = productUrl;
+    elements.title.href = productUrl;
     elements.title.textContent = product.title;
     elements.meta.textContent = [
       Store.getCategoryLabel(state.data, product.department),
@@ -155,46 +180,76 @@
   }
 
   async function confirmBuyNow() {
+    if (state.isConfirming) return;
+
     const product = getProduct();
 
     if (!product?.inStock) return;
 
-    const summary = getSummary();
-    const instantCart = {
-      id: Store.createId("instant-cart"),
-      name: "Buy Now",
-      items: [{
-        id: Store.createId("item"),
-        productId: product.id,
-        done: false,
-        addedAt: Date.now()
-      }]
-    };
-    const productsById = new Map(state.data.products.map((entry) => [entry.id, entry]));
-    const order = Store.createOrder(instantCart, productsById);
+    setConfirmProgress(true);
 
-    if (!order.items.length) return;
-
-    state.data.orders.unshift({
-      ...order,
-      cartName: "Buy Now",
-      subtotalAmount: summary.subtotal,
-      discountAmount: summary.discount,
-      couponCode: state.couponCode,
-      totalAmount: summary.total
-    });
-    state.data.products = state.data.products.map((entry) => {
-      if (entry.id !== product.id) return entry;
-      const completedUnits = Number(entry.completedUnits || 0) + 1;
-      return {
-        ...entry,
-        completedUnits,
-        inStock: completedUnits >= Number(entry.availableUnits) ? false : entry.inStock
+    try {
+      const summary = getSummary();
+      const commentText = elements.comment.value.trim();
+      const instantCart = {
+        id: Store.createId("instant-cart"),
+        name: "Buy Now",
+        items: [{
+          id: Store.createId("item"),
+          productId: product.id,
+          done: false,
+          addedAt: Date.now()
+        }]
       };
-    });
+      const productsById = new Map(state.data.products.map((entry) => [entry.id, entry]));
+      const order = Store.createOrder(instantCart, productsById);
 
-    await persistAndRender();
-    window.location.href = Store.getExtensionUrl("order-history.html");
+      if (!order.items.length) {
+        setConfirmProgress(false);
+        return;
+      }
+
+      state.data.orders.unshift({
+        ...order,
+        cartName: "Buy Now",
+        subtotalAmount: summary.subtotal,
+        discountAmount: summary.discount,
+        couponCode: state.couponCode,
+        totalAmount: summary.total
+      });
+      state.data.products = state.data.products.map((entry) => {
+        if (entry.id !== product.id) return entry;
+        const completedUnits = Number(entry.completedUnits || 0) + 1;
+        const nextProduct = {
+          ...entry,
+          completedUnits,
+          inStock: completedUnits >= Number(entry.availableUnits) ? false : entry.inStock
+        };
+
+        if (!commentText) return nextProduct;
+
+        return {
+          ...nextProduct,
+          comments: [
+            ...(Array.isArray(entry.comments) ? entry.comments : []),
+            {
+              id: Store.createId("comment"),
+              title: "Buy Now order note",
+              text: commentText,
+              images: [],
+              createdAt: Date.now()
+            }
+          ]
+        };
+      });
+
+      await persistAndRender();
+      window.location.href = Store.getExtensionUrl("order-history.html");
+    } catch (error) {
+      console.error(error);
+      setConfirmProgress(false);
+      window.alert("The order could not be created yet. Please try again.");
+    }
   }
 
   function bindEvents() {

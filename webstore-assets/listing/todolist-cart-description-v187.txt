@@ -1,0 +1,187 @@
+🛒 ToDoList Cart helps you organize tasks like items in an online store. Instead of managing a plain checklist, you can create tasks as rich product cards, add them to carts, group them by category, track pending work, save items for later, and check out finished tasks into an order history.
+
+✨ NEW IN VERSION 187
+
+Version 187 introduces a redesigned extension popup and makes it easier for new users to explore ToDoList Cart before creating their own workspace.
+
+🔹 Use the compact popup launcher instead of loading the full store inside the popup
+🔹 Choose View Live Store to open your real task workspace
+🔹 Choose View Demo Store to explore all major features with sample data
+🔹 Add a new task directly from the popup
+🔹 Quickly open Cart, Wishlist, Orders, Analytics, Vendors, Comments, Archive, and Settings
+🔹 Send a feature request or problem report from the popup
+🔹 Turn on Demo Data from the top-right corner of the workspace
+🔹 Explore a complete sample catalog with illustrated product images
+🔹 Try products, services, and projects across Work, Home, Errands, and Study
+🔹 Experience carts, wishlists, orders, coupons, vendors, comments, related products, archived items, and out-of-stock items
+🔹 See an animated skeleton layout while demo products load
+🔹 Turn Demo Data off at any time to restore your original workspace
+
+Your existing products and settings are preserved while you explore the demo experience.
+
+🚀 QUICK-ACCESS POPUP
+
+Clicking the ToDoList Cart toolbar icon now opens a focused launcher instead of displaying the full product catalog in a small popup. From the launcher, you can open the Live Store, explore the Demo Store, create a new task, jump to any major feature, request an improvement, or report a problem. The complete store remains available in a spacious full-page workspace.
+
+Whether you are managing personal errands, work projects, study goals, client deliverables, creative ideas, household tasks, business follow-ups, purchases, vendors, or long-term plans, ToDoList Cart gives you a more visual and rewarding way to handle your to-do list.
+
+Instead of staring at a flat list of tasks, ToDoList Cart lets you browse your work like a product catalog. Each task can have details, images, categories, priorities, values, comments, references, vendor information, stock-style status, related items, and cart status. It makes your task system feel more structured, more tangible, and easier to review.
+
+✨ WHAT MAKES TODOLIST CART USEFUL?
+
+ToDoList Cart is designed for people who think visually and like the familiar flow of online shopping.
+
+With ToDoList Cart, you can:
+🔹 Open Live Store or Demo Store from the extension popup
+🔹 Add a new task without first opening the full catalog
+🔹 Jump directly to Cart, Wishlist, Orders, Analytics, Vendors, Comments, Archive, or Settings
+🔹 Request new features and report problems
+🔹 Create tasks as product-style cards
+🔹 Add task products to one or more carts
+🔹 Move cart items directly to wishlist
+🔹 Save task products for later in a wishlist
+🔹 Check out completed cart items into order history
+🔹 Use Buy Now for quick single-task completion
+🔹 Add comments directly from the Buy Now confirmation page
+🔹 Open product links from the Buy Now confirmation page
+🔹 See progress indicators while products, orders, comments, vendors, exports, wishlist moves, and duplicates are being created
+🔹 Browse tasks in a full-page workspace
+🔹 Search across task products
+🔹 Filter tasks by category, priority, availability, price, time, and cart status
+🔹 Create custom categories with icons
+🔹 Add rich descriptions to tasks
+🔹 Attach and reorder images on task products
+🔹 Add comments and progress notes
+🔹 See recent comment counts on the comments icon
+🔹 Save important reference links
+🔹 Connect related products and bundle-style tasks
+🔹 Track vendors, people, sources, or contacts connected to tasks
+🔹 Add vendor images from upload, drag-and-drop, or clipboard paste
+🔹 Add multiple vendor reference links
+🔹 View analytics for completed, in-cart, pending stock, catalog, and store value
+🔹 Review completed work through order history
+🔹 Export and import local backups
+🔹 View backup history with size and content details
+🔹 Customize display, cart, checkout, popup, analytics, and workflow preferences
+
+🧭 BUILT FOR REAL EVERYDAY TASK MANAGEMENT
+
+ToDoList Cart is helpful when you want to:
+💼 Plan work projects and client deliverables
+📚 Track study tasks, courses, references, and learning goals
+🏠 Organize household chores, repairs, purchases, and routines
+🛍 Manage errands, shopping-style task lists, and follow-ups
+🧠 Capture ideas before they disappear
+🎯 Break large goals into product-like units of work
+📦 Group related tasks into carts for focused execution
+🧾 Keep a record of completed work through checkout history
+📊 Understand where your effort, value, and pending work are going
+🤝 Track vendors, collaborators, sources, or people connected to tasks
+💬 Add ongoing notes, updates, and comments to each task
+📁 Keep local backup snapshots of your task system
+
+ToDoList Cart is especially useful if normal to-do lists feel too flat. The shopping-cart metaphor gives your task list a clear sense of movement: browse, select, add to cart, work through items, move slower items to wishlist, complete, and check out.
+
+🛠 HOW IT WORKS
+
+First, create a task product. A product can include a title, description, category, priority, location, images, reference URLs, comments, related products, vendor information, price or value, quantity-style fields, stock-style availability, and status details.
+
+Then, add products to a cart. A cart represents a focused work plan. You can use one cart for today, another for a project, another for errands, another for study, or any structure that fits your workflow.
+
+As you finish work, mark cart items complete and check out the cart. Completed items move into order history, giving you a record of what you finished.
+
+If one item is not moving forward at the expected pace, move it from the cart to the wishlist and keep the active cart focused.
+
+🖥 FULL-PAGE WORKSPACE
+
+The full-page Chrome workspace is built like a lightweight storefront for your own work. You can search, browse categories, open detailed product pages, add items to carts, use Buy Now, view wishlisted items, manage vendors, review comments, check analytics, and move through your task system in a familiar layout.
+
+📦 PRODUCT-STYLE TASKS
+
+A task product can include:
+🔸 Product or task title
+🔸 Description
+🔸 Category or department
+🔸 Priority
+🔸 Location or context
+🔸 Images and a reorderable image gallery
+🔸 Price or value
+🔸 Quantity or stock-style fields
+🔸 Comments and progress notes
+🔸 Reference links
+🔸 Related products and bundle relationships
+🔸 Vendor or source information
+🔸 Cart and wishlist status
+🔸 Completion history
+
+💬 COMMENTS AND PROGRESS NOTES
+
+Use comments for progress updates, follow-up notes, ideas, images, purchase notes, research, and client or vendor updates. The comments icon can show the number of comments added during the last week, helping you quickly see recent activity.
+
+🛒 CARTS, BUY NOW, AND CHECKOUT
+
+Carts help turn a large product catalog into smaller working plans. Add products to a cart, use Buy Now for quick completion, add an order comment, check out finished items, review order history, or move an item to the wishlist when it should be saved for later.
+
+Progress indicators appear during slower actions so you know the extension is still working.
+
+🏷 CATEGORIES AND CUSTOM ORGANIZATION
+
+Use category tabs, filters, custom category icons, and category-level analytics. Categories can represent work, home, errands, study, health, income, interiors, shopping, migration, AI, or any structure that matches your life.
+
+🤝 VENDOR AND SOURCE TRACKING
+
+Vendor records can include:
+🏢 Vendor name
+📞 Phone
+📧 Email
+🌐 Website
+📍 Address
+🔗 Multiple reference links
+🖼 Images
+📦 Supplied products
+👤 Contact or SPOC details
+
+📊 ANALYTICS AND VISUAL REVIEW
+
+Analytics can show:
+✅ Completed value
+🛒 In-cart value
+📦 Pending stock value
+🏬 Total store value
+📚 Catalog value
+📊 Category-level breakdowns
+⏱ Time-equivalent views
+🎯 Completed, in-cart, and pending comparisons
+
+The analytics view helps you understand what is finished, what is actively planned, and what remains in your catalog.
+
+💾 BACKUP AND RESTORE
+
+Export your data, import a backup, review backup history, see backup size and contents, and restore previous local snapshots. A progress indicator appears while export files are being created.
+
+🔒 LOCAL AND PRIVATE
+
+ToDoList Cart is intentionally local and lightweight. Your task data is stored in your browser using Chrome storage. The extension does not require an account, does not sell user data, and does not transfer your personal task content to third parties for advertising or unrelated purposes.
+
+💡 WHY USERS CHOOSE TODOLIST CART
+
+✅ More visual than a plain checklist
+✅ Familiar shopping-cart workflow
+✅ Rich task details instead of one-line todos
+✅ Cart-based planning for focused work
+✅ Wishlist support for paused or later tasks
+✅ Buy Now flow for quick completion
+✅ Checkout model for satisfying completion
+✅ Order history for finished tasks
+✅ Product catalog view for browsing tasks
+✅ Categories, comments, vendors, images, and references
+✅ Reorderable product images
+✅ Progress indicators for slow actions
+✅ Visual analytics for completed, in-cart, pending, catalog, and store value
+✅ Backup history with file size and content details
+✅ Optional demo workspace for learning every major feature
+✅ Compact launcher with direct access to the tools you use most
+✅ Built-in shortcuts for feature requests and problem reports
+✅ Useful for work, home, study, errands, purchases, vendors, and personal projects
+
+Use ToDoList Cart if you want your to-do list to feel more visual, more organized, and more satisfying to complete. It combines the familiar structure of an online store with the practical needs of a personal task manager.

@@ -11,6 +11,9 @@
     openValue: document.querySelector("#tally-open-value"),
     inventoryValue: document.querySelector("#tally-inventory-value"),
     catalogValue: document.querySelector("#tally-catalog-value"),
+    archivedValue: document.querySelector("#tally-archived-value"),
+    wishlistValue: document.querySelector("#tally-wishlist-value"),
+    wishlistCount: document.querySelector("#tally-wishlist-count"),
     completionSummary: document.querySelector("#completion-summary"),
     completionTotalValue: document.querySelector("#completion-total-value"),
     completionRing: document.querySelector("#completion-ring"),
@@ -35,6 +38,41 @@
   const plural = (count, word) => `${count} ${count === 1 ? word : `${word}s`}`;
   const chartColors = ["#9ad9e3", "#ffd28a", "#a8ddb5", "#f4b79f", "#c7d2e5", "#c9b6f2", "#f7b7a3", "#9fd8cf"];
   const moneyAmount = (value) => money(value).split(" · ")[0];
+  let categoryTooltip;
+
+  function getCategoryTooltip() {
+    if (!categoryTooltip) {
+      categoryTooltip = document.createElement("div");
+      categoryTooltip.className = "category-floating-tooltip";
+      categoryTooltip.hidden = true;
+      document.body.append(categoryTooltip);
+    }
+    return categoryTooltip;
+  }
+
+  function showCategoryTooltip(text, event) {
+    const tooltip = getCategoryTooltip();
+    tooltip.textContent = text;
+    tooltip.hidden = false;
+    moveCategoryTooltip(event);
+  }
+
+  function moveCategoryTooltip(event) {
+    if (!categoryTooltip || categoryTooltip.hidden || !event) return;
+    const gap = 16;
+    const width = categoryTooltip.offsetWidth || 240;
+    const height = categoryTooltip.offsetHeight || 48;
+    const left = Math.min(window.innerWidth - width - 12, Math.max(12, event.clientX - width / 2));
+    const top = Math.max(12, event.clientY - height - gap);
+    categoryTooltip.style.left = `${left}px`;
+    categoryTooltip.style.top = `${top}px`;
+  }
+
+  function hideCategoryTooltip() {
+    if (categoryTooltip) {
+      categoryTooltip.hidden = true;
+    }
+  }
 
   function setCompletionFocus(focus = "complete") {
     const mix = state.completionMix;
@@ -131,10 +169,16 @@
       const completedPercent = entry.total ? (entry.completed / entry.total) * 100 : 0;
       const cartPercent = entry.total ? (entry.inCart / entry.total) * 100 : 0;
       const storePercent = Math.max(0, 100 - completedPercent - cartPercent);
+      const defaultDetail = `Done ${moneyAmount(entry.completed)} · Cart ${moneyAmount(entry.inCart)} · Store ${moneyAmount(entry.inStore)}`;
       const tooltip = `${entry.label}: ${moneyAmount(entry.total)} total · ${moneyAmount(entry.completed)} completed · ${moneyAmount(entry.inCart)} in cart · ${moneyAmount(entry.inStore)} in store`;
+      const segmentDetails = {
+        complete: `Completed: ${money(entry.completed)} · ${percentLabel(completedPercent)} of ${entry.label}`,
+        cart: `In cart: ${money(entry.inCart)} · ${percentLabel(cartPercent)} of ${entry.label}`,
+        store: `In store: ${money(entry.inStore)} · ${percentLabel(storePercent)} of ${entry.label}`
+      };
 
       item.className = "category-column-item";
-      item.title = tooltip;
+      item.setAttribute("aria-label", tooltip);
       item.style.setProperty("--bar-color", chartColors[index % chartColors.length]);
       value.textContent = moneyAmount(entry.total);
       barWrap.className = "category-column-bar";
@@ -149,8 +193,29 @@
           return;
         }
         const slice = document.createElement("i");
+        const segmentDetail = segmentDetails[className];
         slice.className = className;
         slice.style.height = `${Math.max(8, percent)}%`;
+        slice.tabIndex = 0;
+        slice.dataset.detail = segmentDetail;
+        slice.setAttribute("aria-label", segmentDetail);
+        slice.addEventListener("mouseenter", (event) => {
+          footer.textContent = segmentDetail;
+          showCategoryTooltip(segmentDetail, event);
+        });
+        slice.addEventListener("mousemove", moveCategoryTooltip);
+        slice.addEventListener("focus", (event) => {
+          footer.textContent = segmentDetail;
+          showCategoryTooltip(segmentDetail, event);
+        });
+        slice.addEventListener("mouseleave", () => {
+          footer.textContent = defaultDetail;
+          hideCategoryTooltip();
+        });
+        slice.addEventListener("blur", () => {
+          footer.textContent = defaultDetail;
+          hideCategoryTooltip();
+        });
         stack.append(slice);
       });
       label.className = "category-column-link";
@@ -158,7 +223,7 @@
       label.setAttribute("aria-label", `View ${entry.label} products`);
       label.textContent = entry.label;
       detail.textContent = plural(entry.products, "product");
-      footer.textContent = `Done ${moneyAmount(entry.completed)} · Cart ${moneyAmount(entry.inCart)} · Store ${moneyAmount(entry.inStore)}`;
+      footer.textContent = defaultDetail;
       barWrap.append(stack);
       item.append(value, barWrap, label, detail, footer);
       container.append(item);
@@ -204,7 +269,7 @@
     const totalCommitment = spent + openValue + remainingStoreValue;
     const spentPercent = totalCommitment ? (spent / totalCommitment) * 100 : 0;
     const openPercent = totalCommitment ? (openValue / totalCommitment) * 100 : 0;
-    const remainingPercent = Math.max(0, 100 - spentPercent - openPercent);
+    const remainingPercent = totalCommitment ? (remainingStoreValue / totalCommitment) * 100 : 0;
     const completedStop = Math.min(100, Math.max(0, spentPercent));
     const cartStop = Math.min(100, Math.max(completedStop, spentPercent + openPercent));
 
@@ -229,12 +294,12 @@
       }
     };
 
-    elements.completionTotalValue.textContent = moneyAmount(totalCommitment);
-    elements.completionSpentValue.textContent = moneyAmount(spent);
+    elements.completionTotalValue.textContent = money(totalCommitment);
+    elements.completionSpentValue.textContent = money(spent);
     elements.completionSpentPercent.textContent = `${percentLabel(spentPercent)} of total`;
-    elements.completionOpenValue.textContent = moneyAmount(openValue);
+    elements.completionOpenValue.textContent = money(openValue);
     elements.completionOpenPercent.textContent = `${percentLabel(openPercent)} of total`;
-    elements.completionStockValue.textContent = moneyAmount(remainingStoreValue);
+    elements.completionStockValue.textContent = money(remainingStoreValue);
     elements.completionStockPercent.textContent = `${percentLabel(remainingPercent)} of total`;
     elements.completionRing.style.setProperty("--completed-stop", `${completedStop}%`);
     elements.completionRing.style.setProperty("--cart-stop", `${cartStop}%`);
@@ -326,6 +391,8 @@
   }
 
   function render() {
+    const activeProducts = state.data.products.filter((product) => !product.archived);
+    const archivedProducts = state.data.products.filter((product) => product.archived);
     const productsById = new Map(state.data.products.map((product) => [product.id, product]));
     const orders = state.data.orders;
     const spent = orders.reduce((total, order) => total + Number(order.totalAmount || 0), 0);
@@ -334,10 +401,13 @@
       .map((item) => ({ cart, item, product: productsById.get(item.productId) }))
       .filter((entry) => entry.product));
     const openValue = openCartEntries.reduce((total, entry) => total + productValue(entry.product), 0);
-    const inventoryValue = state.data.products.reduce((total, product) => (
+    const inventoryValue = activeProducts.reduce((total, product) => (
       total + (Store.getUnitsInStock(product) > 0 ? productValue(product) : 0)
     ), 0);
-    const catalogValue = state.data.products.reduce((total, product) => total + productValue(product), 0);
+    const catalogValue = activeProducts.reduce((total, product) => total + productValue(product), 0);
+    const archivedValue = archivedProducts.reduce((total, product) => total + productValue(product), 0);
+    const wishlistProducts = state.data.wishlist.map((id) => productsById.get(id)).filter(Boolean);
+    const wishlistValue = wishlistProducts.reduce((total, product) => total + productValue(product), 0);
     const activeCart = Store.getActiveCart(state.data);
 
     elements.brandName.textContent = state.data.settings.storeName;
@@ -345,18 +415,23 @@
     elements.cartCount.textContent = activeCart.items.length;
     elements.orderCount.textContent = plural(orders.length, "order");
     elements.openItems.textContent = plural(openCartEntries.length, "open cart item");
-    elements.productCount.textContent = plural(state.data.products.length, "product");
+    elements.productCount.textContent = `${activeProducts.length} products · ${archivedProducts.length} archived`;
     renderStatValue(elements.spent, spent);
     renderStatValue(elements.openValue, openValue);
     renderStatValue(elements.inventoryValue, inventoryValue);
     renderStatValue(elements.catalogValue, catalogValue);
+    renderStatValue(elements.archivedValue, archivedValue);
+    renderStatValue(elements.wishlistValue, wishlistValue);
+    elements.wishlistCount.textContent = plural(wishlistProducts.length, "saved product");
     renderCompletionSpotlight(spent, openValue, inventoryValue);
     renderBarChart(elements.valueChart, [
       { label: "Spent", value: spent },
       { label: "Open carts", value: openValue },
       { label: "Available stock", value: inventoryValue },
-      { label: "Catalog", value: catalogValue }
-    ], { colors: ["#a8ddb5", "#ffd28a", "#9ad9e3", "#c7d2e5"] });
+      { label: "Catalog", value: catalogValue },
+      { label: "Archived", value: archivedValue },
+      { label: "Wishlist", value: wishlistValue }
+    ], { colors: ["#a8ddb5", "#ffd28a", "#9ad9e3", "#c7d2e5", "#9fb0c8", "#c9b6f2"] });
 
     const completedByCategory = new Map();
     orders.forEach((order) => {
@@ -373,7 +448,7 @@
       cartByCategory.set(categoryId, current + productValue(product));
     });
     const categoryTotals = new Map();
-    state.data.products.forEach((product) => {
+    activeProducts.forEach((product) => {
       const categoryId = product.department;
       const current = categoryTotals.get(categoryId) || { inStore: 0, products: 0 };
       current.inStore += Store.getUnitsInStock(product) > 0 ? productValue(product) : 0;

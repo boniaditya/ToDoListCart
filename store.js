@@ -1,6 +1,7 @@
 (function () {
   const STORE_KEY = "todoListCart.store";
   const BACKUP_HISTORY_KEY = "todoListCart.backupHistory";
+  const DEMO_STATE_KEY = "todoListCart.demoState";
   const LEGACY_PRODUCTS_KEY = "todoListCart.products";
   const LEGACY_TASKS_KEY = "todoListCart.tasks";
   const DEFAULT_CART_ID = "cart-default";
@@ -10,6 +11,8 @@
     { id: "errands", name: "Errands", iconName: "mdi:shopping-outline" },
     { id: "study", name: "Study", iconName: "mdi:book-open-page-variant-outline" }
   ];
+  const MOM_ICON_NAME = "mdi:mother-heart";
+  const MOM_ICON_PATH = "M12 2c1.66 0 3 1.34 3 3s-1.34 3-3 3s-3-1.34-3-3s1.34-3 3-3m8 16l-2-5.44c-.35-.99-.66-1.85-2-2.56c-1.37-.7-2.37-1-4-1c-1.61 0-2.61.3-4 1c-1.32.71-1.63 1.57-2 2.56L4 18c-.23 1.13 2.38 2.44 4.13 3.19c1.21.53 2.51.81 3.87.81c1.38 0 2.67-.28 3.89-.81c1.75-.75 4.36-2.06 4.11-3.19m-4.58-.5L12 21l-3.42-3.5c-.36-.38-.58-.89-.58-1.45c0-1.13.9-2.05 2-2.05c.55 0 1.06.23 1.42.61l.58.59l.58-.6c.36-.37.87-.6 1.42-.6c1.11 0 2 .92 2 2.05c0 .56-.22 1.08-.58 1.45";
   const LOCAL_CATEGORY_ICON_GLYPHS = Object.freeze({
     "mdi:briefcase-outline": "💼",
     "mdi:home-outline": "⌂",
@@ -35,6 +38,20 @@
   // These definitions are registered from the extension's bundled icon JSON
   // files. They are never requested from a remote host at runtime.
   const BUNDLED_ICON_DEFINITIONS = new Map();
+  const BUNDLED_ICON_FILES = Object.freeze(["icon-data/tabler.json", "icon-data/mdi.json"]);
+  const PRODUCT_PLACEHOLDER_ICON_RULES = Object.freeze([
+    { iconName: "mdi:water-boiler", keywords: ["geyser", "water heater", "boiler", "heater"] },
+    { iconName: "mdi:lightning-bolt-outline", keywords: ["mcb", "trip", "voltage", "current", "electrical", "electric", "power", "circuit", "breaker"] },
+    { iconName: "mdi:power-plug-outline", keywords: ["plug", "socket", "adapter", "charger", "cable"] },
+    { iconName: "mdi:pipe-valve", keywords: ["plumbing", "pipe", "valve", "tap", "faucet"] },
+    { iconName: "mdi:sofa-outline", keywords: ["interior", "interiors", "furniture", "sofa", "decor"] },
+    { iconName: "mdi:tools", keywords: ["repair", "service", "maintenance", "fix", "install"] },
+    { iconName: "mdi:cart-outline", keywords: ["buy", "purchase", "shopping", "order"] },
+    { iconName: "mdi:package-variant-closed", keywords: ["package", "box", "stock", "inventory", "supply"] },
+    { iconName: "mdi:briefcase-outline", keywords: ["work", "office", "business"] },
+    { iconName: "mdi:home-outline", keywords: ["home", "house", "room"] },
+    { iconName: "mdi:book-open-page-variant-outline", keywords: ["study", "book", "learn", "course"] }
+  ]);
   const DEFAULT_SETTINGS = {
     accountName: "boni aditya",
     storeName: "ToDoList Cart",
@@ -214,19 +231,26 @@
 
   function normalizeCategory(category) {
     if (typeof category === "string") {
+      const id = slugify(category);
       return {
-        id: slugify(category),
+        id,
         name: category.trim() || "Category",
         icon: "",
-        iconName: ""
+        iconName: id === "mom" ? MOM_ICON_NAME : ""
       };
     }
 
+    const id = slugify(category?.id || category?.name);
+    const icon = String(category?.icon || "");
+    const savedIconName = String(category?.iconName || "");
+    const missingIcon = !icon && !savedIconName;
+    const genericTag = ["local:tag", "mdi:tag-outline"].includes(savedIconName);
+    const useMomDefault = id === "mom" && (missingIcon || genericTag);
     return {
-      id: slugify(category?.id || category?.name),
+      id,
       name: String(category?.name || category?.id || "Category").trim() || "Category",
-      icon: String(category?.icon || ""),
-      iconName: String(category?.iconName || "")
+      icon: useMomDefault ? "" : icon,
+      iconName: useMomDefault ? MOM_ICON_NAME : savedIconName
     };
   }
 
@@ -319,10 +343,10 @@
           return "";
         }
       })
-      .filter((url, index, urls) => url && urls.indexOf(url) === index)
-      .slice(0, 8);
+      .filter((url, index, urls) => url && urls.indexOf(url) === index);
     const relatedProductIds = [...new Set(getArray(product.relatedProductIds).map(String).filter(Boolean))];
     const bundleProductIds = [...new Set(getArray(product.bundleProductIds).map(String).filter(Boolean))];
+    const addonProductIds = [...new Set(getArray(product.addonProductIds).map(String).filter(Boolean))];
     const productType = ["product", "service", "project"].includes(product.productType)
       ? product.productType
       : "product";
@@ -352,18 +376,26 @@
       referenceUrls,
       relatedProductIds,
       bundleProductIds,
+      addonProductIds,
       inStock: product.inStock !== false && completedUnits < Number(availableUnits),
       description: product.description || "",
       images,
       image: images[0]?.src || "",
       imageName: images[0]?.name || "",
       comments,
+      archived: product.archived === true
+        || product.archived === "true"
+        || product.archived === 1
+        || product.archived === "1",
       createdAt: product.createdAt || Date.now()
     };
   }
 
   function normalizeRelatedProductLinks(products) {
     const productIds = new Set(products.map((product) => product.id));
+    const validLinkedIds = (product, ids) => [...new Set(getArray(ids)
+      .map(String)
+      .filter((linkedId) => linkedId !== product.id && productIds.has(linkedId)))];
     const relatedByProductId = new Map(products.map((product) => [
       product.id,
       new Set(product.relatedProductIds.filter((relatedId) => relatedId !== product.id && productIds.has(relatedId)))
@@ -375,7 +407,9 @@
 
     return products.map((product) => ({
       ...product,
-      relatedProductIds: [...relatedByProductId.get(product.id)]
+      relatedProductIds: [...relatedByProductId.get(product.id)],
+      bundleProductIds: validLinkedIds(product, product.bundleProductIds),
+      addonProductIds: validLinkedIds(product, product.addonProductIds)
     }));
   }
 
@@ -630,7 +664,7 @@
     });
   }
 
-  function createProduct({ title, department, productType, location, priority, moq, effort, unitPrice, price, inStock, availableUnits, completedUnits, description, referenceUrls, relatedProductIds, bundleProductIds, images, image, imageName }) {
+  function createProduct({ title, department, productType, location, priority, moq, effort, unitPrice, price, inStock, availableUnits, completedUnits, description, referenceUrls, relatedProductIds, bundleProductIds, addonProductIds, images, image, imageName }) {
     return normalizeProduct({
       id: createId("product"),
       title,
@@ -648,6 +682,7 @@
       referenceUrls,
       relatedProductIds,
       bundleProductIds,
+      addonProductIds,
       images,
       image,
       imageName,
@@ -818,6 +853,45 @@
     return normalizedData;
   }
 
+  function watchDataChanges(callback) {
+    const storageChanges = globalThis.chrome?.storage?.onChanged;
+    if (!storageChanges || typeof callback !== "function") return () => {};
+
+    let refreshPending = false;
+    let refreshRunning = false;
+    const refresh = async () => {
+      if (document.visibilityState === "hidden") {
+        refreshPending = true;
+        return;
+      }
+      if (refreshRunning) {
+        refreshPending = true;
+        return;
+      }
+      refreshRunning = true;
+      refreshPending = false;
+      try {
+        await callback();
+      } finally {
+        refreshRunning = false;
+        if (refreshPending && document.visibilityState !== "hidden") refresh();
+      }
+    };
+    const onStorageChanged = (changes, areaName) => {
+      if (areaName === "local" && hasOwn(changes || {}, STORE_KEY)) refresh();
+    };
+    const onVisibilityChanged = () => {
+      if (refreshPending && document.visibilityState !== "hidden") refresh();
+    };
+
+    storageChanges.addListener(onStorageChanged);
+    document.addEventListener("visibilitychange", onVisibilityChanged);
+    return () => {
+      storageChanges.removeListener(onStorageChanged);
+      document.removeEventListener("visibilitychange", onVisibilityChanged);
+    };
+  }
+
   async function loadBackupHistory() {
     const localArea = getStorageArea("local");
     const result = await readChrome(localArea, [BACKUP_HISTORY_KEY]);
@@ -838,6 +912,52 @@
 
     writeLocal(BACKUP_HISTORY_KEY, nextHistory);
     return nextHistory;
+  }
+
+  async function loadDemoState() {
+    const localArea = getStorageArea("local");
+    const result = await readChrome(localArea, [DEMO_STATE_KEY]);
+    const value = hasOwn(result, DEMO_STATE_KEY) ? result[DEMO_STATE_KEY] : readLocal(DEMO_STATE_KEY);
+    return {
+      enabled: value?.enabled === true,
+      version: Math.max(0, Number(value?.version) || 0),
+      originalData: value?.originalData ? normalizeData(value.originalData) : null
+    };
+  }
+
+  async function saveDemoState(value) {
+    const nextValue = {
+      enabled: value?.enabled === true,
+      version: Math.max(0, Number(value?.version) || 0),
+      originalData: value?.originalData || null
+    };
+    const localArea = getStorageArea("local");
+    if (await writeChrome(localArea, { [DEMO_STATE_KEY]: nextValue })) {
+      return nextValue;
+    }
+    writeLocal(DEMO_STATE_KEY, nextValue);
+    return nextValue;
+  }
+
+  async function loadBundledIconCollections() {
+    if (BUNDLED_ICON_DEFINITIONS.size) {
+      return BUNDLED_ICON_DEFINITIONS.size;
+    }
+
+    try {
+      const collections = await Promise.all(BUNDLED_ICON_FILES.map(async (file) => {
+        const response = await fetch(getExtensionUrl(file));
+        if (!response.ok) {
+          throw new Error(`Unable to load ${file}`);
+        }
+        return response.json();
+      }));
+      collections.forEach(registerBundledIconCollection);
+    } catch (error) {
+      console.warn("Unable to load bundled icon collections.", error);
+    }
+
+    return BUNDLED_ICON_DEFINITIONS.size;
   }
 
   function getActiveCart(data) {
@@ -867,12 +987,52 @@
       const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" color="#007185" fill="${isTabler ? "none" : "currentColor"}" stroke="${isTabler ? "currentColor" : "none"}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${bundledIcon.body}</svg>`;
       return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
     }
+    if (iconName === MOM_ICON_NAME) {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#007185"><path d="${MOM_ICON_PATH}"/></svg>`;
+      return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    }
     const glyph = iconName.startsWith("emoji:")
       ? iconName.slice("emoji:".length)
       : LOCAL_CATEGORY_ICON_GLYPHS[iconName] || "🏷";
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><text x="12" y="17" text-anchor="middle" font-size="17">${glyph}</text></svg>`;
     return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
   }
+
+  function getBundledIconSource(iconName, color = "#007185") {
+    const bundledIcon = BUNDLED_ICON_DEFINITIONS.get(iconName);
+    if (!bundledIcon) {
+      return "";
+    }
+
+    const width = bundledIcon.width || 24;
+    const height = bundledIcon.height || 24;
+    const isTabler = bundledIcon.collectionPrefix === "tabler";
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" color="${color}" fill="${isTabler ? "none" : "currentColor"}" stroke="${isTabler ? "currentColor" : "none"}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${bundledIcon.body}</svg>`;
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  }
+
+  function getProductPlaceholderIcon(data, product) {
+    const category = getCategory(data, product?.department);
+    const haystack = [
+      product?.title,
+      product?.description,
+      product?.productType,
+      product?.location,
+      category?.name,
+      product?.moq
+    ].join(" ").toLocaleLowerCase();
+    const match = PRODUCT_PLACEHOLDER_ICON_RULES.find((rule) => (
+      rule.keywords.some((keyword) => haystack.includes(keyword))
+    ));
+    const iconName = match?.iconName || category?.iconName || "mdi:tag-outline";
+    const source = getBundledIconSource(iconName) || getCategoryIconSource(category);
+
+    return {
+      source,
+      label: iconName.split(":").pop().replace(/[-_]+/g, " ")
+    };
+  }
+
 
   function registerBundledIconCollection(collection) {
     if (!collection?.prefix || !collection?.icons) {
@@ -1090,6 +1250,64 @@
     }
   }
 
+  function installPageLoadingSkeleton() {
+    if (document.getElementById("page-loading-skeleton")) {
+      return;
+    }
+
+    document.documentElement.classList.add("page-is-loading");
+    const skeleton = document.createElement("div");
+    skeleton.id = "page-loading-skeleton";
+    skeleton.setAttribute("role", "status");
+    skeleton.setAttribute("aria-label", "Loading page");
+    skeleton.innerHTML = `
+      <div class="skeleton-header"><i></i><i></i><i></i><i></i></div>
+      <div class="skeleton-layout">
+        <aside class="skeleton-sidebar"><i></i><i></i><i></i><i></i><i></i><i></i></aside>
+        <main class="skeleton-main"><i class="wide"></i><i class="title"></i><i class="line"></i><i class="line short"></i><div class="skeleton-grid"><i></i><i></i><i></i><i></i><i></i><i></i></div></main>
+      </div>`;
+    document.body.append(skeleton);
+
+    const dismiss = () => {
+      skeleton.classList.add("is-ready");
+      document.documentElement.classList.remove("page-is-loading");
+      window.setTimeout(() => skeleton.remove(), 260);
+    };
+
+    window.addEventListener("load", () => window.setTimeout(dismiss, 650), { once: true });
+    window.setTimeout(dismiss, 5000);
+  }
+
+  installPageLoadingSkeleton();
+
+  function showCartLoadingIndicator() {
+    if (document.querySelector(".cart-loading-overlay")) {
+      return;
+    }
+
+    const overlay = document.createElement("div");
+    overlay.className = "cart-loading-overlay";
+    overlay.setAttribute("role", "status");
+    overlay.setAttribute("aria-live", "polite");
+    overlay.innerHTML = `<div class="cart-loading-card"><strong>Loading the cart, please wait</strong><span class="cart-loading-bar" aria-hidden="true"><i></i></span></div>`;
+    document.body.append(overlay);
+  }
+
+  document.addEventListener("click", (event) => {
+    const cartButton = event.target.closest?.(".cart-button");
+    if (!cartButton || cartButton.classList.contains("active-cart-page")) {
+      return;
+    }
+
+    showCartLoadingIndicator();
+    if (cartButton.matches("a[href]")) {
+      event.preventDefault();
+      window.setTimeout(() => {
+        window.location.href = cartButton.href;
+      }, 40);
+    }
+  }, true);
+
   globalThis.ToDoCartStore = {
     createCart,
     createCardImageCopy,
@@ -1109,13 +1327,16 @@
     getCategoryIconSource,
     getCategoryLabel,
     getExtensionUrl,
+    getProductPlaceholderIcon,
     getPriorityLabel,
     getStars,
     getTotalAmount,
     getTotalMoq,
     getUnitsInStock,
     loadBackupHistory,
+    loadBundledIconCollections,
     loadData,
+    loadDemoState,
     normalizeCategory,
     normalizeData,
     normalizeMoq,
@@ -1131,6 +1352,8 @@
     renderCategory,
     renderHeaderCommentBadges,
     saveBackupHistory,
-    saveData
+    saveData,
+    saveDemoState,
+    watchDataChanges
   };
 })();

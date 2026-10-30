@@ -9,6 +9,13 @@
     <link rel="stylesheet" href="newtab.css">
   </head>
   <body>
+    <div id="product-data-skeleton" class="product-data-skeleton" role="status" aria-label="Loading product details">
+      <div class="product-skeleton-layout">
+        <section class="product-skeleton-image"><i></i></section>
+        <section class="product-skeleton-copy"><i class="product-skeleton-kicker"></i><i class="product-skeleton-title"></i><i class="product-skeleton-rating"></i><div class="product-skeleton-info"><i></i><i></i><i></i><i></i><i></i><i></i></div><i class="product-skeleton-description"></i><i class="product-skeleton-line"></i></section>
+        <aside class="product-skeleton-actions"><i></i><i></i><i></i><i></i><i></i></aside>
+      </div>
+    </div>
     <main class="store-shell detail-shell" aria-labelledby="detail-title">
       <header class="store-header">
         <div class="top-row">
@@ -28,11 +35,11 @@
 
           <button type="button" class="page-link-button" id="open-products-page" hidden>Products</button>
           <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
-          <a class="page-link-button" id="open-home-page" href="newtab.html">Workspace</a>
           <button type="button" class="page-link-button" id="open-orders-page">Orders</button>
           <a class="page-link-button" href="tally.html">Analytics</a>
           <a class="page-link-button" href="vendors.html">Vendors</a>
-          <button type="button" class="page-link-button" id="open-account-page">Account</button>
+          <a class="page-link-button" href="products.html?view=archived">Archive</a>
+          <button type="button" class="page-link-button" id="open-account-page">Settings</button>
 
           <a class="header-icon-button comments-header-button" href="comments.html" aria-label="Open comment trails" title="Comments">
             <svg class="comment-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.5-4A9 9 0 1 1 21 12Z"></path></svg>
@@ -58,6 +65,7 @@
       <section id="product-detail" class="detail-card" hidden>
         <div class="detail-image" id="detail-image">
           <span></span>
+          <p id="product-image-paste-status" class="product-image-paste-status" role="status" aria-live="polite">Paste an image anywhere on this page to add it to the product.</p>
         </div>
 
         <article class="detail-copy">
@@ -113,6 +121,7 @@
               <button type="button" role="tab" id="resource-tab-references" aria-controls="detail-references" data-resource-tab="references">Reference links</button>
               <button type="button" role="tab" id="resource-tab-related" aria-controls="detail-related-products" data-resource-tab="related">Related products</button>
               <button type="button" role="tab" id="resource-tab-bundle" aria-controls="detail-bundle-products" data-resource-tab="bundle">Buy together</button>
+              <button type="button" role="tab" id="resource-tab-addons" aria-controls="detail-addon-products" data-resource-tab="addons">Add-ons</button>
               <button type="button" role="tab" id="resource-tab-vendors" aria-controls="detail-vendors" data-resource-tab="vendors">Vendors</button>
               <button type="button" role="tab" id="resource-tab-comments" aria-controls="product-comments" data-resource-tab="comments">COMMENTS</button>
               <button type="button" id="toggle-comment-panel" class="comment-panel-toggle-icon comment-tab-toggle" aria-pressed="false" aria-label="Move add comment to side panel" title="Move add comment to side panel">
@@ -145,6 +154,10 @@
               <h2>Buy together</h2><ul></ul>
               <p class="resource-empty-state">No bundled products added yet.</p>
             </section>
+            <section id="detail-addon-products" class="detail-references detail-resource-panel" role="tabpanel" aria-labelledby="resource-tab-addons" data-resource-panel="addons" hidden>
+              <h2>Required add-ons</h2><ul></ul>
+              <p class="resource-empty-state">No required add-ons added yet.</p>
+            </section>
             <section id="detail-vendors" class="detail-references detail-resource-panel" role="tabpanel" aria-labelledby="resource-tab-vendors" data-resource-panel="vendors" hidden>
               <h2>Vendors</h2><ul></ul>
               <p class="resource-empty-state">No vendors linked yet.</p>
@@ -159,11 +172,11 @@
               <form id="comment-form" class="comment-form">
                 <label class="comment-title-field">
                   <span>Title <em>Optional</em></span>
-                  <input id="comment-title" maxlength="100" placeholder="Comment title">
+                  <input id="comment-title" placeholder="Comment title">
                 </label>
                 <label class="comment-body-field">
                   <span>Comment</span>
-                  <textarea id="comment-text" maxlength="500" placeholder="Add a note, update, or follow-up…"></textarea>
+                  <textarea id="comment-text" placeholder="Add a note, update, or follow-up…"></textarea>
                 </label>
                 <label class="comment-image-upload" for="comment-image-file">
                   <span>Add images</span>
@@ -206,18 +219,29 @@
             <span>Checked out in this cart</span>
           </label>
 
-          <button type="button" id="detail-duplicate" class="secondary-button button-with-icon">
-            <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-              <rect x="9" y="9" width="11" height="11" rx="1"></rect>
-              <path d="M15 9V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h4"></path>
-            </svg>
-            <span>Duplicate</span>
-          </button>
+          <div class="detail-product-actions">
+            <button type="button" id="detail-duplicate" class="secondary-button button-with-icon">
+              <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <rect x="9" y="9" width="11" height="11" rx="1"></rect>
+                <path d="M15 9V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h4"></path>
+              </svg>
+              <span>Duplicate</span>
+            </button>
+            <button type="button" id="detail-archive" class="secondary-button button-with-icon">
+              <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M4 7h16v13H4z"></path>
+                <path d="M3 4h18v3H3z"></path>
+                <path d="M9 11h6"></path>
+              </svg>
+              <span>Archive</span>
+            </button>
+          </div>
           <div id="duplicate-progress" class="duplicate-progress" role="status" aria-live="polite" hidden>
             <span class="duplicate-spinner" aria-hidden="true"></span>
             <strong>Duplicating product...</strong>
             <span class="duplicate-progress-bar" aria-hidden="true"><i></i></span>
           </div>
+          <p id="duplicate-status" class="settings-status duplicate-status" aria-live="polite"></p>
 
           <div class="detail-management-actions">
             <button type="button" id="detail-edit" class="secondary-button button-with-icon">

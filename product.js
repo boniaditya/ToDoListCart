@@ -8,7 +8,8 @@
     dialogImages: [],
     dialogImageIndex: 0,
     activeResourceTab: new URLSearchParams(window.location.search).get("tab") || "description",
-    commentImages: []
+    commentImages: [],
+    editingCommentId: ""
   };
 
   const elements = {
@@ -18,6 +19,7 @@
     missingProductsLink: document.querySelector("#missing-products-link"),
     departments: document.querySelector(".departments"),
     detailImage: document.querySelector("#detail-image"),
+    productImagePasteStatus: document.querySelector("#product-image-paste-status"),
     title: document.querySelector("#detail-title"),
     stars: document.querySelector("#detail-stars"),
     rating: document.querySelector(".detail-rating"),
@@ -39,6 +41,7 @@
     emptyReferences: document.querySelector("#empty-reference-links"),
     relatedProducts: document.querySelector("#detail-related-products"),
     bundleProducts: document.querySelector("#detail-bundle-products"),
+    addonProducts: document.querySelector("#detail-addon-products"),
     vendorsPanel: document.querySelector("#detail-vendors"),
     descriptionPanel: document.querySelector("#detail-description-panel"),
     commentsPanel: document.querySelector("#product-comments"),
@@ -70,7 +73,9 @@
     stockStatus: document.querySelector("#detail-stock-status"),
     editProduct: document.querySelector("#detail-edit"),
     duplicateProduct: document.querySelector("#detail-duplicate"),
+    archiveProduct: document.querySelector("#detail-archive"),
     duplicateProgress: document.querySelector("#duplicate-progress"),
+    duplicateStatus: document.querySelector("#duplicate-status"),
     addCart: document.querySelector("#detail-add-cart"),
     buyNow: document.querySelector("#detail-buy-now"),
     removeCart: document.querySelector("#detail-remove-cart"),
@@ -162,7 +167,9 @@
   }
 
   function renderProductImage(product) {
+    const pasteStatus = elements.productImagePasteStatus;
     elements.detailImage.replaceChildren();
+    elements.detailImage.append(pasteStatus);
     elements.detailImage.classList.remove("has-carousel");
     elements.detailImage.removeAttribute("tabindex");
     elements.detailImage.removeAttribute("aria-label");
@@ -239,6 +246,16 @@
       return;
     }
 
+    const placeholder = Store.getProductPlaceholderIcon(state.data, product);
+    if (placeholder.source) {
+      const image = document.createElement("img");
+      image.className = "product-placeholder-icon";
+      image.src = placeholder.source;
+      image.alt = "";
+      elements.detailImage.append(image);
+      return;
+    }
+
     elements.detailImage.append(document.createElement("span"));
   }
 
@@ -287,6 +304,7 @@
       const title = document.createElement("strong");
       const text = document.createElement("p");
       const remove = document.createElement("button");
+      const edit = document.createElement("button");
 
       timestamp.dateTime = new Date(comment.createdAt).toISOString();
       timestamp.textContent = Store.formatDateTime(comment.createdAt);
@@ -306,7 +324,16 @@
         </svg>
       `;
       remove.addEventListener("click", () => deleteComment(comment.id));
-      meta.append(timestamp, remove);
+      edit.type = "button";
+      edit.className = "edit-comment-button";
+      edit.setAttribute("aria-label", `Edit comment${comment.title ? `: ${comment.title}` : ""}`);
+      edit.title = "Edit comment";
+      edit.innerHTML = `<svg class="comment-edit-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"></path></svg>`;
+      edit.addEventListener("click", () => editComment(comment));
+      const actions = document.createElement("span");
+      actions.className = "comment-actions";
+      actions.append(edit, remove);
+      meta.append(timestamp, actions);
       item.append(meta);
       if (comment.title) {
         item.append(title);
@@ -414,6 +441,17 @@
     await persistAndRender();
   }
 
+  function editComment(comment) {
+    state.editingCommentId = comment.id;
+    elements.commentTitle.value = comment.title || "";
+    elements.commentText.value = comment.text || "";
+    state.commentImages = [...(comment.images || [])];
+    renderCommentImagePreview();
+    elements.commentSubmit.textContent = "Update comment";
+    elements.commentForm.scrollIntoView({ behavior: "smooth", block: "center" });
+    elements.commentText.focus();
+  }
+
   function renderReferences(product) {
     const referenceUrls = product.referenceUrls || [];
     elements.referenceList.replaceChildren();
@@ -460,11 +498,6 @@
       elements.referenceStatus.textContent = "This reference link is already added.";
       return;
     }
-    if (referenceUrls.length >= 8) {
-      elements.referenceStatus.textContent = "A product can have up to 8 reference links.";
-      return;
-    }
-
     state.data.products = state.data.products.map((entry) => (
       entry.id === product.id ? { ...entry, referenceUrls: [...referenceUrls, url] } : entry
     ));
@@ -488,13 +521,20 @@
   }
 
   function renderProductRelations(product) {
-    const renderRelation = (container, ids) => {
+    const renderRelation = (container, ids, config) => {
       const products = ids.map((id) => state.data.products.find((entry) => entry.id === id)).filter(Boolean);
       const list = container.querySelector("ul");
+      const emptyState = container.querySelector(".resource-empty-state");
+      const existingTools = container.querySelector(".relation-link-tools");
+
+      if (existingTools) {
+        existingTools.remove();
+      }
+
       list.replaceChildren();
       list.className = "relation-preview-list";
-      container.dataset.available = String(products.length > 0);
-      container.querySelector(".resource-empty-state").hidden = products.length > 0;
+      container.dataset.available = "true";
+      emptyState.hidden = products.length > 0;
       products.forEach((related) => {
         const item = document.createElement("li");
         const link = document.createElement("a");
@@ -528,21 +568,170 @@
         item.append(link);
         list.append(item);
       });
+
+      if (!products.length) {
+        renderEmptyRelationPicker(container, product, config);
+      }
     };
-    renderRelation(elements.relatedProducts, product.relatedProductIds || []);
-    renderRelation(elements.bundleProducts, product.bundleProductIds || []);
+    renderRelation(elements.relatedProducts, product.relatedProductIds || [], {
+      key: "relatedProductIds",
+      label: "related product",
+      buttonLabel: "+ Add related product"
+    });
+    renderRelation(elements.bundleProducts, product.bundleProductIds || [], {
+      key: "bundleProductIds",
+      label: "buy together product",
+      buttonLabel: "+ Add buy together product"
+    });
+    renderRelation(elements.addonProducts, product.addonProductIds || [], {
+      key: "addonProductIds",
+      label: "required add-on",
+      buttonLabel: "+ Add required add-on"
+    });
     renderResourceTabs();
+  }
+
+  function renderEmptyRelationPicker(container, product, config) {
+    const tools = document.createElement("div");
+    const addButton = document.createElement("button");
+    const picker = document.createElement("div");
+    const search = document.createElement("input");
+    const select = document.createElement("select");
+    const saveButton = document.createElement("button");
+    const status = document.createElement("p");
+    const progress = document.createElement("div");
+    const spinner = document.createElement("span");
+    const progressText = document.createElement("strong");
+    const progressBar = document.createElement("span");
+    const progressFill = document.createElement("i");
+    const selectedIds = new Set(product[config.key] || []);
+    const availableProducts = state.data.products
+      .filter((entry) => entry.id !== product.id && !selectedIds.has(entry.id))
+      .sort((first, second) => first.title.localeCompare(second.title));
+
+    tools.className = "relation-link-tools";
+    addButton.type = "button";
+    addButton.className = "primary-button relation-add-button";
+    addButton.textContent = config.buttonLabel;
+    picker.className = "relation-picker";
+    picker.hidden = true;
+    search.type = "search";
+    search.placeholder = `Search products to add as a ${config.label}`;
+    search.setAttribute("aria-label", `Search products to add as a ${config.label}`);
+    select.size = 5;
+    select.setAttribute("aria-label", `Choose ${config.label}`);
+    saveButton.type = "button";
+    saveButton.className = "secondary-button";
+    saveButton.textContent = "Add product";
+    status.className = "relation-picker-status";
+    progress.className = "relation-save-progress";
+    progress.setAttribute("role", "status");
+    progress.setAttribute("aria-live", "polite");
+    progress.hidden = true;
+    spinner.className = "relation-save-spinner";
+    spinner.setAttribute("aria-hidden", "true");
+    progressText.textContent = "Adding product...";
+    progressBar.className = "relation-save-bar";
+    progressBar.setAttribute("aria-hidden", "true");
+    progressBar.append(progressFill);
+    progress.append(spinner, progressText, progressBar);
+
+    const setSaving = (isSaving) => {
+      progress.hidden = !isSaving;
+      saveButton.disabled = isSaving || !select.value;
+      saveButton.setAttribute("aria-busy", String(isSaving));
+      saveButton.textContent = isSaving ? "Adding..." : "Add product";
+      search.disabled = isSaving;
+      select.disabled = isSaving;
+    };
+
+    const renderOptions = () => {
+      const query = search.value.trim().toLocaleLowerCase();
+      const matches = availableProducts.filter((entry) => (
+        !query
+        || entry.title.toLocaleLowerCase().includes(query)
+        || Store.getCategoryLabel(state.data, entry.department).toLocaleLowerCase().includes(query)
+      ));
+
+      select.replaceChildren();
+      matches.forEach((entry) => {
+        const option = document.createElement("option");
+        option.value = entry.id;
+        option.textContent = `${entry.title} — ${Store.getCategoryLabel(state.data, entry.department)}`;
+        select.append(option);
+      });
+      saveButton.disabled = matches.length === 0 || !select.value;
+      status.textContent = matches.length
+        ? `${matches.length} ${matches.length === 1 ? "product" : "products"} found.`
+        : "No matching products found.";
+    };
+
+    addButton.addEventListener("click", () => {
+      picker.hidden = false;
+      addButton.hidden = true;
+      renderOptions();
+      search.focus();
+    });
+    search.addEventListener("input", renderOptions);
+    select.addEventListener("change", () => {
+      saveButton.disabled = !select.value;
+    });
+    saveButton.addEventListener("click", async () => {
+      if (!select.value) return;
+      setSaving(true);
+      try {
+        await addRelationProduct(config.key, select.value);
+      } catch (error) {
+        console.error("Could not add product relation", error);
+        status.textContent = "The product could not be added. Please try again.";
+        setSaving(false);
+      }
+    });
+    picker.append(search, select, saveButton, progress, status);
+    tools.append(addButton, picker);
+    container.append(tools);
+  }
+
+  async function addRelationProduct(key, productId) {
+    const product = getProduct();
+
+    if (!product || !productId) return;
+
+    const nextIds = [...new Set([...(product[key] || []), productId])];
+
+    if (key === "relatedProductIds") {
+      state.data.products = Store.setRelatedProductLinks(state.data.products, product.id, nextIds);
+    } else {
+      state.data.products = state.data.products.map((entry) => (
+        entry.id === product.id
+          ? Store.normalizeProduct({ ...entry, [key]: nextIds })
+          : entry
+      ));
+    }
+
+    await persistAndRender();
+    setResourceTab(key === "addonProductIds" ? "addons" : key === "bundleProductIds" ? "bundle" : "related");
   }
 
   function renderProductVendors(product) {
     const vendors = state.data.vendors
       .filter((vendor) => vendor.productIds.includes(product.id))
       .sort((first, second) => first.name.localeCompare(second.name));
+    const availableVendors = state.data.vendors
+      .filter((vendor) => !vendor.productIds.includes(product.id))
+      .sort((first, second) => first.name.localeCompare(second.name));
     const list = elements.vendorsPanel.querySelector("ul");
+    const emptyState = elements.vendorsPanel.querySelector(".resource-empty-state");
+    const existingTools = elements.vendorsPanel.querySelector(".vendor-link-tools");
+
+    if (existingTools) {
+      existingTools.remove();
+    }
+
     list.replaceChildren();
     list.className = "vendor-preview-list";
-    elements.vendorsPanel.dataset.available = String(vendors.length > 0);
-    elements.vendorsPanel.querySelector(".resource-empty-state").hidden = vendors.length > 0;
+    elements.vendorsPanel.dataset.available = "true";
+    emptyState.hidden = vendors.length > 0;
 
     vendors.forEach((vendor) => {
       const item = document.createElement("li");
@@ -567,7 +756,67 @@
       list.append(item);
     });
 
+    const tools = document.createElement("div");
+    const heading = document.createElement("strong");
+    const help = document.createElement("p");
+    const actions = document.createElement("div");
+    const addNew = document.createElement("a");
+
+    tools.className = "vendor-link-tools";
+    heading.textContent = vendors.length ? "Add another vendor" : "Add a vendor to this product";
+    help.textContent = "Create a new vendor or link an existing vendor record to this product.";
+    actions.className = "vendor-link-actions";
+    addNew.className = "primary-button vendor-add-new-link";
+    addNew.href = Store.getExtensionUrl(`vendors.html?productId=${encodeURIComponent(product.id)}`);
+    addNew.textContent = "+ Add new vendor";
+
+    if (availableVendors.length) {
+      const select = document.createElement("select");
+      const linkExisting = document.createElement("button");
+
+      select.className = "vendor-existing-select";
+      select.setAttribute("aria-label", "Choose existing vendor");
+      availableVendors.forEach((vendor) => {
+        const option = document.createElement("option");
+        option.value = vendor.id;
+        option.textContent = vendor.name;
+        select.append(option);
+      });
+      linkExisting.type = "button";
+      linkExisting.className = "secondary-button";
+      linkExisting.textContent = "Add existing vendor";
+      linkExisting.addEventListener("click", () => linkExistingVendor(select.value));
+      actions.append(select, linkExisting, addNew);
+    } else {
+      const noExisting = document.createElement("span");
+      noExisting.className = "vendor-link-empty-note";
+      noExisting.textContent = "No unlinked vendors are available yet.";
+      actions.append(noExisting, addNew);
+    }
+
+    tools.append(heading, help, actions);
+    elements.vendorsPanel.append(tools);
+
     renderResourceTabs();
+  }
+
+  async function linkExistingVendor(vendorId) {
+    const product = getProduct();
+
+    if (!product || !vendorId) return;
+
+    state.data.vendors = state.data.vendors.map((vendor) => (
+      vendor.id === vendorId
+        ? {
+          ...vendor,
+          productIds: [...new Set([...(vendor.productIds || []), product.id])],
+          updatedAt: Date.now()
+        }
+        : vendor
+    ));
+
+    await persistAndRender();
+    setResourceTab("vendors");
   }
 
   function setResourceTab(tabName) {
@@ -576,10 +825,12 @@
   }
 
   function renderResourceTabs() {
-    const persistentTabs = new Set(["description", "references", "related", "vendors", "comments"]);
+    const persistentTabs = new Set(["description", "references", "related", "bundle", "addons", "vendors", "comments"]);
     elements.descriptionPanel.dataset.available = "true";
     elements.references.dataset.available = "true";
     elements.relatedProducts.dataset.available = "true";
+    elements.bundleProducts.dataset.available = "true";
+    elements.addonProducts.dataset.available = "true";
     elements.vendorsPanel.dataset.available = "true";
     elements.commentsPanel.dataset.available = "true";
     const panels = [...elements.resourceTabs.querySelectorAll("[data-resource-panel]")];
@@ -649,6 +900,8 @@
     elements.price.textContent = Store.formatMoney(product.price, state.data.settings);
     elements.created.textContent = Store.formatDate(product.createdAt);
     elements.description.textContent = product.description || "No description added yet.";
+    elements.archiveProduct.querySelector("span").textContent = product.archived ? "Unarchive" : "Archive";
+    elements.archiveProduct.setAttribute("aria-pressed", String(Boolean(product.archived)));
     renderReferences(product);
     renderProductRelations(product);
     renderProductVendors(product);
@@ -681,7 +934,7 @@
     elements.commentSaveProgress.hidden = !isSaving;
     elements.commentSubmit.disabled = isSaving;
     elements.commentSubmit.setAttribute("aria-busy", String(isSaving));
-    elements.commentSubmit.textContent = isSaving ? "Saving..." : "Add comment";
+    elements.commentSubmit.textContent = isSaving ? "Saving..." : state.editingCommentId ? "Update comment" : "Add comment";
     [elements.commentTitle, elements.commentText, elements.commentImageInput].forEach((field) => {
       field.disabled = isSaving;
     });
@@ -703,23 +956,21 @@
     const images = [...state.commentImages];
 
     try {
-      state.data.products = state.data.products.map((product) => (
-        product.id === state.productId
-          ? {
-            ...product,
-            comments: [...(product.comments || []), {
-              id: Store.createId("comment"),
-              title,
-              text,
-              images,
-              createdAt: Date.now()
-            }]
-          }
-          : product
-      ));
+      state.data.products = state.data.products.map((product) => {
+        if (product.id !== state.productId) return product;
+        const comments = state.editingCommentId
+          ? (product.comments || []).map((comment) => comment.id === state.editingCommentId
+            ? { ...comment, title, text, images }
+            : comment)
+          : [...(product.comments || []), { id: Store.createId("comment"), title, text, images, createdAt: Date.now() }];
+        return { ...product, comments };
+      });
       await persistAndRender();
+      setResourceTab("comments");
+      elements.commentsPanel.scrollIntoView({ behavior: "smooth", block: "start" });
       elements.commentForm.reset();
       state.commentImages = [];
+      state.editingCommentId = "";
       renderCommentImagePreview();
     } finally {
       setCommentSaving(false);
@@ -759,12 +1010,63 @@
     renderCommentImagePreview();
   }
 
-  async function addToCart() {
-    const activeCart = getActiveCart();
+  async function addProductImagesFromClipboard(files) {
+    const product = getProduct();
+    const selected = [...files].filter((file) => file.type.startsWith("image/"));
 
-    if (getActiveItem() || !getProduct()?.inStock) {
+    if (!product || !selected.length) {
       return;
     }
+
+    elements.productImagePasteStatus.textContent = "Adding image to this product...";
+    elements.productImagePasteStatus.classList.add("is-saving");
+
+    try {
+      const images = [];
+      for (const file of selected) {
+        if (file.size <= MAX_COMMENT_IMAGE_BYTES) {
+          images.push({
+            src: await Store.fileToDataUrl(file),
+            name: file.name || "pasted-product-image"
+          });
+        }
+      }
+
+      if (!images.length) {
+        elements.productImagePasteStatus.textContent = "Choose an image up to 5 MB.";
+        return;
+      }
+
+      state.data.products = state.data.products.map((entry) => (
+        entry.id === product.id
+          ? { ...entry, images: [...(entry.images || []), ...images] }
+          : entry
+      ));
+      await persistAndRender();
+      elements.productImagePasteStatus.textContent = `${images.length} image${images.length === 1 ? "" : "s"} added to this product.`;
+    } finally {
+      elements.productImagePasteStatus.classList.remove("is-saving");
+    }
+  }
+
+  async function addToCart() {
+    const activeCart = getActiveCart();
+    const product = getProduct();
+
+    if (getActiveItem() || !product?.inStock) {
+      return;
+    }
+
+    const existingProductIds = new Set(activeCart.items.map((item) => item.productId));
+    const addonItems = (product.addonProductIds || [])
+      .map((productId) => state.data.products.find((entry) => entry.id === productId))
+      .filter((addon) => addon?.inStock && !existingProductIds.has(addon.id))
+      .map((addon) => ({
+        id: Store.createId("item"),
+        productId: addon.id,
+        done: false,
+        addedAt: Date.now()
+      }));
 
     setActiveCart({
       ...activeCart,
@@ -773,7 +1075,7 @@
         productId: state.productId,
         done: false,
         addedAt: Date.now()
-      }, ...activeCart.items]
+      }, ...addonItems, ...activeCart.items]
     });
 
     await persistAndRender();
@@ -828,7 +1130,14 @@
   }
 
   async function deleteProduct() {
-    state.data.products = state.data.products.filter((product) => product.id !== state.productId);
+    state.data.products = state.data.products
+      .filter((product) => product.id !== state.productId)
+      .map((product) => ({
+        ...product,
+        relatedProductIds: (product.relatedProductIds || []).filter((productId) => productId !== state.productId),
+        bundleProductIds: (product.bundleProductIds || []).filter((productId) => productId !== state.productId),
+        addonProductIds: (product.addonProductIds || []).filter((productId) => productId !== state.productId)
+      }));
     state.data.wishlist = state.data.wishlist.filter((productId) => productId !== state.productId);
     state.data.carts = state.data.carts.map((cart) => ({
       ...cart,
@@ -842,11 +1151,126 @@
     window.location.href = Store.getExtensionUrl(`create-product.html?id=${encodeURIComponent(state.productId)}`);
   }
 
+  async function toggleArchiveProduct() {
+    const product = getProduct();
+    if (!product) return;
+    state.data.products = state.data.products.map((entry) => (
+      entry.id === product.id ? { ...entry, archived: !entry.archived } : entry
+    ));
+    await Store.saveData(state.data);
+    render();
+  }
+
   function setDuplicateProgress(isDuplicating) {
     elements.duplicateProduct.disabled = isDuplicating;
     elements.duplicateProduct.setAttribute("aria-busy", String(isDuplicating));
     elements.duplicateProduct.querySelector("span").textContent = isDuplicating ? "Duplicating..." : "Duplicate";
     elements.duplicateProgress.hidden = !isDuplicating;
+  }
+
+  function createDuplicateCreationOverlay(product) {
+    document.querySelector("#duplicate-creation-overlay")?.remove();
+    const overlay = document.createElement("div");
+    const panel = document.createElement("section");
+    const heading = document.createElement("div");
+    const kicker = document.createElement("span");
+    const title = document.createElement("strong");
+    const skeleton = document.createElement("div");
+    const image = document.createElement("i");
+    const copy = document.createElement("div");
+    const success = document.createElement("div");
+
+    overlay.id = "duplicate-creation-overlay";
+    overlay.className = "duplicate-creation-overlay";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.setAttribute("aria-labelledby", "duplicate-creation-title");
+    panel.className = "duplicate-creation-panel";
+    heading.className = "duplicate-creation-heading";
+    kicker.textContent = "CREATING NEW PRODUCT";
+    title.id = "duplicate-creation-title";
+    title.textContent = `Duplicating ${product.title}`;
+    heading.append(kicker, title);
+    skeleton.className = "duplicate-product-skeleton";
+    image.className = "duplicate-skeleton-image";
+    copy.className = "duplicate-skeleton-copy";
+    copy.innerHTML = "<i></i><i></i><i></i><i></i><i></i>";
+    skeleton.append(image, copy);
+    success.className = "duplicate-product-success";
+    success.hidden = true;
+    panel.append(heading, skeleton, success);
+    overlay.append(panel);
+    document.body.append(overlay);
+    requestAnimationFrame(() => overlay.classList.add("is-visible"));
+    return overlay;
+  }
+
+  function closeDuplicateCreationOverlay(overlay, force = false) {
+    if (!overlay?.isConnected) return;
+    if (!force && !overlay.classList.contains("is-complete")) return;
+    overlay.classList.remove("is-visible");
+    window.setTimeout(() => overlay.remove(), 220);
+  }
+
+  async function waitForDuplicatePreview(product) {
+    const source = product.images?.[0]?.cardSrc || product.images?.[0]?.src;
+    if (!source) return;
+    const image = new Image();
+    image.src = source;
+    await Promise.race([
+      typeof image.decode === "function"
+        ? image.decode().catch(() => undefined)
+        : new Promise((resolve) => {
+          image.addEventListener("load", resolve, { once: true });
+          image.addEventListener("error", resolve, { once: true });
+        }),
+      new Promise((resolve) => window.setTimeout(resolve, 4000))
+    ]);
+  }
+
+  function revealDuplicateCopy(overlay, product) {
+    const skeleton = overlay.querySelector(".duplicate-product-skeleton");
+    const success = overlay.querySelector(".duplicate-product-success");
+    const heading = overlay.querySelector(".duplicate-creation-heading strong");
+    const visual = document.createElement("div");
+    const imageEntry = product.images?.[0];
+    const badge = document.createElement("span");
+    const copy = document.createElement("div");
+    const title = document.createElement("strong");
+    const meta = document.createElement("span");
+    const actions = document.createElement("div");
+    const open = document.createElement("a");
+    const opening = document.createElement("span");
+
+    heading.textContent = "Your new product is ready";
+    visual.className = "duplicate-success-visual";
+    if (imageEntry?.src) {
+      const image = document.createElement("img");
+      image.src = imageEntry.cardSrc || imageEntry.src;
+      image.alt = "";
+      visual.append(image);
+    } else {
+      visual.textContent = "📦";
+    }
+    badge.className = "duplicate-success-check";
+    badge.textContent = "✓";
+    visual.append(badge);
+    copy.className = "duplicate-success-copy";
+    title.textContent = product.title;
+    meta.textContent = `${Store.getCategoryLabel(state.data, product.department)} · ${Store.getPriorityLabel(product.priority)} · ${Store.formatMoney(product.price, state.data.settings)}`;
+    copy.append(title, meta);
+    actions.className = "duplicate-success-actions";
+    open.className = "primary-button";
+    open.href = Store.getExtensionUrl(`create-product.html?id=${encodeURIComponent(product.id)}`);
+    open.textContent = "Open editor now";
+    opening.className = "duplicate-opening-note";
+    opening.textContent = "Opening the copied product in edit mode…";
+    actions.append(open, opening);
+    success.replaceChildren(visual, copy, actions);
+    skeleton.hidden = true;
+    success.hidden = false;
+    overlay.classList.add("is-complete");
+    open.focus();
   }
 
   async function duplicateProduct() {
@@ -857,6 +1281,9 @@
     }
 
     setDuplicateProgress(true);
+    elements.duplicateStatus.replaceChildren();
+    const overlay = createDuplicateCreationOverlay(product);
+    const animationStartedAt = performance.now();
 
     try {
       const copy = Store.createProduct({
@@ -875,20 +1302,38 @@
         referenceUrls: [...(product.referenceUrls || [])],
         relatedProductIds: [...(product.relatedProductIds || [])],
         bundleProductIds: [...(product.bundleProductIds || [])],
+        addonProductIds: [...(product.addonProductIds || [])],
         images: (product.images || []).map((image) => ({ ...image }))
       });
 
       state.data.products.unshift(copy);
       state.data = await Store.saveData(state.data);
+      await waitForDuplicatePreview(copy);
+      const minimumSkeletonTime = 700;
+      const remainingTime = minimumSkeletonTime - (performance.now() - animationStartedAt);
+      if (remainingTime > 0) await new Promise((resolve) => window.setTimeout(resolve, remainingTime));
+      setDuplicateProgress(false);
+      const message = document.createElement("span");
+      const openCopy = document.createElement("a");
+      message.textContent = `Created ${copy.title}. `;
+      openCopy.href = Store.getExtensionUrl(`create-product.html?id=${encodeURIComponent(copy.id)}`);
+      openCopy.textContent = "Edit the copy";
+      elements.duplicateStatus.append(message, openCopy);
+      revealDuplicateCopy(overlay, copy);
+      await new Promise((resolve) => window.setTimeout(resolve, 720));
       window.location.href = Store.getExtensionUrl(`create-product.html?id=${encodeURIComponent(copy.id)}`);
     } catch (error) {
       console.error("Could not duplicate product", error);
       setDuplicateProgress(false);
-      window.alert("The product could not be duplicated. Please try again.");
+      elements.duplicateStatus.textContent = "The product could not be duplicated. Please try again.";
+      closeDuplicateCreationOverlay(overlay, true);
     }
   }
 
   function bindEvents() {
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeDuplicateCreationOverlay(document.querySelector("#duplicate-creation-overlay"));
+    });
     elements.cartSelect.addEventListener("change", async () => {
       state.data.activeCartId = elements.cartSelect.value;
       await persistAndRender();
@@ -938,15 +1383,28 @@
         addCommentImages(files);
       }
     });
+    document.addEventListener("paste", (event) => {
+      if (event.defaultPrevented || event.target.closest?.("#comment-form")) {
+        return;
+      }
+
+      const files = [...(event.clipboardData?.files || [])]
+        .filter((file) => file.type.startsWith("image/"));
+      if (files.length) {
+        event.preventDefault();
+        addProductImagesFromClipboard(files);
+      }
+    });
     elements.editProduct.addEventListener("click", editProduct);
     elements.duplicateProduct.addEventListener("click", duplicateProduct);
     elements.deleteProduct.addEventListener("click", deleteProduct);
+    elements.archiveProduct.addEventListener("click", toggleArchiveProduct);
 
     elements.openProductsPage.addEventListener("click", () => {
       window.location.href = Store.getExtensionUrl("products.html");
     });
 
-    elements.openHomePage.addEventListener("click", () => {
+    elements.openHomePage?.addEventListener("click", () => {
       window.location.href = Store.getExtensionUrl("newtab.html");
     });
 
@@ -966,8 +1424,12 @@
   async function init() {
     bindEvents();
     state.data = await Store.loadData();
+    await Store.loadBundledIconCollections();
     render();
     applyCommentPanelPlacement();
+    const skeleton = document.querySelector("#product-data-skeleton");
+    skeleton?.classList.add("is-ready");
+    window.setTimeout(() => skeleton?.remove(), 260);
   }
 
   init();

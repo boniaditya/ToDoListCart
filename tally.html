@@ -21,12 +21,12 @@
             <input id="tally-product-search" name="q" type="search" placeholder="Search task products">
             <button type="submit">Search</button>
           </form>
-          <a class="page-link-button" href="newtab.html">Workspace</a>
           <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
           <a class="page-link-button" href="order-history.html">Orders</a>
           <a class="page-link-button active-page-link" href="tally.html">Analytics</a>
           <a class="page-link-button" href="vendors.html">Vendors</a>
-          <a class="page-link-button" href="account.html">Account</a>
+          <a class="page-link-button" href="products.html?view=archived">Archive</a>
+          <a class="page-link-button" href="account.html">Settings</a>
           <a class="header-icon-button comments-header-button" href="comments.html" aria-label="Open comment trails" title="Comments">
             <svg class="comment-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.5-4A9 9 0 1 1 21 12Z"></path></svg>
           </a>
@@ -47,18 +47,21 @@
 
       <section class="tally-layout" aria-label="Analytics summary">
         <div class="tally-stat-grid">
-          <article class="tally-stat spent"><span>Amount spent</span><strong id="tally-spent"></strong><small>Value of checked-out orders</small></article>
-          <article class="tally-stat open"><span>Still to spend</span><strong id="tally-open-value"></strong><small>Open items across all carts</small></article>
-          <article class="tally-stat inventory"><span>Available store value</span><strong id="tally-inventory-value"></strong><small>Total value of products still in stock</small></article>
-          <article class="tally-stat potential"><span>Catalog value</span><strong id="tally-catalog-value"></strong><small>One price per product</small></article>
+          <article class="tally-stat spent"><span>Amount spent</span><details class="analytics-info"><summary aria-label="How amount spent is calculated">i</summary><div class="analytics-info-popover">Adds the saved total of every checked-out order. It includes past purchases, even when their products are now archived.<div class="analytics-info-formula"><strong>Formula</strong><code>Amount spent = Σ saved order totals</code><span>Time shown (if enabled) = amount × configured seconds ÷ configured price.</span></div></div></details><strong id="tally-spent"></strong><small>Value of checked-out orders</small></article>
+          <article class="tally-stat open"><span>Still to spend</span><details class="analytics-info"><summary aria-label="How still to spend is calculated">i</summary><div class="analytics-info-popover">Adds the current price of every open item in every cart. Checked-out items are excluded. A product in multiple carts counts once per cart; archived products still in a cart also count.<div class="analytics-info-formula"><strong>Formula</strong><code>Still to spend = Σ current product price for each open cart entry</code><span>Time shown (if enabled) = amount × configured seconds ÷ configured price.</span></div></div></details><strong id="tally-open-value"></strong><small>Open items across all carts</small></article>
+          <article class="tally-stat inventory"><span>Available store value</span><details class="analytics-info"><summary aria-label="How available store value is calculated">i</summary><div class="analytics-info-popover">Adds one current price for each active product with at least one unit in stock. The number of units does not multiply its price. Archived and out-of-stock products are excluded.<div class="analytics-info-formula"><strong>Formula</strong><code>Available store value = Σ price of active products with units in stock &gt; 0</code><span>Time shown (if enabled) = amount × configured seconds ÷ configured price.</span></div></div></details><strong id="tally-inventory-value"></strong><small>Active products still in stock</small></article>
+          <article class="tally-stat potential"><span>Catalog value</span><details class="analytics-info"><summary aria-label="How catalog value is calculated">i</summary><div class="analytics-info-popover">Adds one current price for every active product, including out-of-stock products. Archived products are excluded. Cart and wishlist membership do not change this amount.<div class="analytics-info-formula"><strong>Formula</strong><code>Catalog value = Σ price of all active products</code><span>Time shown (if enabled) = amount × configured seconds ÷ configured price.</span></div></div></details><strong id="tally-catalog-value"></strong><small>One price per active product</small></article>
+          <article class="tally-stat"><span>Archived value</span><details class="analytics-info"><summary aria-label="How archived value is calculated">i</summary><div class="analytics-info-popover">Adds one current price for each archived product, whether or not it is in stock. Archived products are outside the active catalog.<div class="analytics-info-formula"><strong>Formula</strong><code>Archived value = Σ price of all archived products</code><span>Time shown (if enabled) = amount × configured seconds ÷ configured price.</span></div></div></details><strong id="tally-archived-value"></strong><small>Value of archived products</small></article>
+          <article class="tally-stat wishlist"><span>Wishlist value</span><details class="analytics-info"><summary aria-label="How wishlist value is calculated">i</summary><div class="analytics-info-popover">Adds one current price for each product saved to the wishlist, including archived products. Wishlist items can also appear in carts or the catalog, so these values overlap.<div class="analytics-info-formula"><strong>Formula</strong><code>Wishlist value = Σ price of each saved product</code><span>Saved products = number of unique valid wishlist products. Time shown (if enabled) = amount × configured seconds ÷ configured price.</span></div></div></details><strong id="tally-wishlist-value"></strong><small id="tally-wishlist-count">0 saved products</small></article>
         </div>
 
         <section class="tally-panel analytics-spotlight" aria-labelledby="completion-spotlight-heading">
           <div class="analytics-spotlight-copy">
-            <div class="section-heading"><h2 id="completion-spotlight-heading">Store value mix</h2></div>
+            <div class="section-heading"><h2 id="completion-spotlight-heading">Store value mix</h2><details class="analytics-info"><summary aria-label="How store value mix is calculated">i</summary><div class="analytics-info-popover">This mix divides the tracked total into checked-out orders, open cart entries, and pending stock. It is a progress view, so its total is different from Catalog value. The percentages use the tracked total as their base.<div class="analytics-info-formula"><strong>Formula</strong><code>Slice % = slice value ÷ Total tracked value × 100</code><span>When Total tracked value is zero, each percentage is 0%.</span></div></div></details></div>
             <p id="completion-summary">Track completed value, items already sitting in carts, and the remaining value still available in the store.</p>
             <div class="completion-total">
-              <span>Total catalog value</span>
+              <span>Total tracked value</span>
+              <details class="analytics-info"><summary aria-label="How total tracked value is calculated">i</summary><div class="analytics-info-popover">Amount spent + Still to spend + Pending stock. Pending stock is Available store value minus Still to spend, with a minimum of zero. This total can differ from Catalog value because past orders and cart entries are included.<div class="analytics-info-formula"><strong>Formula</strong><code>Total tracked = Amount spent + Still to spend + max(0, Available store value − Still to spend)</code></div></div></details>
               <strong id="completion-total-value"></strong>
             </div>
           </div>
@@ -72,17 +75,17 @@
           </div>
           <div class="completion-breakdown">
             <article class="completion-card complete" data-completion-focus="complete" tabindex="0">
-              <span>Completed</span>
+              <span>Completed</span><details class="analytics-info"><summary aria-label="How completed value is calculated">i</summary><div class="analytics-info-popover">The same amount as Amount spent: the saved totals of all checked-out orders. Its percentage is this amount divided by Total tracked value.<div class="analytics-info-formula"><strong>Formula</strong><code>Completed = Amount spent; Completed % = Completed ÷ Total tracked × 100</code></div></div></details>
               <strong id="completion-spent-value"></strong>
               <small id="completion-spent-percent">0% of total</small>
             </article>
             <article class="completion-card pending" data-completion-focus="cart" tabindex="0">
-              <span>In carts</span>
+              <span>In carts</span><details class="analytics-info"><summary aria-label="How in carts value is calculated">i</summary><div class="analytics-info-popover">The same amount as Still to spend: current prices of open entries across all carts. Its percentage is this amount divided by Total tracked value.<div class="analytics-info-formula"><strong>Formula</strong><code>In carts = Still to spend; In carts % = In carts ÷ Total tracked × 100</code></div></div></details>
               <strong id="completion-open-value"></strong>
               <small id="completion-open-percent">0% of total</small>
             </article>
             <article class="completion-card stock" data-completion-focus="stock" tabindex="0">
-              <span>Pending stock</span>
+              <span>Pending stock</span><details class="analytics-info"><summary aria-label="How pending stock is calculated">i</summary><div class="analytics-info-popover">Available store value minus Still to spend, never below zero. Its percentage is the share of Total tracked value left after Completed and In carts.<div class="analytics-info-formula"><strong>Formula</strong><code>Pending stock = max(0, Available store value − Still to spend)</code><code>Pending % = Pending stock ÷ Total tracked × 100</code></div></div></details>
               <strong id="completion-stock-value"></strong>
               <small id="completion-stock-percent">0% of total</small>
             </article>
@@ -91,18 +94,18 @@
 
         <div class="analytics-charts" aria-label="Visual analytics">
           <section class="tally-panel analytics-panel" aria-labelledby="value-chart-heading">
-            <div class="section-heading"><h2 id="value-chart-heading">Value overview</h2></div>
+            <div class="section-heading"><h2 id="value-chart-heading">Value overview</h2><details class="analytics-info"><summary aria-label="How the value overview is calculated">i</summary><div class="analytics-info-popover">Compares the tile values above. Each bar uses the same calculation as its tile. These groups can overlap, so the bars should not be added together.<div class="analytics-info-formula"><strong>Formula</strong><code>Bar length = value ÷ largest shown value × 100%</code><span>Positive bars have a minimum visible length of 4%.</span></div></div></details></div>
             <div id="value-chart" class="analytics-bar-chart"></div>
           </section>
           <section class="tally-panel analytics-panel" aria-labelledby="category-chart-heading">
-            <div class="section-heading"><h2 id="category-chart-heading">Category value</h2></div>
+            <div class="section-heading"><h2 id="category-chart-heading">Category value</h2><details class="analytics-info"><summary aria-label="How category value is calculated">i</summary><div class="analytics-info-popover">For each category, adds prices recorded in past orders, current prices of open cart entries, and remaining in-stock active product value. Remaining stock is in-stock value minus open cart value for that category, never below zero.<div class="analytics-info-formula"><strong>Formula</strong><code>Category total = order prices + open cart prices + max(0, in-stock active prices − open cart prices)</code></div></div></details></div>
             <div id="category-chart" class="analytics-bar-chart"></div>
           </section>
         </div>
 
         <div class="tally-panels">
           <section class="tally-panel" aria-labelledby="category-tally-heading">
-            <div class="section-heading"><h2 id="category-tally-heading">By category</h2></div>
+            <div class="section-heading"><h2 id="category-tally-heading">By category</h2><details class="analytics-info"><summary aria-label="How the category breakdown is calculated">i</summary><div class="analytics-info-popover">Each column divides its category total into completed order prices, open cart entry prices, and remaining in-stock active product value. Open entries can include archived products still in carts.<div class="analytics-info-formula"><strong>Formula</strong><code>Column total = completed + in cart + max(0, in-stock active value − in cart)</code><span>Each segment % = segment value ÷ column total × 100.</span></div></div></details></div>
             <div class="category-chart-legend" aria-label="Category value legend">
               <span><i class="complete"></i>Completed</span>
               <span><i class="cart"></i>In cart</span>
@@ -114,7 +117,7 @@
         </div>
 
         <section class="tally-panel analytics-panel" aria-labelledby="cart-chart-heading">
-          <div class="section-heading"><h2 id="cart-chart-heading">Cart commitments chart</h2></div>
+          <div class="section-heading"><h2 id="cart-chart-heading">Cart commitments chart</h2><details class="analytics-info"><summary aria-label="How cart commitments are calculated">i</summary><div class="analytics-info-popover">Each cart totals the current prices of its open items. The segments show each item's share of that cart total. Checked-out items are excluded; the same product can appear in more than one cart.<div class="analytics-info-formula"><strong>Formula</strong><code>Cart total = Σ current price of its open items</code><code>Item share % = item price ÷ cart total × 100</code></div></div></details></div>
           <div id="cart-chart" class="cart-composition-chart"></div>
         </section>
       </section>

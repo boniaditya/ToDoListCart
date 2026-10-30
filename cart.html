@@ -9,6 +9,14 @@
     <link rel="stylesheet" href="newtab.css">
   </head>
   <body>
+    <div id="cart-data-skeleton" class="cart-data-skeleton" role="status" aria-label="Loading cart products">
+      <div class="cart-skeleton-hero"><i></i><i></i><i></i></div>
+      <div class="cart-skeleton-manager"><i></i><i></i><i></i></div>
+      <div class="cart-skeleton-layout">
+        <section class="cart-skeleton-items"><i class="cart-skeleton-heading"></i><i class="cart-skeleton-progress"></i><div class="cart-skeleton-row"><i></i><span><b></b><em></em><em></em></span><strong></strong></div><div class="cart-skeleton-row"><i></i><span><b></b><em></em><em></em></span><strong></strong></div><div class="cart-skeleton-row"><i></i><span><b></b><em></em><em></em></span><strong></strong></div></section>
+        <aside class="cart-skeleton-summary"><i></i><i></i><i></i><i></i><strong></strong></aside>
+      </div>
+    </div>
     <main class="store-shell cart-page-shell" aria-labelledby="cart-page-title">
       <header class="store-header">
         <div class="top-row">
@@ -21,12 +29,12 @@
             <input id="cart-product-search" name="q" type="search" placeholder="Search task products">
             <button type="submit">Search</button>
           </form>
-          <a class="page-link-button" href="newtab.html">Workspace</a>
           <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
           <a class="page-link-button" href="order-history.html">Orders</a>
           <a class="page-link-button" href="tally.html">Analytics</a>
           <a class="page-link-button" href="vendors.html">Vendors</a>
-          <a class="page-link-button" href="account.html">Account</a>
+          <a class="page-link-button" href="products.html?view=archived">Archive</a>
+          <a class="page-link-button" href="account.html">Settings</a>
           <a class="header-icon-button comments-header-button" href="comments.html" aria-label="Open comment trails" title="Comments">
             <svg class="comment-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.5-4A9 9 0 1 1 21 12Z"></path></svg>
           </a>
@@ -79,13 +87,28 @@
         <aside class="cart-page-summary" aria-labelledby="order-summary-heading">
           <h2 id="order-summary-heading">Order summary</h2>
           <dl class="cart-summary-list">
-            <div><dt>Products</dt><dd id="summary-products">0</dd></div>
-            <div><dt>Total MOQ</dt><dd id="summary-moq">0</dd></div>
+            <div><dt>Selected for checkout</dt><dd id="summary-products">0</dd></div>
+            <div><dt>Selected MOQ</dt><dd id="summary-moq">0</dd></div>
             <div><dt>Open items</dt><dd id="summary-open">0</dd></div>
             <div class="cart-summary-total"><dt>Subtotal</dt><dd id="summary-total">US$0.00</dd></div>
             <div id="summary-time-row" hidden><dt>Time equivalent</dt><dd id="summary-time"></dd></div>
           </dl>
+          <div class="cart-selected-summary" aria-live="polite">
+            <strong>Items selected</strong>
+            <ul id="summary-selected-items"></ul>
+            <span id="summary-selected-empty">Tick items to prepare checkout.</span>
+          </div>
+          <div id="cart-selection-progress" class="cart-selection-progress" role="status" aria-live="polite" hidden>
+            <span class="cart-selection-spinner" aria-hidden="true"></span>
+            <strong>Updating checkout summary...</strong>
+            <span class="cart-selection-progress-bar" aria-hidden="true"><i></i></span>
+          </div>
           <button type="button" id="checkout-all" class="checkout-button cart-page-checkout">Checkout</button>
+          <div id="checkout-progress" class="checkout-progress" role="status" aria-live="polite" hidden>
+            <div class="checkout-progress-heading"><span class="checkout-progress-spinner" aria-hidden="true"></span><strong id="checkout-progress-label">Preparing your order...</strong></div>
+            <div class="checkout-progress-track" aria-hidden="true"><i></i></div>
+            <div class="checkout-progress-steps" aria-hidden="true"><span class="active">Selecting items</span><span>Creating order</span><span>Updating cart</span></div>
+          </div>
           <p id="cart-status" class="cart-page-status" aria-live="polite"></p>
           <a class="cart-orders-link" href="order-history.html">View order history</a>
         </aside>

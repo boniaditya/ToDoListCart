@@ -31,8 +31,16 @@
           <button type="button" class="page-link-button" id="open-orders-page">Orders</button>
           <a class="page-link-button" href="tally.html">Analytics</a>
           <a class="page-link-button" href="vendors.html">Vendors</a>
+          <a class="page-link-button" href="products.html?view=archived">Archive</a>
 
-          <button type="button" class="page-link-button" id="open-account-page">Account</button>
+          <button type="button" class="page-link-button" id="open-account-page">Settings</button>
+
+          <label class="demo-data-toggle" title="Load a complete sample workspace">
+            <input id="demo-data-toggle" type="checkbox" role="switch" aria-describedby="demo-data-status">
+            <span class="demo-data-switch" aria-hidden="true"></span>
+            <span class="demo-data-label">Demo data</span>
+            <span id="demo-data-status" class="visually-hidden">Demo data is off</span>
+          </label>
 
           <a class="header-icon-button comments-header-button" href="comments.html" aria-label="Open comment trails" title="Comments">
             <svg class="comment-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.5-4A9 9 0 1 1 21 12Z"></path></svg>
@@ -119,6 +127,24 @@
                 <button type="button" data-cart-status="all" aria-pressed="true">All products</button>
                 <button type="button" data-cart-status="in-cart" aria-pressed="false">In cart</button>
                 <button type="button" data-cart-status="not-in-cart" aria-pressed="false">Not in cart</button>
+              </div>
+            </div>
+
+            <div class="cart-status-filter wishlist-filter" role="group" aria-label="Wishlist status">
+              <span>Wishlist status</span>
+              <div class="cart-status-filter-options">
+                <button type="button" data-wishlist-status="all" aria-pressed="false">All products</button>
+                <button type="button" data-wishlist-status="in-wishlist" aria-pressed="false">In wishlist</button>
+                <button type="button" data-wishlist-status="not-in-wishlist" aria-pressed="true">Not in wishlist</button>
+              </div>
+            </div>
+
+            <div class="cart-status-filter archive-filter" role="group" aria-label="Archive status">
+              <span>Archive status</span>
+              <div class="cart-status-filter-options">
+                <button type="button" data-archive-status="all" aria-pressed="false">All products</button>
+                <button type="button" data-archive-status="archived" aria-pressed="false">Archived</button>
+                <button type="button" data-archive-status="not-archived" aria-pressed="true">Not archived</button>
               </div>
             </div>
 

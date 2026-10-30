@@ -1,12 +1,15 @@
 (function () {
   const Store = globalThis.ToDoCartStore;
   const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+  const DEMO_DATA_VERSION = 2;
   const state = {
     data: Store.normalizeData({}),
     department: new URLSearchParams(window.location.search).get("department") || "all",
     priority: "all",
     location: "all",
     cartStatus: "all",
+    wishlistStatus: document.body.dataset.view === "popup" ? "all" : "not-in-wishlist",
+    archiveStatus: "not-archived",
     stockAvailability: "in-stock",
     priceMin: null,
     priceMax: null,
@@ -26,7 +29,9 @@
     selectedVendorIds: new Set(),
     currentPage: 1,
     pageSize: 12,
-    isSavingProduct: false
+    isSavingProduct: false,
+    wishlistPending: new Map(),
+    wishlistSaveQueue: Promise.resolve()
   };
 
   const elements = {
@@ -55,6 +60,7 @@
     relationSearchInput: document.querySelector("#product-relation-search"),
     relatedProductsInput: document.querySelector("#product-related-products"),
     bundleProductsInput: document.querySelector("#product-bundle-products"),
+    addonProductsInput: document.querySelector("#product-addon-products"),
     vendorSearchInput: document.querySelector("#product-vendor-search"),
     vendorsInput: document.querySelector("#product-vendors"),
     imageUrlInput: document.querySelector("#product-image-url"),
@@ -74,6 +80,8 @@
     filterPriority: document.querySelector("#filter-priority"),
     filterLocation: document.querySelector("#filter-location"),
     cartStatusFilter: document.querySelector(".cart-status-filter"),
+    wishlistFilter: document.querySelector(".wishlist-filter"),
+    archiveFilter: document.querySelector(".archive-filter"),
     stockFilter: document.querySelector(".stock-filter"),
     filterPriceMin: document.querySelector("#filter-price-min"),
     filterPriceMax: document.querySelector("#filter-price-max"),
@@ -108,8 +116,139 @@
     openOrdersPage: document.querySelector("#open-orders-page"),
     openAccountPage: document.querySelector("#open-account-page"),
     cartJump: document.querySelector("#cart-jump"),
-    cartPanel: document.querySelector("#cart-panel")
+    cartPanel: document.querySelector("#cart-panel"),
+    demoDataToggle: document.querySelector("#demo-data-toggle"),
+    demoDataStatus: document.querySelector("#demo-data-status")
   };
+
+  function demoImage(label, color, accent, symbol) {
+    const safeLabel = String(label).replace(/[&<>"']/g, "");
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="720" viewBox="0 0 720 720"><defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="${color}"/><stop offset="1" stop-color="${accent}"/></linearGradient></defs><rect width="720" height="720" rx="48" fill="url(#g)"/><circle cx="560" cy="150" r="130" fill="white" opacity=".13"/><circle cx="135" cy="600" r="190" fill="white" opacity=".1"/><text x="360" y="330" text-anchor="middle" font-family="Arial,sans-serif" font-size="180">${symbol}</text><text x="360" y="520" text-anchor="middle" font-family="Arial,sans-serif" font-size="42" font-weight="700" fill="white">${safeLabel}</text></svg>`;
+    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+  }
+
+  function createDemoData() {
+    const now = Date.now();
+    const image = (label, color, accent, symbol) => [{ src: demoImage(label, color, accent, symbol), name: `${label} demo image` }];
+    const products = [
+      { id: "demo-product-launch", title: "Launch the portfolio site", department: "work", productType: "project", location: "Design studio", priority: "urgent", moq: "4", unitPrice: "30", price: "120", availableUnits: "4", completedUnits: 1, inStock: true, description: "Finish the responsive QA, publish the site, and share the launch note.", images: image("Portfolio launch", "#172554", "#2563eb", "🚀"), comments: [{ id: "demo-comment-1", title: "Review complete", text: "Mobile layouts are approved. The final accessibility pass is next.", createdAt: now - 86400000 }], relatedProductIds: ["demo-product-report"], bundleProductIds: ["demo-product-report"], addonProductIds: ["demo-product-focus"], createdAt: now - 604800000 },
+      { id: "demo-product-groceries", title: "Pick up weekly groceries", department: "errands", productType: "product", location: "Green Market", priority: "important", moq: "8", unitPrice: "6.25", price: "50", availableUnits: "8", completedUnits: 0, inStock: true, description: "Fruit, vegetables, coffee, and ingredients for three quick dinners.", images: image("Weekly groceries", "#14532d", "#22c55e", "🛒"), relatedProductIds: [], bundleProductIds: [], addonProductIds: [], createdAt: now - 518400000 },
+      { id: "demo-product-bike", title: "Book a bicycle service", department: "errands", productType: "service", location: "City Cycles", priority: "standard", moq: "1", unitPrice: "45", price: "45", availableUnits: "1", completedUnits: 0, inStock: true, description: "Schedule a tune-up and ask the mechanic to inspect the rear brake.", images: image("Bicycle service", "#7c2d12", "#f97316", "🚲"), comments: [{ id: "demo-comment-2", title: "Call ahead", text: "Saturday morning appointments usually fill up quickly.", createdAt: now - 172800000 }], relatedProductIds: [], bundleProductIds: [], addonProductIds: [], createdAt: now - 432000000 },
+      { id: "demo-product-course", title: "Complete the analytics course", department: "study", productType: "project", location: "Online", priority: "important", moq: "6", unitPrice: "12", price: "72", availableUnits: "6", completedUnits: 2, inStock: true, description: "Watch modules four through six and submit the dashboard exercise.", images: image("Analytics course", "#4c1d95", "#a855f7", "📊"), relatedProductIds: ["demo-product-report"], bundleProductIds: [], addonProductIds: [], createdAt: now - 345600000 },
+      { id: "demo-product-report", title: "Prepare the monthly report", department: "work", productType: "project", location: "Home office", priority: "urgent", moq: "3", unitPrice: "25", price: "75", availableUnits: "3", completedUnits: 0, inStock: true, description: "Combine sales, delivery, and customer notes into the leadership summary.", images: image("Monthly report", "#0f4c5c", "#06b6d4", "📈"), relatedProductIds: ["demo-product-launch", "demo-product-course"], bundleProductIds: [], addonProductIds: [], createdAt: now - 259200000 },
+      { id: "demo-product-plants", title: "Repot the balcony plants", department: "home", productType: "product", location: "Balcony", priority: "standard", moq: "5", unitPrice: "4", price: "20", availableUnits: "5", completedUnits: 5, inStock: false, description: "Move the herbs into larger pots and refresh the soil.", images: image("Balcony plants", "#365314", "#84cc16", "🪴"), relatedProductIds: [], bundleProductIds: [], addonProductIds: [], createdAt: now - 172800000 },
+      { id: "demo-product-focus", title: "Set up a focused work block", department: "work", productType: "service", location: "Home office", priority: "standard", moq: "1", unitPrice: "0", price: "0", availableUnits: "1", completedUnits: 0, inStock: true, description: "Silence notifications and reserve ninety minutes for uninterrupted work.", images: image("Focus block", "#1f2937", "#64748b", "⏱️"), relatedProductIds: [], bundleProductIds: [], addonProductIds: [], createdAt: now - 86400000 },
+      { id: "demo-product-archived", title: "Compare old phone plans", department: "home", productType: "service", location: "Online", priority: "standard", moq: "1", unitPrice: "0", price: "0", availableUnits: "1", completedUnits: 1, inStock: false, archived: true, description: "A completed example kept in the archive for reference.", images: image("Phone plans", "#334155", "#94a3b8", "📱"), relatedProductIds: [], bundleProductIds: [], addonProductIds: [], createdAt: now - 1209600000 },
+      { id: "demo-product-desk", title: "Organize the work desk", department: "home", productType: "project", location: "Study room", priority: "standard", moq: "3", unitPrice: "8", price: "24", availableUnits: "3", completedUnits: 0, inStock: true, description: "Sort cables, file loose papers, and create a clear space for focused work.", images: image("Organize desk", "#713f12", "#eab308", "🗂️"), relatedProductIds: ["demo-product-focus"], bundleProductIds: [], addonProductIds: [], createdAt: now - 82800000 },
+      { id: "demo-product-dentist", title: "Schedule a dental checkup", department: "home", productType: "service", location: "Neighborhood clinic", priority: "important", moq: "1", unitPrice: "80", price: "80", availableUnits: "1", completedUnits: 0, inStock: true, description: "Book the next routine cleaning and add the appointment to the calendar.", images: image("Dental checkup", "#164e63", "#22d3ee", "🦷"), relatedProductIds: [], bundleProductIds: [], addonProductIds: [], createdAt: now - 79200000 },
+      { id: "demo-product-presentation", title: "Rehearse the client presentation", department: "work", productType: "project", location: "Meeting room", priority: "urgent", moq: "2", unitPrice: "35", price: "70", availableUnits: "2", completedUnits: 0, inStock: true, description: "Run through the deck twice, tighten the opening, and prepare answers for likely questions.", images: image("Presentation", "#831843", "#ec4899", "🎤"), relatedProductIds: ["demo-product-launch", "demo-product-report"], bundleProductIds: [], addonProductIds: ["demo-product-focus"], createdAt: now - 75600000 },
+      { id: "demo-product-library", title: "Return books to the library", department: "errands", productType: "product", location: "Central Library", priority: "important", moq: "3", unitPrice: "0", price: "0", availableUnits: "3", completedUnits: 0, inStock: true, description: "Return the three borrowed books before their due date and collect the reserved title.", images: image("Library books", "#7f1d1d", "#ef4444", "📚"), relatedProductIds: ["demo-product-course"], bundleProductIds: [], addonProductIds: [], createdAt: now - 72000000 },
+      { id: "demo-product-mealprep", title: "Prepare weekday lunches", department: "home", productType: "product", location: "Kitchen", priority: "standard", moq: "5", unitPrice: "7", price: "35", availableUnits: "5", completedUnits: 0, inStock: true, description: "Cook and portion five simple lunches for the coming work week.", images: image("Weekday lunches", "#9a3412", "#fb923c", "🥗"), relatedProductIds: ["demo-product-groceries"], bundleProductIds: ["demo-product-groceries"], addonProductIds: [], createdAt: now - 68400000 },
+      { id: "demo-product-language", title: "Practice Spanish vocabulary", department: "study", productType: "service", location: "Online", priority: "standard", moq: "4", unitPrice: "5", price: "20", availableUnits: "4", completedUnits: 1, inStock: true, description: "Complete four short vocabulary sessions and review the words missed last week.", images: image("Spanish practice", "#312e81", "#818cf8", "🗣️"), relatedProductIds: ["demo-product-course"], bundleProductIds: [], addonProductIds: [], createdAt: now - 64800000 },
+      { id: "demo-product-laundry", title: "Drop off dry cleaning", department: "errands", productType: "service", location: "Main Street Cleaners", priority: "standard", moq: "4", unitPrice: "9", price: "36", availableUnits: "4", completedUnits: 0, inStock: true, description: "Drop off two jackets and two shirts, then save the collection receipt.", images: image("Dry cleaning", "#0c4a6e", "#38bdf8", "👔"), relatedProductIds: [], bundleProductIds: [], addonProductIds: [], createdAt: now - 61200000 },
+      { id: "demo-product-budget", title: "Review the monthly budget", department: "home", productType: "project", location: "Home office", priority: "important", moq: "2", unitPrice: "20", price: "40", availableUnits: "2", completedUnits: 0, inStock: true, description: "Categorize recent expenses, check savings progress, and plan next month's limits.", images: image("Monthly budget", "#064e3b", "#10b981", "💰"), comments: [{ id: "demo-comment-3", title: "Statement ready", text: "The latest bank statement has been downloaded and is ready to review.", createdAt: now - 43200000 }], relatedProductIds: ["demo-product-report"], bundleProductIds: [], addonProductIds: [], createdAt: now - 57600000 }
+    ];
+    return Store.normalizeData({
+      products,
+      categories: [
+        { id: "work", name: "Work", iconName: "mdi:briefcase-outline" },
+        { id: "home", name: "Home", iconName: "mdi:home-outline" },
+        { id: "errands", name: "Errands", iconName: "mdi:shopping-outline" },
+        { id: "study", name: "Study", iconName: "mdi:book-open-page-variant-outline" }
+      ],
+      carts: [
+        { id: "demo-cart-week", name: "This week", createdAt: now - 259200000, items: [{ id: "demo-item-1", productId: "demo-product-launch", done: false }, { id: "demo-item-2", productId: "demo-product-groceries", done: false }, { id: "demo-item-3", productId: "demo-product-bike", done: true }] },
+        { id: "demo-cart-learning", name: "Learning goals", createdAt: now - 172800000, items: [{ id: "demo-item-4", productId: "demo-product-course", done: false }] }
+      ],
+      activeCartId: "demo-cart-week",
+      wishlist: ["demo-product-course", "demo-product-focus"],
+      orders: [{ id: "demo-order-1", cartId: "demo-cart-home", cartName: "Home refresh", createdAt: now - 604800000, items: [{ productId: "demo-product-plants", title: "Repot the balcony plants", department: "home", location: "Balcony", priority: "standard", moq: "5", unitPrice: "4", price: "20", description: "Move the herbs into larger pots and refresh the soil.", images: products[5].images, done: true }], totalMoq: "5", subtotalAmount: "20", discountAmount: "2", couponCode: "WELCOME10", totalAmount: "18" }],
+      vendors: [{ id: "demo-vendor-1", name: "City Cycles", type: "business", phone: "+1 555 0142", email: "hello@example.com", website: "https://example.com", address: "12 Market Street", notes: "Friendly local repair shop; call before visiting.", productIds: ["demo-product-bike"], contacts: [{ id: "demo-spoc-1", name: "Alex", role: "Service desk", phone: "+1 555 0142", email: "alex@example.com" }], images: image("City Cycles", "#7c2d12", "#f97316", "🔧"), createdAt: now - 777600000 }],
+      settings: { ...state.data.settings, accountName: "Demo Shopper", storeName: "ToDoList Cart Demo", currency: "USD", showTimeEquivalent: true, timeSeconds: "3600", timeRate: "25" }
+    });
+  }
+
+  function renderDemoToggle(enabled) {
+    if (!elements.demoDataToggle) return;
+    elements.demoDataToggle.checked = enabled;
+    elements.demoDataToggle.closest(".demo-data-toggle")?.classList.toggle("is-active", enabled);
+    if (elements.demoDataStatus) elements.demoDataStatus.textContent = `Demo data is ${enabled ? "on" : "off"}`;
+  }
+
+  function showDemoLoadingSkeleton(requested) {
+    document.querySelector("#demo-data-loading-skeleton")?.remove();
+    const skeleton = document.createElement("div");
+    skeleton.id = "demo-data-loading-skeleton";
+    skeleton.setAttribute("role", "status");
+    skeleton.setAttribute("aria-live", "polite");
+    skeleton.setAttribute("aria-label", requested ? "Loading demo products" : "Restoring your products");
+    skeleton.innerHTML = `
+      <strong class="demo-skeleton-message">${requested ? "Loading demo products…" : "Restoring your products…"}</strong>
+      <div class="skeleton-header"><i></i><i></i><i></i><i></i></div>
+      <div class="skeleton-layout">
+        <aside class="skeleton-sidebar"><i></i><i></i><i></i><i></i><i></i><i></i></aside>
+        <main class="skeleton-main"><i class="wide"></i><i class="title"></i><i class="line"></i><i class="line short"></i><div class="skeleton-grid"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></main>
+      </div>`;
+    document.body.append(skeleton);
+    return skeleton;
+  }
+
+  async function waitForRenderedProductImages() {
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const images = [...document.querySelectorAll("#product-list img")];
+    await Promise.race([
+      Promise.all(images.map((image) => {
+        if (image.complete) return Promise.resolve();
+        return new Promise((resolve) => {
+          image.addEventListener("load", resolve, { once: true });
+          image.addEventListener("error", resolve, { once: true });
+        });
+      })),
+      new Promise((resolve) => window.setTimeout(resolve, 4000))
+    ]);
+  }
+
+  function dismissDemoLoadingSkeleton(skeleton) {
+    if (!skeleton?.isConnected) return;
+    skeleton.classList.add("is-ready");
+    window.setTimeout(() => skeleton.remove(), 260);
+  }
+
+  async function toggleDemoData() {
+    if (!elements.demoDataToggle) return;
+    const label = elements.demoDataToggle.closest(".demo-data-toggle");
+    const requested = elements.demoDataToggle.checked;
+    const loadingStartedAt = performance.now();
+    const skeleton = showDemoLoadingSkeleton(requested);
+    elements.demoDataToggle.disabled = true;
+    label?.classList.add("is-busy");
+    try {
+      const demoState = await Store.loadDemoState();
+      if (requested) {
+        const originalData = demoState.enabled ? demoState.originalData : state.data;
+        await Store.saveDemoState({ enabled: true, version: DEMO_DATA_VERSION, originalData });
+        state.data = await Store.saveData(createDemoData());
+      } else {
+        state.data = await Store.saveData(demoState.originalData || Store.normalizeData({}));
+        await Store.saveDemoState({ enabled: false, version: DEMO_DATA_VERSION, originalData: null });
+      }
+      renderDemoToggle(requested);
+      render();
+      await waitForRenderedProductImages();
+      const minimumSkeletonTime = 500;
+      const remainingTime = minimumSkeletonTime - (performance.now() - loadingStartedAt);
+      if (remainingTime > 0) {
+        await new Promise((resolve) => window.setTimeout(resolve, remainingTime));
+      }
+    } catch (error) {
+      console.error("Unable to toggle demo data.", error);
+      renderDemoToggle(!requested);
+    } finally {
+      elements.demoDataToggle.disabled = false;
+      label?.classList.remove("is-busy");
+      dismissDemoLoadingSkeleton(skeleton);
+    }
+  }
 
   function ensureProductSaveStatus() {
     if (!elements.productForm || !elements.createSubmit) {
@@ -147,8 +286,13 @@
 
   function setProductSaving(isSaving, message = "Saving product...") {
     const status = ensureProductSaveStatus();
+    const skeleton = document.querySelector("#product-save-skeleton");
 
     state.isSavingProduct = Boolean(isSaving);
+    if (skeleton) {
+      skeleton.hidden = !isSaving;
+      skeleton.setAttribute("aria-busy", String(Boolean(isSaving)));
+    }
 
     if (elements.createSubmit) {
       elements.createSubmit.disabled = Boolean(isSaving);
@@ -259,6 +403,14 @@
       const matchesCartStatus = state.cartStatus === "all"
         || (state.cartStatus === "in-cart" && isInCart)
         || (state.cartStatus === "not-in-cart" && !isInCart);
+      const isWishlisted = state.data.wishlist.includes(product.id);
+      const matchesWishlistStatus = state.wishlistPending.has(product.id)
+        || state.wishlistStatus === "all"
+        || (state.wishlistStatus === "in-wishlist" && isWishlisted)
+        || (state.wishlistStatus === "not-in-wishlist" && !isWishlisted);
+      const matchesArchiveStatus = state.archiveStatus === "all"
+        || (state.archiveStatus === "archived" && product.archived)
+        || (state.archiveStatus === "not-archived" && !product.archived);
       const matchesStockAvailability = state.stockAvailability === "all"
         || (state.stockAvailability === "in-stock" && product.inStock)
         || (state.stockAvailability === "out-of-stock" && !product.inStock);
@@ -278,7 +430,8 @@
         product.price
       ].some((value) => String(value).toLowerCase().includes(query));
 
-      return matchesDepartment && matchesPriority && matchesLocation && matchesCartStatus
+      return matchesDepartment && matchesPriority && matchesLocation && matchesCartStatus && matchesWishlistStatus
+        && matchesArchiveStatus
         && matchesStockAvailability && matchesPrice && matchesTime && matchesQuery;
     });
   }
@@ -335,6 +488,45 @@
   function renderCartStatusFilter() {
     elements.cartStatusFilter?.querySelectorAll("button[data-cart-status]").forEach((button) => {
       const active = button.dataset.cartStatus === state.cartStatus;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+  }
+
+  function renderWishlistFilter() {
+    elements.wishlistFilter?.querySelectorAll("button[data-wishlist-status]").forEach((button) => {
+      const active = button.dataset.wishlistStatus === state.wishlistStatus;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+  }
+
+  function showWishlistSaving(card, action, title) {
+    if (!card) return;
+    const imageBox = card.querySelector(".product-image");
+    const button = imageBox?.querySelector(".wishlist-button");
+    if (!imageBox || !button) return;
+    const message = action === "adding" ? "Adding to wishlist..." : "Removing from wishlist...";
+    const status = document.createElement("div");
+    const heart = document.createElement("b");
+    const label = document.createElement("small");
+    status.className = "wishlist-saving-status";
+    status.setAttribute("role", "status");
+    heart.textContent = "♥";
+    heart.setAttribute("aria-hidden", "true");
+    label.textContent = message;
+    status.append(heart, label);
+    imageBox.querySelector(".wishlist-saving-status")?.remove();
+    imageBox.append(status);
+    card.classList.add("wishlist-saving");
+    button.disabled = true;
+    button.setAttribute("aria-busy", "true");
+    button.setAttribute("aria-label", `${message} ${title}`);
+  }
+
+  function renderArchiveFilter() {
+    elements.archiveFilter?.querySelectorAll("button[data-archive-status]").forEach((button) => {
+      const active = button.dataset.archiveStatus === state.archiveStatus;
       button.classList.toggle("active", active);
       button.setAttribute("aria-pressed", String(active));
     });
@@ -648,11 +840,13 @@
     const current = state.data.products.find((product) => product.id === currentId);
     const selected = state.relationSelections || {
       related: current?.relatedProductIds || [],
-      bundle: current?.bundleProductIds || []
+      bundle: current?.bundleProductIds || [],
+      addons: current?.addonProductIds || []
     };
     state.relationSelections = {
       related: [...selected.related],
-      bundle: [...selected.bundle]
+      bundle: [...selected.bundle],
+      addons: [...(selected.addons || [])]
     };
     const query = state.relationQuery.toLocaleLowerCase();
     const renderOptions = (select, selectedIds) => {
@@ -671,6 +865,7 @@
     };
     renderOptions(elements.relatedProductsInput, state.relationSelections.related);
     renderOptions(elements.bundleProductsInput, state.relationSelections.bundle);
+    renderOptions(elements.addonProductsInput, state.relationSelections.addons);
   }
 
   function syncRelationSelection(select, key) {
@@ -785,7 +980,8 @@
     const progress = cartProducts.length === 0 ? 0 : Math.round((done / cartProducts.length) * 100);
 
     if (elements.productCount) {
-      elements.productCount.textContent = pluralize(state.data.products.length, "product", "products");
+      const activeProductCount = state.data.products.filter((product) => !product.archived).length;
+      elements.productCount.textContent = pluralize(activeProductCount, "product", "products");
     }
 
     if (elements.cartCount) {
@@ -857,6 +1053,8 @@
       node.classList.toggle("done", getActiveItems().some((item) => item.productId === product.id && item.done));
       const isWishlisted = state.data.wishlist.includes(product.id);
       renderProductImage(imageBox, product, isWishlisted);
+      const wishlistAction = state.wishlistPending.get(product.id);
+      if (wishlistAction) showWishlistSaving(node, wishlistAction, product.title);
       title.textContent = product.title;
       if (description) {
         description.textContent = product.description || "No additional details provided.";
@@ -1004,6 +1202,8 @@
     renderRangeFilters();
     renderStockFilter();
     renderCartStatusFilter();
+    renderWishlistFilter();
+    renderArchiveFilter();
     renderProducts();
     renderCart();
     renderImagePreview();
@@ -1098,7 +1298,8 @@
     state.referenceUrls = [...product.referenceUrls];
     state.relationSelections = {
       related: [...product.relatedProductIds],
-      bundle: [...product.bundleProductIds]
+      bundle: [...product.bundleProductIds],
+      addons: [...(product.addonProductIds || [])]
     };
     state.selectedVendorIds = new Set(state.data.vendors
       .filter((vendor) => vendor.productIds.includes(product.id))
@@ -1215,6 +1416,7 @@
         referenceUrls: state.referenceUrls,
         relatedProductIds: state.relationSelections?.related || [],
         bundleProductIds: state.relationSelections?.bundle || [],
+        addonProductIds: state.relationSelections?.addons || [],
         images: await Store.prepareCardImages(images)
       };
 
@@ -1291,10 +1493,22 @@
 
   async function addToCart(productId) {
     const activeCart = getActiveCart();
+    const product = getProduct(productId);
 
-    if (activeCart.items.some((item) => item.productId === productId) || !getProduct(productId)?.inStock) {
+    if (activeCart.items.some((item) => item.productId === productId) || !product?.inStock) {
       return;
     }
+
+    const existingProductIds = new Set(activeCart.items.map((item) => item.productId));
+    const addonItems = (product.addonProductIds || [])
+      .map((addonId) => getProduct(addonId))
+      .filter((addon) => addon?.inStock && !existingProductIds.has(addon.id))
+      .map((addon) => ({
+        id: Store.createId("item"),
+        productId: addon.id,
+        done: false,
+        addedAt: Date.now()
+      }));
 
     setActiveCart({
       ...activeCart,
@@ -1303,7 +1517,7 @@
         productId,
         done: false,
         addedAt: Date.now()
-      }, ...activeCart.items]
+      }, ...addonItems, ...activeCart.items]
     });
 
     await persistAndRender();
@@ -1320,10 +1534,35 @@
   }
 
   async function toggleWishlist(productId) {
-    state.data.wishlist = state.data.wishlist.includes(productId)
-      ? state.data.wishlist.filter((id) => id !== productId)
-      : [...state.data.wishlist, productId];
-    await persistAndRender();
+    if (state.wishlistPending.has(productId)) return;
+    const product = getProduct(productId);
+    if (!product) return;
+    const adding = !state.data.wishlist.includes(productId);
+    const action = adding ? "adding" : "removing";
+    state.wishlistPending.set(productId, action);
+    const card = [...(elements.productList?.querySelectorAll(".product-card") || [])]
+      .find((entry) => entry.dataset.id === productId);
+    showWishlistSaving(card, action, product.title);
+
+    const saveTask = state.wishlistSaveQueue.then(async () => {
+      const latest = await Store.loadData();
+      latest.wishlist = adding
+        ? [...new Set([...latest.wishlist, productId])]
+        : latest.wishlist.filter((id) => id !== productId);
+      state.data = await Store.saveData(latest);
+    });
+    state.wishlistSaveQueue = saveTask.catch(() => {});
+    try {
+      await Promise.all([saveTask, new Promise((resolve) => setTimeout(resolve, 550))]);
+      state.data = await Store.loadData();
+    } catch (error) {
+      console.error("Could not update wishlist", error);
+      state.data = await Store.loadData();
+      window.alert("Could not update the wishlist. Please try again.");
+    } finally {
+      state.wishlistPending.delete(productId);
+      render();
+    }
   }
 
   async function removeFromCart(productId) {
@@ -1537,7 +1776,7 @@
     const rawUrl = elements.referenceUrlInput?.value.trim() || "";
     const url = Store.normalizeProduct({ referenceUrls: [rawUrl] }).referenceUrls[0];
 
-    if (!url || state.referenceUrls.includes(url) || state.referenceUrls.length >= 8) {
+    if (!url || state.referenceUrls.includes(url)) {
       return;
     }
 
@@ -1718,6 +1957,9 @@
     elements.bundleProductsInput?.addEventListener("change", () => {
       syncRelationSelection(elements.bundleProductsInput, "bundle");
     });
+    elements.addonProductsInput?.addEventListener("change", () => {
+      syncRelationSelection(elements.addonProductsInput, "addons");
+    });
     elements.vendorSearchInput?.addEventListener("input", () => {
       syncVendorSelection();
       state.vendorQuery = elements.vendorSearchInput.value.trim();
@@ -1809,6 +2051,28 @@
       renderProducts();
     });
 
+    elements.wishlistFilter?.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-wishlist-status]");
+      if (!button) return;
+      state.wishlistStatus = button.dataset.wishlistStatus;
+      resetProductPage();
+      renderWishlistFilter();
+      renderProducts();
+    });
+
+    elements.archiveFilter?.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-archive-status]");
+      if (!button) return;
+      state.archiveStatus = button.dataset.archiveStatus;
+      if (state.archiveStatus === "archived" && state.stockAvailability === "in-stock") {
+        state.stockAvailability = "all";
+        renderStockFilter();
+      }
+      resetProductPage();
+      renderArchiveFilter();
+      renderProducts();
+    });
+
     elements.stockFilter?.addEventListener("click", (event) => {
       const button = event.target.closest("button[data-stock]");
       if (!button) {
@@ -1869,6 +2133,8 @@
       state.priority = "all";
       state.location = "all";
       state.cartStatus = "all";
+      state.wishlistStatus = state.isPopup ? "all" : "not-in-wishlist";
+      state.archiveStatus = "not-archived";
       state.stockAvailability = "in-stock";
       state.priceMin = null;
       state.priceMax = null;
@@ -1894,6 +2160,8 @@
       renderRangeFilters();
       renderStockFilter();
       renderCartStatusFilter();
+      renderWishlistFilter();
+      renderArchiveFilter();
       renderProducts();
     });
 
@@ -2026,11 +2294,18 @@
         window.location.href = Store.getExtensionUrl("cart.html");
       }
     });
+    elements.demoDataToggle?.addEventListener("change", toggleDemoData);
   }
 
   async function init() {
     bindEvents();
     state.data = await Store.loadData();
+    const demoState = await Store.loadDemoState();
+    if (demoState.enabled && demoState.version < DEMO_DATA_VERSION) {
+      state.data = await Store.saveData(createDemoData());
+      await Store.saveDemoState({ ...demoState, version: DEMO_DATA_VERSION });
+    }
+    renderDemoToggle(demoState.enabled);
     const preparedProducts = await Promise.all(state.data.products.map(async (product) => {
       const images = await Store.prepareCardImages(product.images || []);
       return {
@@ -2044,10 +2319,7 @@
       state.data.products = preparedProducts;
       state.data = await Store.saveData(state.data);
     }
-    chrome.storage?.onChanged?.addListener(async (_changes, areaName) => {
-      if (areaName !== "local") {
-        return;
-      }
+    Store.watchDataChanges(async () => {
       state.data = await Store.loadData();
       render();
     });
@@ -2065,6 +2337,14 @@
 
     if (!applyEditProduct()) {
       applyFormDefaults();
+    }
+
+    const requestedDemoMode = new URLSearchParams(window.location.search).get("demo");
+    const shouldEnableDemo = requestedDemoMode === "on";
+    const shouldDisableDemo = requestedDemoMode === "off";
+    if (elements.demoDataToggle && ((shouldEnableDemo && !demoState.enabled) || (shouldDisableDemo && demoState.enabled))) {
+      elements.demoDataToggle.checked = shouldEnableDemo;
+      await toggleDemoData();
     }
   }
 

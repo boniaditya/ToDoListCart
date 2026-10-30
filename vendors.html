@@ -21,12 +21,11 @@
             <input id="vendor-product-search" name="q" type="search" placeholder="Search task products">
             <button type="submit">Search</button>
           </form>
-          <a class="page-link-button" href="newtab.html">Workspace</a>
           <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
           <a class="page-link-button" href="order-history.html">Orders</a>
           <a class="page-link-button" href="tally.html">Analytics</a>
           <a class="page-link-button active-page-link" href="vendors.html">Vendors</a>
-          <a class="page-link-button" href="account.html">Account</a>
+          <a class="page-link-button" href="account.html">Settings</a>
           <a class="header-icon-button comments-header-button" href="comments.html" aria-label="Open comment trails" title="Comments">
             <svg class="comment-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.5-4A9 9 0 1 1 21 12Z"></path></svg>
           </a>
@@ -144,7 +143,7 @@
 
     <template id="vendor-card-template">
       <article class="vendor-card">
-        <header class="vendor-card-header"><div><span class="vendor-type-badge"></span><h3></h3></div><div class="vendor-card-actions"><button type="button" class="secondary-button edit-vendor">Edit</button><button type="button" class="secondary-button delete-vendor">Delete</button></div></header>
+        <header class="vendor-card-header"><div><span class="vendor-type-badge"></span><h3></h3></div><div class="vendor-card-actions"><button type="button" class="vendor-icon-button edit-vendor" aria-label="Edit vendor" title="Edit vendor"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 20h4l11-11a2.8 2.8 0 0 0-4-4L4 16v4Z"></path><path d="m13.5 6.5 4 4"></path></svg></button><button type="button" class="vendor-icon-button delete-vendor" aria-label="Delete vendor" title="Delete vendor"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M19 6l-1 14H6L5 6"></path><path d="M10 11v5M14 11v5"></path></svg></button></div></header>
         <div class="vendor-direct-contact"></div>
         <p class="vendor-address"></p>
         <div class="vendor-image-gallery"></div>

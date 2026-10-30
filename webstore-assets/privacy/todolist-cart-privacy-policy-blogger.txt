@@ -63,6 +63,7 @@ ToDoList Cart uses the following Chrome permissions:
 
 • storage: Used to save task, cart, category, wishlist, comment, vendor, order history, settings, and analytics data.
 • unlimitedStorage: Used to support richer local task data, including images and larger task workspaces.
+• downloads: Used only when the user exports or downloads a backup, so Chrome can save the requested JSON file and the extension can remember the completed file's local location in backup history.
 
 DATA RETENTION
 

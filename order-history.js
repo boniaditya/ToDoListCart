@@ -9,10 +9,12 @@
     cartCount: document.querySelector("#cart-count"),
     ordersCount: document.querySelector("#orders-count"),
     orderedItemsCount: document.querySelector("#ordered-items-count"),
+    ordersTotalValue: document.querySelector("#orders-total-value"),
     lastOrderDate: document.querySelector("#last-order-date"),
     cartSelect: document.querySelector("#cart-select"),
     clearHistory: document.querySelector("#clear-history"),
     orderList: document.querySelector("#order-list"),
+    ordersLoadingSkeleton: document.querySelector("#orders-loading-skeleton"),
     orderTemplate: document.querySelector("#order-template"),
     emptyOrders: document.querySelector("#empty-orders"),
     openHomePage: document.querySelector("#open-home-page"),
@@ -47,11 +49,15 @@
   function renderSummary() {
     const orders = state.data.orders;
     const itemCount = orders.reduce((count, order) => count + order.items.length, 0);
+    const totalValue = orders.reduce((sum, order) => sum + Number(order.totalAmount || order.total || 0), 0);
+    const totalWithTime = Store.formatMoney(totalValue, { ...state.data.settings, showTimeEquivalent: true });
+    const [moneyTotal, timeTotal = "0s"] = totalWithTime.split(" · ");
     const lastOrder = orders[0];
 
     elements.cartCount.textContent = getActiveCart().items.length;
     elements.ordersCount.textContent = `${orders.length} ${orders.length === 1 ? "order" : "orders"}`;
     elements.orderedItemsCount.textContent = `${itemCount} ${itemCount === 1 ? "item" : "items"}`;
+    elements.ordersTotalValue.textContent = `${moneyTotal} · ${timeTotal}`;
     elements.lastOrderDate.textContent = lastOrder ? Store.formatDate(lastOrder.createdAt) : "No orders yet";
     elements.clearHistory.disabled = orders.length === 0;
   }
@@ -93,6 +99,7 @@
   }
 
   function renderOrders() {
+    elements.ordersLoadingSkeleton.hidden = true;
     elements.orderList.replaceChildren();
 
     state.data.orders.forEach((order) => {
@@ -104,6 +111,7 @@
       const total = node.querySelector(".order-total");
       const itemList = node.querySelector(".order-items");
       const addButton = node.querySelector(".add-order-button");
+      const cancelButton = node.querySelector(".cancel-order-button");
 
       node.dataset.id = order.id;
       title.textContent = order.cartName;
@@ -113,6 +121,7 @@
       total.textContent = Store.formatMoney(order.totalAmount, state.data.settings);
       order.items.forEach((item) => itemList.append(renderOrderItem(item)));
       addButton.disabled = order.items.length === 0;
+      cancelButton.disabled = order.items.length === 0;
 
       elements.orderList.append(node);
     });
@@ -180,6 +189,64 @@
     await persistAndRender();
   }
 
+  function restoreProductFromOrderItem(orderItem) {
+    return {
+      ...Store.createProduct({
+      title: orderItem.title,
+      department: orderItem.department,
+      productType: orderItem.productType || "product",
+      location: orderItem.location,
+      priority: orderItem.priority,
+      moq: orderItem.moq,
+      unitPrice: orderItem.unitPrice,
+      price: orderItem.price,
+      inStock: true,
+      availableUnits: 1,
+      completedUnits: 0,
+      description: orderItem.description,
+      images: orderItem.images,
+      image: orderItem.image,
+      imageName: orderItem.imageName
+      }),
+      id: orderItem.productId
+    };
+  }
+
+  async function cancelOrder(orderId) {
+    const order = state.data.orders.find((entry) => entry.id === orderId);
+
+    if (!order) return;
+
+    if (!window.confirm("Cancel this order and restore its items back to the store?")) {
+      return;
+    }
+
+    const restoredCounts = new Map();
+    order.items.forEach((item) => {
+      restoredCounts.set(item.productId, (restoredCounts.get(item.productId) || 0) + 1);
+    });
+
+    const existingProductIds = new Set(state.data.products.map((product) => product.id));
+    const missingProductItems = [...new Map(order.items
+      .filter((item) => !existingProductIds.has(item.productId))
+      .map((item) => [item.productId, item])).values()];
+    const missingProducts = missingProductItems.map(restoreProductFromOrderItem);
+
+    state.data.products = [...missingProducts, ...state.data.products].map((product) => {
+      const restoreCount = restoredCounts.get(product.id) || 0;
+      if (!restoreCount) return product;
+
+      const completedUnits = Math.max(0, Number(product.completedUnits || 0) - restoreCount);
+      return {
+        ...product,
+        completedUnits,
+        inStock: true
+      };
+    });
+    state.data.orders = state.data.orders.filter((entry) => entry.id !== orderId);
+    await persistAndRender();
+  }
+
   async function clearHistory() {
     state.data.orders = [];
     await persistAndRender();
@@ -204,6 +271,13 @@
         return;
       }
 
+      const cancelButton = event.target.closest(".cancel-order-button");
+
+      if (cancelButton) {
+        cancelOrder(cancelButton.closest(".order-card").dataset.id);
+        return;
+      }
+
       const orderProduct = event.target.closest(".order-product");
 
       if (orderProduct) {
@@ -222,7 +296,7 @@
 
     elements.clearHistory.addEventListener("click", clearHistory);
 
-    elements.openHomePage.addEventListener("click", () => {
+    elements.openHomePage?.addEventListener("click", () => {
       window.location.href = Store.getExtensionUrl("newtab.html");
     });
 

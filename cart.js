@@ -18,6 +18,8 @@
     emptyCart: document.querySelector("#empty-cart"),
     clearDone: document.querySelector("#clear-done"),
     checkoutAll: document.querySelector("#checkout-all"),
+    checkoutProgress: document.querySelector("#checkout-progress"),
+    checkoutProgressLabel: document.querySelector("#checkout-progress-label"),
     cartPageLayout: document.querySelector(".cart-page-layout"),
     cartProgress: document.querySelector(".cart-page-progress"),
     cartSummary: document.querySelector(".cart-page-summary"),
@@ -30,6 +32,9 @@
     summaryTotal: document.querySelector("#summary-total"),
     summaryTimeRow: document.querySelector("#summary-time-row"),
     summaryTime: document.querySelector("#summary-time"),
+    summarySelectedItems: document.querySelector("#summary-selected-items"),
+    summarySelectedEmpty: document.querySelector("#summary-selected-empty"),
+    selectionProgress: document.querySelector("#cart-selection-progress"),
     status: document.querySelector("#cart-status")
   };
 
@@ -143,12 +148,16 @@
     const activeCart = getActiveCart();
     const entries = getCartEntries();
     const products = entries.map((entry) => entry.product);
+    const selectedEntries = entries.filter((entry) => entry.item.done);
+    const selectedProducts = selectedEntries.map((entry) => entry.product);
     const done = entries.filter((entry) => entry.item.done).length;
     const open = entries.length - done;
     const progress = entries.length ? Math.round((done / entries.length) * 100) : 0;
     const total = Store.getTotalAmount(products);
-    const totalMoq = Store.getTotalMoq(products);
+    const selectedTotal = Store.getTotalAmount(selectedProducts);
+    const selectedMoq = Store.getTotalMoq(selectedProducts);
     const [money, duration] = Store.formatMoney(total, state.data.settings).split(" · ");
+    const [selectedMoney, selectedDuration] = Store.formatMoney(selectedTotal, state.data.settings).split(" · ");
 
     elements.brandName.textContent = state.data.settings.storeName;
     Store.renderHeaderCommentBadges(state.data);
@@ -166,19 +175,26 @@
     elements.emptyCart.hidden = entries.length > 0;
     elements.clearDone.hidden = entries.length === 0;
     elements.clearDone.disabled = done === 0;
-    elements.checkoutAll.disabled = open === 0;
+    elements.checkoutAll.disabled = done === 0;
     elements.cartCount.textContent = String(entries.length);
     elements.cartItemCount.textContent = plural(entries.length, "item");
     elements.cartOpenCount.textContent = `${open} open`;
     elements.cartHeroTotal.textContent = money;
     elements.progressLabel.textContent = `${progress}%`;
     elements.progressBar.style.width = `${progress}%`;
-    elements.summaryProducts.textContent = String(entries.length);
-    elements.summaryMoq.textContent = String(totalMoq);
+    elements.summaryProducts.textContent = String(selectedEntries.length);
+    elements.summaryMoq.textContent = String(selectedMoq);
     elements.summaryOpen.textContent = String(open);
-    elements.summaryTotal.textContent = money;
-    elements.summaryTime.textContent = formatCartDuration(duration);
-    elements.summaryTimeRow.hidden = !duration;
+    elements.summaryTotal.textContent = selectedMoney;
+    elements.summaryTime.textContent = formatCartDuration(selectedDuration);
+    elements.summaryTimeRow.hidden = !selectedDuration;
+    elements.summarySelectedItems.replaceChildren(...selectedEntries.map(({ product }) => {
+      const item = document.createElement("li");
+      item.textContent = product.title;
+      return item;
+    }));
+    elements.summarySelectedItems.hidden = selectedEntries.length === 0;
+    elements.summarySelectedEmpty.hidden = selectedEntries.length > 0;
   }
 
   async function toggleDone(productId, done) {
@@ -194,7 +210,14 @@
       const completedUnits = Math.max(0, Number(product.completedUnits || 0) + (done ? 1 : -1));
       return { ...product, completedUnits, inStock: completedUnits < Number(product.availableUnits) };
     });
-    await persist();
+    elements.selectionProgress.hidden = false;
+    elements.cartList.setAttribute("aria-busy", "true");
+    try {
+      await persist();
+    } finally {
+      elements.selectionProgress.hidden = true;
+      elements.cartList.removeAttribute("aria-busy");
+    }
   }
 
   async function removeItem(productId) {
@@ -240,23 +263,33 @@
   async function checkout() {
     const activeCart = getActiveCart();
     const productsById = getProductMap();
-    const order = Store.createOrder(activeCart, productsById);
-    if (!order.items.length) return;
+    const checkedItems = activeCart.items.filter((item) => item.done);
+    if (!checkedItems.length) {
+      elements.status.textContent = "Check at least one item before checkout.";
+      return;
+    }
+
+    elements.checkoutAll.disabled = true;
+    elements.checkoutProgress.hidden = false;
+    elements.checkoutProgressLabel.textContent = "Preparing your order...";
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+
+    const checkoutCart = { ...activeCart, items: checkedItems };
+    const order = Store.createOrder(checkoutCart, productsById);
+    if (!order.items.length) {
+      elements.checkoutProgress.hidden = true;
+      elements.checkoutAll.disabled = false;
+      return;
+    }
+    elements.checkoutProgressLabel.textContent = "Creating your order...";
     state.data.orders.unshift(order);
-    const newlyCompleted = activeCart.items.filter((item) => !item.done);
-    state.data.products = state.data.products.map((product) => {
-      const completedNow = newlyCompleted.filter((item) => item.productId === product.id).length;
-      if (!completedNow) return product;
-      const completedUnits = Number(product.completedUnits || 0) + completedNow;
-      return { ...product, completedUnits, inStock: completedUnits < Number(product.availableUnits) };
-    });
     setActiveCart({
       ...activeCart,
-      items: state.data.settings.checkoutBehavior === "clear"
-        ? []
-        : activeCart.items.map((item) => ({ ...item, done: true }))
+      items: activeCart.items.filter((item) => !item.done)
     });
+    elements.checkoutProgressLabel.textContent = "Updating your cart...";
     await persist("Checkout complete. Your order was added to order history.");
+    elements.checkoutProgress.hidden = true;
   }
 
   async function createCart(event) {
@@ -306,8 +339,10 @@
     bindEvents();
     state.data = await Store.loadData();
     render();
-    globalThis.chrome?.storage?.onChanged?.addListener(async (_changes, areaName) => {
-      if (areaName !== "local") return;
+    const skeleton = document.querySelector("#cart-data-skeleton");
+    skeleton?.classList.add("is-ready");
+    window.setTimeout(() => skeleton?.remove(), 260);
+    Store.watchDataChanges(async () => {
       state.data = await Store.loadData();
       render();
     });

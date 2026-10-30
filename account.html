@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>My Account - ToDoList Cart</title>
+    <title>Settings - ToDoList Cart</title>
     <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
     <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
     <link rel="stylesheet" href="newtab.css">
@@ -26,12 +26,12 @@
 
 
 
-          <a class="page-link-button" id="open-home-page" href="newtab.html">Workspace</a>
           <button type="button" class="page-link-button" id="open-products-page" hidden>Products</button>
           <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
           <button type="button" class="page-link-button" id="open-orders-page">Orders</button>
           <a class="page-link-button" href="tally.html">Analytics</a>
           <a class="page-link-button" href="vendors.html">Vendors</a>
+          <a class="page-link-button" href="products.html?view=archived">Archive</a>
 
           <a class="header-icon-button comments-header-button" href="comments.html" aria-label="Open comment trails" title="Comments">
             <svg class="comment-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.5-4A9 9 0 1 1 21 12Z"></path></svg>
@@ -44,10 +44,10 @@
         </div>
       </header>
 
-      <section class="hero-strip catalog-hero" aria-label="Account overview">
+      <section class="hero-strip catalog-hero" aria-label="Settings overview">
         <div>
           <p>My account</p>
-          <h1 id="account-title">Plugin settings</h1>
+          <h1 id="account-title">Settings</h1>
         </div>
         <div class="hero-stats" aria-live="polite">
           <span id="account-products-count">0 products</span>
@@ -56,16 +56,19 @@
         </div>
       </section>
 
-      <section class="account-layout" aria-label="Account settings">
+      <section class="account-layout" aria-label="Settings">
+        <div id="settings-tab-skeleton" class="settings-tab-skeleton" role="status" aria-live="polite" hidden>
+          <i class="settings-skeleton-title"></i><i class="settings-skeleton-line"></i><i class="settings-skeleton-line short"></i><div class="settings-skeleton-fields"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
         <form id="settings-form" class="settings-card" autocomplete="off">
-          <nav class="settings-tablist" role="tablist" aria-label="Plugin settings sections">
-            <button type="button" role="tab" id="settings-tab-general" aria-controls="settings-panel-general" data-settings-tab="general">General settings</button>
-            <button type="button" role="tab" id="settings-tab-categories" aria-controls="settings-panel-categories" data-settings-tab="categories">Categories</button>
-            <button type="button" role="tab" id="settings-tab-listing" aria-controls="settings-panel-listing" data-settings-tab="listing">Product listing preview</button>
-            <button type="button" role="tab" id="settings-tab-cart" aria-controls="settings-panel-cart" data-settings-tab="cart">Cart page</button>
-            <button type="button" role="tab" id="settings-tab-checkout" aria-controls="settings-panel-checkout" data-settings-tab="checkout">Sticky checkout view</button>
-            <button type="button" role="tab" id="settings-tab-popup" aria-controls="settings-panel-popup" data-settings-tab="popup">Browser popup settings</button>
-            <button type="button" role="tab" id="settings-tab-backup" aria-controls="settings-panel-backup" data-settings-tab="backup">Data backup</button>
+          <nav class="settings-tablist" role="tablist" aria-label="Settings sections">
+            <button type="button" role="tab" id="settings-tab-general" aria-controls="settings-panel-general" data-settings-tab="general" aria-selected="true" tabindex="0">General settings</button>
+            <button type="button" role="tab" id="settings-tab-categories" aria-controls="settings-panel-categories" data-settings-tab="categories" aria-selected="false" tabindex="-1">Categories</button>
+            <button type="button" role="tab" id="settings-tab-listing" aria-controls="settings-panel-listing" data-settings-tab="listing" aria-selected="false" tabindex="-1">Product listing preview</button>
+            <button type="button" role="tab" id="settings-tab-cart" aria-controls="settings-panel-cart" data-settings-tab="cart" aria-selected="false" tabindex="-1">Cart page</button>
+            <button type="button" role="tab" id="settings-tab-checkout" aria-controls="settings-panel-checkout" data-settings-tab="checkout" aria-selected="false" tabindex="-1">Sticky checkout view</button>
+            <button type="button" role="tab" id="settings-tab-popup" aria-controls="settings-panel-popup" data-settings-tab="popup" aria-selected="false" tabindex="-1">Browser popup settings</button>
+            <button type="button" role="tab" id="settings-tab-backup" aria-controls="settings-panel-backup" data-settings-tab="backup" aria-selected="false" tabindex="-1">Data backup</button>
           </nav>
 
           <section id="settings-panel-general" class="settings-column settings-product-column" role="tabpanel" aria-labelledby="settings-tab-general" data-settings-panel="general">
@@ -404,10 +407,15 @@
               <button type="button" id="export-data" class="secondary-button">Export Data</button>
               <button type="button" id="import-data" class="secondary-button">Import Data</button>
               <input id="import-data-file" type="file" accept=".json,application/json" hidden>
+              <div id="backup-export-progress" class="backup-export-progress" role="status" aria-live="polite" hidden>
+                <span class="backup-export-spinner" aria-hidden="true"></span>
+                <strong>Creating backup file...</strong>
+                <span class="backup-export-bar" aria-hidden="true"><i></i></span>
+              </div>
             </div>
             <div class="backup-history" aria-labelledby="backup-history-heading">
               <h3 id="backup-history-heading">Backup history</h3>
-              <p class="settings-help">Exports and imports are kept as extension-local restore snapshots. Download a fresh local copy whenever you need it.</p>
+              <p class="settings-help">Exports and imports are kept as extension-local restore snapshots. Download a fresh local copy whenever you need it. The saved file location is remembered after each download.</p>
               <ul id="backup-history-list" class="backup-history-list"></ul>
               <p id="empty-backup-history" class="settings-help">No backups have been recorded yet.</p>
             </div>
@@ -422,7 +430,7 @@
               </svg>
               <span>Save Settings</span>
             </button>
-            <button type="button" id="reset-settings" class="secondary-button">Reset Account Defaults</button>
+            <button type="button" id="reset-settings" class="secondary-button">Reset Settings Defaults</button>
           </div>
 
           <p id="settings-status" class="settings-status" data-settings-save-actions aria-live="polite"></p>

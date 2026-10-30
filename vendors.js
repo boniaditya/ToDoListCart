@@ -8,7 +8,8 @@
     selectedProductIds: new Set(),
     referenceUrls: [],
     vendorImages: [],
-    isSavingVendor: false
+    isSavingVendor: false,
+    initialProductId: new URLSearchParams(window.location.search).get("productId") || ""
   };
   const elements = {
     brandName: document.querySelector(".brand-name"),
@@ -207,7 +208,7 @@
     elements.type.value = "business";
     elements.contactRows.replaceChildren();
     state.productQuery = "";
-    state.selectedProductIds = new Set();
+    state.selectedProductIds = new Set(state.initialProductId ? [state.initialProductId] : []);
     state.referenceUrls = [];
     state.vendorImages = [];
     elements.productSearch.value = "";
@@ -490,8 +491,7 @@
     state.data = await Store.loadData();
     renderProductOptions();
     render();
-    globalThis.chrome?.storage?.onChanged?.addListener(async (_changes, areaName) => {
-      if (areaName !== "local") return;
+    Store.watchDataChanges(async () => {
       state.data = await Store.loadData();
       render();
     });

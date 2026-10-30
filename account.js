@@ -137,13 +137,14 @@
     data: Store.normalizeData({}),
     backupHistory: [],
     previewLayouts: { listing: "grid" },
-    activeSettingsTab: new URLSearchParams(window.location.search).get("tab") || "general",
+    activeSettingsTab: "general",
     iconTarget: "new",
     newCategoryIcon: {
       icon: "",
       iconName: ""
     }
   };
+  let settingsTabTimer = null;
 
   const elements = {
     brandName: document.querySelector(".brand-name"),
@@ -154,6 +155,7 @@
     form: document.querySelector("#settings-form"),
     settingsTabs: document.querySelectorAll("[data-settings-tab]"),
     settingsPanels: document.querySelectorAll("[data-settings-panel]"),
+    settingsTabSkeleton: document.querySelector("#settings-tab-skeleton"),
     settingsSaveActions: document.querySelectorAll("[data-settings-save-actions]"),
     accountName: document.querySelector("#setting-account-name"),
     storeName: document.querySelector("#setting-store-name"),
@@ -223,6 +225,7 @@
     exportData: document.querySelector("#export-data"),
     importData: document.querySelector("#import-data"),
     importDataFile: document.querySelector("#import-data-file"),
+    backupExportProgress: document.querySelector("#backup-export-progress"),
     backupHistoryList: document.querySelector("#backup-history-list"),
     emptyBackupHistory: document.querySelector("#empty-backup-history"),
     status: document.querySelector("#settings-status"),
@@ -236,26 +239,26 @@
     return Store.getActiveCart(state.data);
   }
 
-  function setSettingsTab(tabName, updateUrl = true) {
+  function setSettingsTab(tabName) {
     const validTabs = new Set(["general", "categories", "listing", "cart", "checkout", "popup", "backup"]);
     state.activeSettingsTab = validTabs.has(tabName) ? tabName : "general";
+    elements.settingsTabSkeleton.hidden = false;
     elements.settingsTabs.forEach((button) => {
       const selected = button.dataset.settingsTab === state.activeSettingsTab;
       button.setAttribute("aria-selected", String(selected));
       button.tabIndex = selected ? 0 : -1;
     });
-    elements.settingsPanels.forEach((panel) => {
-      panel.hidden = panel.dataset.settingsPanel !== state.activeSettingsTab;
-    });
+    window.clearTimeout(settingsTabTimer);
+    settingsTabTimer = window.setTimeout(() => {
+      elements.settingsPanels.forEach((panel) => {
+        panel.hidden = panel.dataset.settingsPanel !== state.activeSettingsTab;
+      });
+      elements.settingsTabSkeleton.hidden = true;
+    }, 180);
     const showSaveActions = ["general", "categories", "listing", "cart", "checkout"].includes(state.activeSettingsTab);
     elements.settingsSaveActions.forEach((element) => {
       element.hidden = !showSaveActions;
     });
-    if (updateUrl) {
-      const url = new URL(window.location.href);
-      url.searchParams.set("tab", state.activeSettingsTab);
-      window.history.replaceState(null, "", url);
-    }
   }
 
   function getDefaultPriorityValue() {
@@ -493,7 +496,7 @@
     renderSettings();
     renderSummary();
     renderBackupHistory();
-    setSettingsTab(state.activeSettingsTab, false);
+    setSettingsTab(state.activeSettingsTab);
   }
 
   function readFormSettings() {
@@ -767,20 +770,52 @@
     showStatus("Defaults restored.");
   }
 
-  function createBackup(data, timestamp = Date.now()) {
+  function getBackupCounts(data) {
     return {
+      products: Array.isArray(data?.products) ? data.products.length : 0,
+      vendors: Array.isArray(data?.vendors) ? data.vendors.length : 0,
+      carts: Array.isArray(data?.carts) ? data.carts.length : 0,
+      orders: Array.isArray(data?.orders) ? data.orders.length : 0,
+      categories: Array.isArray(data?.categories) ? data.categories.length : 0,
+      settings: data?.settings && typeof data.settings === "object" ? Object.keys(data.settings).length : 0
+    };
+  }
+
+  function getBackupSize(backup) {
+    return new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" }).size;
+  }
+
+  function formatBytes(bytes) {
+    const value = Number(bytes) || 0;
+    if (value < 1024) return `${value} B`;
+    if (value < 1024 * 1024) return `${(value / 1024).toFixed(value < 10 * 1024 ? 1 : 0)} KB`;
+    return `${(value / (1024 * 1024)).toFixed(2)} MB`;
+  }
+
+  function getBackupMetadata(backup) {
+    const counts = getBackupCounts(backup?.data);
+    return {
+      size: getBackupSize(backup),
+      counts
+    };
+  }
+
+  function createBackup(data, timestamp = Date.now()) {
+    const backup = {
       format: "todo-list-cart-backup",
       version: 1,
       exportedAt: new Date(timestamp).toISOString(),
       data: JSON.parse(JSON.stringify(data))
     };
+    backup.metadata = getBackupMetadata(backup);
+    return backup;
   }
 
   function getBackupFileName(timestamp = Date.now()) {
     return `todo-list-cart-backup-${new Date(timestamp).toISOString().slice(0, 10)}.json`;
   }
 
-  function downloadBackup(backup, fileName) {
+  function triggerFallbackDownload(backup, fileName) {
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -793,13 +828,94 @@
     window.setTimeout(() => URL.revokeObjectURL(url), 0);
   }
 
+  async function rememberBackupDownload(entryId, downloadItem) {
+    if (!entryId || !downloadItem?.filename) return;
+    const index = state.backupHistory.findIndex((entry) => entry.id === entryId);
+    if (index < 0) return;
+
+    state.backupHistory[index] = {
+      ...state.backupHistory[index],
+      downloadLocation: downloadItem.filename,
+      downloadedAt: Date.now(),
+      downloadId: downloadItem.id
+    };
+    state.backupHistory = await Store.saveBackupHistory(state.backupHistory);
+    renderBackupHistory();
+  }
+
+  function findCompletedDownload(downloadId) {
+    return new Promise((resolve) => {
+      chrome.downloads.search({ id: downloadId }, (items) => {
+        if (chrome.runtime.lastError) {
+          resolve(null);
+          return;
+        }
+        resolve(items?.[0] || null);
+      });
+    });
+  }
+
+  function waitForDownloadCompletion(downloadId) {
+    return new Promise((resolve) => {
+      let finished = false;
+      const finish = async () => {
+        if (finished) return;
+        finished = true;
+        chrome.downloads.onChanged.removeListener(onChanged);
+        resolve(await findCompletedDownload(downloadId));
+      };
+      const onChanged = (delta) => {
+        if (delta.id !== downloadId) return;
+        if (delta.state?.current === "complete" || delta.error?.current) finish();
+      };
+      chrome.downloads.onChanged.addListener(onChanged);
+      findCompletedDownload(downloadId).then((item) => {
+        if (item?.state === "complete" || item?.state === "interrupted") finish();
+      });
+      window.setTimeout(finish, 120000);
+    });
+  }
+
+  async function downloadBackup(backup, fileName, entryId = "") {
+    if (!chrome.downloads?.download) {
+      triggerFallbackDownload(backup, fileName);
+      showStatus(`Download started. Your browser will save ${fileName} in its configured Downloads location.`);
+      return null;
+    }
+
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    try {
+      const downloadId = await new Promise((resolve, reject) => {
+        chrome.downloads.download({ url, filename: fileName, conflictAction: "uniquify", saveAs: false }, (id) => {
+          if (chrome.runtime.lastError || typeof id !== "number") {
+            reject(new Error(chrome.runtime.lastError?.message || "The download could not be started."));
+            return;
+          }
+          resolve(id);
+        });
+      });
+      const downloadItem = await waitForDownloadCompletion(downloadId);
+      if (downloadItem?.state === "complete" && downloadItem.filename) {
+        await rememberBackupDownload(entryId, downloadItem);
+        showStatus(`Backup downloaded to ${downloadItem.filename}`);
+      } else if (downloadItem?.state === "interrupted") {
+        throw new Error(downloadItem.error || "The backup download was interrupted.");
+      }
+      return downloadItem;
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
   async function recordBackupEvent(type, backup, sourceName) {
     const entry = {
       id: Store.createId("backup"),
       type,
       createdAt: Date.now(),
       sourceName,
-      backup
+      backup,
+      metadata: getBackupMetadata(backup)
     };
     state.backupHistory = await Store.saveBackupHistory([entry, ...state.backupHistory]);
     renderBackupHistory();
@@ -815,6 +931,8 @@
       const copy = document.createElement("div");
       const title = document.createElement("strong");
       const detail = document.createElement("span");
+      const meta = document.createElement("span");
+      const location = document.createElement("span");
       const actions = document.createElement("div");
       const restore = document.createElement("button");
       const download = document.createElement("button");
@@ -824,9 +942,28 @@
           ? "Restored"
           : "Exported";
 
+      const metadata = entry.metadata || entry.backup?.metadata || getBackupMetadata(entry.backup);
+      const counts = metadata.counts || getBackupCounts(entry.backup?.data);
+      const countDetails = [
+        `${counts.products} products`,
+        `${counts.vendors} vendors`,
+        `${counts.carts} carts`,
+        `${counts.orders} orders`,
+        `${counts.categories} categories`,
+        `${counts.settings} settings`
+      ].join(" · ");
+
       title.textContent = `${actionLabel}: ${entry.sourceName || "Local backup"}`;
-      detail.textContent = Store.formatDateTime(entry.createdAt);
-      copy.append(title, detail);
+      detail.textContent = `${Store.formatDateTime(entry.createdAt)} · ${formatBytes(metadata.size)}`;
+      meta.textContent = countDetails;
+      meta.className = "backup-history-meta";
+      copy.append(title, detail, meta);
+      if (entry.downloadLocation) {
+        location.className = "backup-history-location";
+        location.textContent = `Saved at: ${entry.downloadLocation}`;
+        location.title = entry.downloadLocation;
+        copy.append(location);
+      }
       actions.className = "backup-history-actions";
       restore.type = "button";
       restore.className = "secondary-button";
@@ -835,10 +972,19 @@
       download.type = "button";
       download.className = "secondary-button";
       download.textContent = "Download copy";
-      download.addEventListener("click", () => downloadBackup(
-        entry.backup,
-        entry.sourceName || getBackupFileName(entry.createdAt)
-      ));
+      download.addEventListener("click", async () => {
+        download.disabled = true;
+        download.textContent = "Downloading...";
+        try {
+          await downloadBackup(entry.backup, entry.sourceName || getBackupFileName(entry.createdAt), entry.id);
+        } catch (error) {
+          console.error(error);
+          showStatus(error instanceof Error ? error.message : "The backup could not be downloaded.");
+        } finally {
+          download.disabled = false;
+          download.textContent = "Download copy";
+        }
+      });
       actions.append(restore, download);
       item.append(copy, actions);
       elements.backupHistoryList.append(item);
@@ -863,13 +1009,30 @@
     showStatus("Local backup restored.");
   }
 
+  function setBackupExportProgress(isExporting) {
+    elements.backupExportProgress.hidden = !isExporting;
+    elements.exportData.disabled = isExporting;
+    elements.importData.disabled = isExporting;
+    elements.exportData.setAttribute("aria-busy", String(isExporting));
+    elements.exportData.textContent = isExporting ? "Exporting..." : "Export Data";
+  }
+
   async function exportData() {
-    const timestamp = Date.now();
-    const fileName = getBackupFileName(timestamp);
-    const backup = createBackup(state.data, timestamp);
-    await recordBackupEvent("export", backup, fileName);
-    downloadBackup(backup, fileName);
-    showStatus("Backup exported and saved to local history.");
+    setBackupExportProgress(true);
+
+    try {
+      await new Promise((resolve) => window.setTimeout(resolve, 80));
+      const timestamp = Date.now();
+      const fileName = getBackupFileName(timestamp);
+      const backup = createBackup(state.data, timestamp);
+      const entry = await recordBackupEvent("export", backup, fileName);
+      await downloadBackup(backup, fileName, entry.id);
+    } catch (error) {
+      console.error(error);
+      showStatus("The backup could not be exported yet. Please try again.");
+    } finally {
+      setBackupExportProgress(false);
+    }
   }
 
   async function importDataFile() {
@@ -1008,7 +1171,7 @@
       }
     });
 
-    elements.openHomePage.addEventListener("click", () => {
+    elements.openHomePage?.addEventListener("click", () => {
       window.location.href = Store.getExtensionUrl("newtab.html");
     });
 
@@ -1026,6 +1189,11 @@
   }
 
   async function init() {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has("tab")) {
+      url.searchParams.delete("tab");
+      window.history.replaceState(null, "", url);
+    }
     bindEvents();
     [state.data, state.backupHistory] = await Promise.all([
       Store.loadData(),

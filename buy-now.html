@@ -24,12 +24,11 @@
             <button type="submit">Search</button>
           </form>
 
-          <a class="page-link-button" href="newtab.html">Workspace</a>
           <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
           <a class="page-link-button" href="order-history.html">Orders</a>
           <a class="page-link-button" href="tally.html">Analytics</a>
           <a class="page-link-button" href="vendors.html">Vendors</a>
-          <a class="page-link-button" href="account.html">Account</a>
+          <a class="page-link-button" href="account.html">Settings</a>
 
           <a class="header-icon-button comments-header-button" href="comments.html" aria-label="Open comment trails" title="Comments">
             <svg class="comment-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.5-4A9 9 0 1 1 21 12Z"></path></svg>
@@ -55,9 +54,9 @@
           <p class="buy-now-help">Review the item, discounts, coupon, and final spend before finishing this purchase.</p>
 
           <div class="buy-now-product">
-            <div class="buy-now-product-image" id="buy-now-image"><span></span></div>
+            <a class="buy-now-product-image" id="buy-now-image" href="#" aria-label="Open product details"><span></span></a>
             <div>
-              <h2 id="buy-now-product-title"></h2>
+              <h2><a id="buy-now-product-title" class="buy-now-product-title" href="#"></a></h2>
               <p id="buy-now-product-meta"></p>
               <p id="buy-now-product-stock"></p>
             </div>
@@ -78,6 +77,13 @@
               <button type="button" data-coupon="SAVE5">SAVE5</button>
               <button type="button" data-coupon="TODO100">TODO100</button>
             </div>
+          </section>
+
+          <section class="buy-now-comment-panel" aria-labelledby="buy-now-comment-heading">
+            <h2 id="buy-now-comment-heading">Add an order comment</h2>
+            <label for="buy-now-comment">Comment</label>
+            <textarea id="buy-now-comment" rows="5" maxlength="1200" placeholder="Add a note, update, or follow-up for this product..."></textarea>
+            <p class="buy-now-note">Optional — this will be saved under the product comments when the order is confirmed.</p>
           </section>
         </article>
 
@@ -111,6 +117,11 @@
           </dl>
           <p id="summary-time" class="buy-now-note"></p>
           <button type="button" id="confirm-buy-now" class="add-cart-button">Confirm Buy Now</button>
+          <div id="buy-now-progress" class="buy-now-progress" role="status" aria-live="polite" hidden>
+            <span class="buy-now-spinner" aria-hidden="true"></span>
+            <strong>Creating order...</strong>
+            <span class="buy-now-progress-bar" aria-hidden="true"><i></i></span>
+          </div>
           <button type="button" id="cancel-buy-now" class="secondary-button">Cancel</button>
         </aside>
       </section>

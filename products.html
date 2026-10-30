@@ -25,14 +25,14 @@
           </form>
 
 
-          <a class="page-link-button" id="open-home-page" href="newtab.html">Workspace</a>
           <a class="page-link-button" href="products.html?view=wishlist">Wishlist</a>
 
           <button type="button" class="page-link-button" id="open-orders-page">Orders</button>
           <a class="page-link-button" href="tally.html">Analytics</a>
           <a class="page-link-button" href="vendors.html">Vendors</a>
+          <a class="page-link-button" href="products.html?view=archived">Archive</a>
 
-          <button type="button" class="page-link-button" id="open-account-page">Account</button>
+          <button type="button" class="page-link-button" id="open-account-page">Settings</button>
 
           <a class="header-icon-button comments-header-button" href="comments.html" aria-label="Open comment trails" title="Comments">
             <svg class="comment-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.5-4A9 9 0 1 1 21 12Z"></path></svg>
@@ -96,6 +96,9 @@
             </div>
           </div>
 
+          <div id="products-loading-skeleton" class="products-loading-skeleton" role="status" aria-live="polite">
+            <i></i><i></i><i></i><i></i><i></i><i></i>
+          </div>
           <ul id="product-list" class="product-list"></ul>
           <div id="empty-products" class="empty-state" hidden>
             <strong>No products found</strong>

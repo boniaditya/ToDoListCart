@@ -5,218 +5,58 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>ToDoList Cart</title>
     <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
     <link rel="stylesheet" href="popup.css">
   </head>
-  <body data-view="popup">
-    <main class="store-shell" aria-labelledby="app-title">
-      <header class="store-header">
-        <div class="top-row">
-          <a class="brand" href="newtab.html" target="_blank" aria-label="Open ToDoList Cart home">
-            <img class="brand-icon" src="icons/icon-48.png" alt="">
-            <span class="brand-name" id="app-title">ToDoList Cart</span>
-            <span class="brand-domain">.tasks</span>
-          </a>
-
-          <button type="button" class="full-tab-button" id="open-full-tab">Full Tab</button>
-
-          <button type="button" class="full-tab-button" id="open-products-page" hidden>Products</button>
-
-          <a class="full-tab-button" href="products.html?view=wishlist" target="_blank">Wishlist</a>
-
-          <button type="button" class="full-tab-button" id="open-orders-page">Orders</button>
-
-          <a class="full-tab-button" href="vendors.html" target="_blank">Vendors</a>
-
-          <button type="button" class="full-tab-button" id="open-account-page">Account</button>
-
-          <button type="button" class="cart-button" id="cart-jump" aria-label="Jump to cart">
-            <span class="cart-icon" aria-hidden="true"></span>
-            <strong id="cart-count">0</strong>
-            <span>Cart</span>
-          </button>
-        </div>
-
-        <form id="search-form" class="search-bar" autocomplete="off">
-          <label class="visually-hidden" for="search-products">Search task products</label>
-          <input id="search-products" type="search" placeholder="Search task products">
-          <button type="submit">Search</button>
-        </form>
-
-        <nav class="departments" aria-label="Categories">
-          <button type="button" class="active" data-department="all">All</button>
-        </nav>
+  <body>
+    <main class="launcher" aria-labelledby="launcher-title">
+      <header class="launcher-header">
+        <img src="icons/icon-48.png" alt="" width="48" height="48">
+        <div><p>YOUR TASK WORKSPACE</p><h1 id="launcher-title">ToDoList Cart</h1></div>
+        <button type="button" class="icon-button" data-open="account.html" aria-label="Open settings" title="Settings">⚙</button>
       </header>
 
-      <section class="filter-panel popup-filters" aria-labelledby="filter-heading" hidden>
-        <div class="section-heading">
-          <h2 id="filter-heading">Filter Products</h2>
-          <span id="product-count">0 products</span>
+      <section class="store-choices" aria-labelledby="choose-store-heading">
+        <div class="section-intro">
+          <h2 id="choose-store-heading">Where would you like to go?</h2>
+          <p>Open your workspace or explore every feature with sample data.</p>
         </div>
-        <div class="filter-controls">
-          <label for="filter-department">Category</label>
-          <select id="filter-department"></select>
-          <label for="filter-priority">Priority</label>
-          <select id="filter-priority">
-            <option value="all">All priorities</option>
-            <option value="standard">Standard</option>
-            <option value="important">Important</option>
-            <option value="urgent">Urgent</option>
-          </select>
-          <div class="stock-filter" role="group" aria-label="Stock availability">
-            <span>Availability</span>
-            <div class="stock-filter-options">
-              <button type="button" data-stock="all" aria-pressed="false">Any</button>
-              <button type="button" data-stock="in-stock" aria-pressed="true">In stock</button>
-              <button type="button" data-stock="out-of-stock" aria-pressed="false">Out of stock</button>
-            </div>
-          </div>
-          <div class="range-filter">
-            <span class="range-filter-label">Total price</span>
-            <div class="range-filter-values"><output id="filter-price-min-output">Any</output><output id="filter-price-max-output">Any</output></div>
-            <div class="range-track">
-              <input id="filter-price-min" type="range" min="0" max="1" step="0.01" aria-label="Minimum price">
-              <input id="filter-price-max" type="range" min="0" max="1" step="0.01" aria-label="Maximum price">
-            </div>
-            <div class="range-reference"><output></output><output></output><output></output></div>
-          </div>
-          <div class="range-filter">
-            <span class="range-filter-label">Time equivalent</span>
-            <div class="range-filter-values"><output id="filter-time-min-output">Any</output><output id="filter-time-max-output">Any</output></div>
-            <div class="range-track">
-              <input id="filter-time-min" type="range" min="0" max="1" step="1" aria-label="Minimum time equivalent">
-              <input id="filter-time-max" type="range" min="0" max="1" step="1" aria-label="Maximum time equivalent">
-            </div>
-            <div class="range-reference"><output></output><output></output><output></output></div>
-          </div>
-          <div class="cart-status-filter" role="group" aria-label="Cart status">
-            <span>Cart status</span>
-            <div class="cart-status-filter-options">
-              <button type="button" data-cart-status="all" aria-pressed="true">All products</button>
-              <button type="button" data-cart-status="in-cart" aria-pressed="false">In cart</button>
-              <button type="button" data-cart-status="not-in-cart" aria-pressed="false">Not in cart</button>
-            </div>
-          </div>
-          <button type="button" id="clear-filters" class="filter-reset">Clear filters</button>
-          <a class="create-product-link" href="create-product.html" target="_blank">+ Create a product</a>
-        </div>
-      </section>
-
-      <section class="store-grid" aria-label="Shopping todo list">
-        <section class="product-shelf" aria-labelledby="products-heading">
-          <div class="section-heading">
-            <h2 id="products-heading">Today's Deals</h2>
-            <span id="visible-count">0 shown</span>
-          </div>
-
-          <ul id="product-list" class="product-list"></ul>
-          <div id="empty-products" class="empty-state" hidden>
-            <strong>No products found</strong>
-            <span>Create a todo product or change the search.</span>
-          </div>
-        </section>
-
-        <aside class="cart-panel" id="cart-panel" aria-labelledby="cart-heading">
-          <div class="section-heading">
-            <h2 id="cart-heading">Shopping Cart</h2>
-            <span id="cart-summary">0 open</span>
-          </div>
-
-          <div class="cart-manager" aria-label="Cart manager">
-            <label class="visually-hidden" for="cart-select">Active cart</label>
-            <select id="cart-select" aria-label="Active cart"></select>
-
-            <button type="button" id="delete-cart" class="secondary-button">Delete Cart</button>
-
-            <form id="cart-form" class="cart-form" autocomplete="off">
-              <label class="visually-hidden" for="cart-name">New cart name</label>
-              <input id="cart-name" type="text" maxlength="40" placeholder="New cart name">
-              <button type="submit" class="primary-button">Create Cart</button>
-            </form>
-          </div>
-
-          <div class="progress-wrap">
-            <div>
-              <span>Checked out</span>
-              <strong id="progress-label">0%</strong>
-            </div>
-            <div class="progress-track" aria-hidden="true">
-              <span id="progress-bar"></span>
-            </div>
-          </div>
-
-          <ul id="cart-list" class="cart-list"></ul>
-          <div id="empty-cart" class="empty-state compact" hidden>
-            <strong>Your cart is empty</strong>
-            <span>Add products from Today's Deals.</span>
-          </div>
-
-          <div class="checkout-actions">
-            <button type="button" id="clear-done" class="secondary-button">Clear Done</button>
-            <button type="button" id="checkout-all" class="checkout-button">Checkout</button>
-          </div>
-        </aside>
-      </section>
-    </main>
-
-    <template id="product-template">
-      <li class="product-card">
-        <div class="product-image">
-          <span></span>
-          <button type="button" class="wishlist-button" aria-label="Add to wishlist">♡</button>
-        </div>
-        <div class="product-copy">
-          <strong class="product-title"></strong>
-          <p class="product-description"></p>
-          <div class="rating-row" aria-label="Priority">
-            <span class="rating-stars" aria-hidden="true">*****</span>
-            <span class="priority-label"></span>
-          </div>
-          <div class="product-meta">
-            <button type="button" class="department-label card-filter-button" data-card-filter="category"></button>
-            <button type="button" class="location-label card-filter-button" data-card-filter="location"><svg class="card-meta-icon location-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg><span class="location-value"></span></button>
-            <span class="moq-label"></span>
-            <span class="units-label"></span>
-            <span class="price-label"></span>
-            <span class="time-label" hidden><svg class="card-meta-icon time-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8"></circle><path d="M12 7v5l3 2"></path></svg><span class="time-value"></span></span>
-            <button type="button" class="comment-count-button"><svg class="comment-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 12a8 8 0 0 1-8 8H7l-4 2 1.5-4A9 9 0 1 1 21 12Z"></path></svg><span class="comment-count-value">0</span></button>
-          </div>
-          <div class="delivery-line">Prime task delivery</div>
-          <span class="stock-status" hidden>Out of stock</span>
-        </div>
-        <div class="product-actions">
-          <button type="button" class="add-cart-button">Add to Cart</button>
-          <button type="button" class="buy-now-button">Buy Now</button>
-        </div>
-      </li>
-    </template>
-
-    <template id="cart-template">
-      <li class="cart-item">
-        <label class="cart-check">
-          <input type="checkbox">
-          <span aria-hidden="true"></span>
-        </label>
-        <div class="cart-product-image"><span></span></div>
-        <div class="cart-copy">
-          <strong></strong>
-          <span></span>
-          <span class="cart-stock"></span>
-        </div>
-        <button type="button" class="remove-cart-button cart-delete-button" aria-label="Remove from cart" title="Remove item">
-          <svg class="action-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path d="M4 7h16"></path>
-            <path d="M10 11v6"></path>
-            <path d="M14 11v6"></path>
-            <path d="M6 7l1 14h10l1-14"></path>
-            <path d="M9 7V4h6v3"></path>
-          </svg>
-          <span class="visually-hidden">Remove</span>
+        <button type="button" class="store-choice live-choice" data-store-mode="live">
+          <span class="choice-icon" aria-hidden="true">🏬</span>
+          <span class="choice-copy"><strong>View Live Store</strong><small>Open your products, carts, and current tasks</small></span>
+          <span class="choice-arrow" aria-hidden="true">→</span>
         </button>
-      </li>
-    </template>
+        <button type="button" class="store-choice demo-choice" data-store-mode="demo">
+          <span class="choice-icon" aria-hidden="true">✨</span>
+          <span class="choice-copy"><strong>View Demo Store</strong><small>Try a complete sample workspace with images</small></span>
+          <span class="choice-arrow" aria-hidden="true">→</span>
+        </button>
+      </section>
 
-    <script src="store.js"></script>
-    <script src="popup.js"></script>
+      <button type="button" class="add-task-button" data-open="create-product.html">
+        <span aria-hidden="true">＋</span>
+        <span><strong>Add New Task</strong><small>Create a new product-style task</small></span>
+      </button>
+
+      <section class="feature-section" aria-labelledby="features-heading">
+        <div class="section-heading"><h2 id="features-heading">Quick access</h2><span>All features</span></div>
+        <div class="feature-grid">
+          <button type="button" data-open="cart.html"><span aria-hidden="true">🛒</span><strong>Cart</strong></button>
+          <button type="button" data-open="products.html?view=wishlist"><span aria-hidden="true">♥</span><strong>Wishlist</strong></button>
+          <button type="button" data-open="order-history.html"><span aria-hidden="true">📦</span><strong>Orders</strong></button>
+          <button type="button" data-open="tally.html"><span aria-hidden="true">📊</span><strong>Analytics</strong></button>
+          <button type="button" data-open="vendors.html"><span aria-hidden="true">🤝</span><strong>Vendors</strong></button>
+          <button type="button" data-open="comments.html"><span aria-hidden="true">💬</span><strong>Comments</strong></button>
+          <button type="button" data-open="products.html?view=archived"><span aria-hidden="true">🗄️</span><strong>Archive</strong></button>
+          <button type="button" data-open="account.html"><span aria-hidden="true">⚙️</span><strong>Settings</strong></button>
+        </div>
+      </section>
+
+      <footer class="launcher-footer">
+        <button type="button" id="request-feature"><span aria-hidden="true">💡</span> Request a Feature</button>
+        <button type="button" id="report-problem">Report a Problem</button>
+      </footer>
+      <p id="launcher-status" class="visually-hidden" role="status" aria-live="polite"></p>
+    </main>
+    <script src="popup-menu.js"></script>
   </body>
 </html>

@@ -16,8 +16,11 @@
     department: searchParams.get("department") || "all",
     query: "",
     wishlistOnly: searchParams.get("view") === "wishlist",
+    archivedOnly: searchParams.get("view") === "archived",
     viewMode: localStorage.getItem("todoListCart.productView") === "list" ? "list" : "card",
-    sortMode: SORT_OPTIONS.has(savedSort) ? savedSort : "default"
+    sortMode: SORT_OPTIONS.has(savedSort) ? savedSort : "default",
+    wishlistPending: new Map(),
+    wishlistSaveQueue: Promise.resolve()
   };
 
   const elements = {
@@ -26,6 +29,7 @@
     searchInput: document.querySelector("#search-products"),
     departments: document.querySelector(".departments"),
     productList: document.querySelector("#product-list"),
+    productsLoadingSkeleton: document.querySelector("#products-loading-skeleton"),
     listingTitle: document.querySelector("#listing-title"),
     sortSelect: document.querySelector("#product-sort"),
     viewButtons: document.querySelectorAll(".view-toggle-button"),
@@ -62,6 +66,7 @@
     const query = state.query.toLowerCase();
 
     const visibleProducts = state.data.products.filter((product) => {
+      if (state.archivedOnly ? !product.archived : product.archived) return false;
       const categoryName = getCategoryName(product);
       const matchesDepartment = state.department === "all" || product.department === state.department;
       const matchesQuery = !query || [
@@ -74,7 +79,8 @@
         product.price
       ].some((value) => String(value).toLowerCase().includes(query));
 
-      const matchesWishlist = !state.wishlistOnly || state.data.wishlist.includes(product.id);
+      const matchesWishlist = !state.wishlistOnly || state.data.wishlist.includes(product.id)
+        || state.wishlistPending.has(product.id);
 
       return matchesDepartment && matchesQuery && matchesWishlist;
     });
@@ -202,7 +208,16 @@
         container.append(image);
       }
     } else {
-      container.append(document.createElement("span"));
+      const placeholder = Store.getProductPlaceholderIcon(state.data, product);
+      if (placeholder.source) {
+        const image = document.createElement("img");
+        image.className = "product-placeholder-icon";
+        image.src = placeholder.source;
+        image.alt = "";
+        container.append(image);
+      } else {
+        container.append(document.createElement("span"));
+      }
     }
 
     const wishlistButton = document.createElement("button");
@@ -213,6 +228,29 @@
     wishlistButton.append(createWishlistIcon());
     container.append(wishlistButton);
 
+  }
+
+  function showWishlistSaving(card, action, title) {
+    if (!card) return;
+    const imageBox = card.querySelector(".product-image");
+    const button = imageBox?.querySelector(".wishlist-button");
+    if (!imageBox || !button) return;
+    const message = action === "adding" ? "Adding to wishlist..." : "Removing from wishlist...";
+    const status = document.createElement("div");
+    const heart = document.createElement("b");
+    const label = document.createElement("small");
+    status.className = "wishlist-saving-status";
+    status.setAttribute("role", "status");
+    heart.textContent = "♥";
+    heart.setAttribute("aria-hidden", "true");
+    label.textContent = message;
+    status.append(heart, label);
+    imageBox.querySelector(".wishlist-saving-status")?.remove();
+    imageBox.append(status);
+    card.classList.add("wishlist-saving");
+    button.disabled = true;
+    button.setAttribute("aria-busy", "true");
+    button.setAttribute("aria-label", `${message} ${title}`);
   }
 
   function moveCarousel(button) {
@@ -306,7 +344,10 @@
     const open = cartProducts.filter((entry) => !entry.item.done).length;
     const total = Store.getTotalAmount(cartProducts.map((entry) => entry.product));
 
-    const displayedCount = state.wishlistOnly ? state.data.wishlist.length : state.data.products.length;
+    const activeProducts = state.data.products.filter((product) => !product.archived);
+    const displayedCount = state.wishlistOnly
+      ? state.data.wishlist.filter((productId) => activeProducts.some((product) => product.id === productId)).length
+      : activeProducts.length;
     elements.productCount.textContent = state.wishlistOnly
       ? `${displayedCount} saved`
       : pluralize(displayedCount, "product", "products");
@@ -316,6 +357,7 @@
   }
 
   function renderProducts() {
+    elements.productsLoadingSkeleton.hidden = true;
     const visibleProducts = getVisibleProducts();
     elements.productList.replaceChildren();
 
@@ -348,6 +390,8 @@
       node.setAttribute("aria-label", `View details for ${product.title}`);
       const isWishlisted = state.data.wishlist.includes(product.id);
       renderProductImage(imageBox, product, isWishlisted);
+      const wishlistAction = state.wishlistPending.get(product.id);
+      if (wishlistAction) showWishlistSaving(node, wishlistAction, product.title);
       title.textContent = product.title;
       description.textContent = product.description || "No additional details provided.";
       stars.textContent = Store.getStars(product.priority);
@@ -477,10 +521,35 @@
   }
 
   async function toggleWishlist(productId) {
-    state.data.wishlist = state.data.wishlist.includes(productId)
-      ? state.data.wishlist.filter((id) => id !== productId)
-      : [...state.data.wishlist, productId];
-    await persistAndRender();
+    if (state.wishlistPending.has(productId)) return;
+    const product = state.data.products.find((entry) => entry.id === productId);
+    if (!product) return;
+    const adding = !state.data.wishlist.includes(productId);
+    const action = adding ? "adding" : "removing";
+    state.wishlistPending.set(productId, action);
+    const card = [...elements.productList.querySelectorAll(".product-card")]
+      .find((entry) => entry.dataset.id === productId);
+    showWishlistSaving(card, action, product.title);
+
+    const saveTask = state.wishlistSaveQueue.then(async () => {
+      const latest = await Store.loadData();
+      latest.wishlist = adding
+        ? [...new Set([...latest.wishlist, productId])]
+        : latest.wishlist.filter((id) => id !== productId);
+      state.data = await Store.saveData(latest);
+    });
+    state.wishlistSaveQueue = saveTask.catch(() => {});
+    try {
+      await Promise.all([saveTask, new Promise((resolve) => setTimeout(resolve, 550))]);
+      state.data = await Store.loadData();
+    } catch (error) {
+      console.error("Could not update wishlist", error);
+      state.data = await Store.loadData();
+      window.alert("Could not update the wishlist. Please try again.");
+    } finally {
+      state.wishlistPending.delete(productId);
+      render();
+    }
   }
 
   function openProductDetail(productId, tabName = "") {
@@ -599,7 +668,7 @@
       }
     });
 
-    elements.openHomePage.addEventListener("click", () => {
+    elements.openHomePage?.addEventListener("click", () => {
       window.location.href = Store.getExtensionUrl("newtab.html");
     });
 
@@ -619,6 +688,7 @@
   async function init() {
     bindEvents();
     state.data = await Store.loadData();
+    await Store.loadBundledIconCollections();
     const preparedProducts = await Promise.all(state.data.products.map(async (product) => {
       const images = await Store.prepareCardImages(product.images || []);
       return {
@@ -632,10 +702,7 @@
       state.data.products = preparedProducts;
       state.data = await Store.saveData(state.data);
     }
-    chrome.storage?.onChanged?.addListener(async (_changes, areaName) => {
-      if (areaName !== "local") {
-        return;
-      }
+    Store.watchDataChanges(async () => {
       state.data = await Store.loadData();
       render();
     });

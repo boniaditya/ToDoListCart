@@ -82,8 +82,7 @@
   async function init() {
     state.data = await Store.loadData();
     render();
-    globalThis.chrome?.storage?.onChanged?.addListener(async (_changes, areaName) => {
-      if (areaName !== "local") return;
+    Store.watchDataChanges(async () => {
       state.data = await Store.loadData();
       render();
     });
